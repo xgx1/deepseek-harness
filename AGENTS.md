@@ -153,4 +153,4 @@ Docs accompany every code change: update affected README and JSDoc contracts tog
 ## Dual-instance self-development (this host only)
 
 - All DSH self-development on this host happens in the `developer` worktree (`/home/sx/MyAI/developer`, branch `dev`) unless explicitly stated otherwise; never edit the main worktree (`/home/sx/MyAI/deepseek-harness`), which serves production.
-- Production: main worktree `master` + `dsh-web.service` (systemd user unit, port 3080, state `~/.dsh`). Dev instance: port 3081, isolated `DSH_HOME=/home/sx/MyAI/developer/.dsh-home`. Invariant and workflows: `~/.dsh/docs/adr/0003` and the project skills `dsh-dev-loop`, `dsh-merge-deploy-master`, `dsh-master-hotfix-sync`.
+- Production: main worktree `master` + `dsh-web.service` (systemd user unit, port 3080, state `~/.dsh`). Dev instance: port 3081, isolated `DSH_HOME=/home/sx/MyAI/developer/.dsh-home`. Invariant and workflows: [the worktree decision record](.agents/notes/implemented/process/2026-09-08-developer-worktree-non-disruptive-self-development.md) and the project skills `dsh-dev-loop`, `dsh-merge-deploy-master`, `dsh-master-hotfix-sync`.

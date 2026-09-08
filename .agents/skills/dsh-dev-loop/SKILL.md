@@ -1,6 +1,6 @@
 ---
 name: dsh-dev-loop
-description: Day-to-day operating rules for self-developing DSH in the `developer` worktree (branch `dev`) without disturbing the running production instance on 3080. Use when changing DSH source, restarting the dev instance on 3081, hot-reloading browser changes, or handling host-side versus client-side edits. This host only; the dual-instance invariant lives in ~/.dsh/docs/adr/0003.
+description: Day-to-day operating rules for self-developing DSH in the `developer` worktree (branch `dev`) without disturbing the running production instance on 3080. Use when changing DSH source, restarting the dev instance on 3081, hot-reloading browser changes, or handling host-side versus client-side edits. This host only; the dual-instance invariant lives in ../../notes/implemented/process/2026-09-08-developer-worktree-non-disruptive-self-development.md.
 ---
 
 # DSH Dev Loop

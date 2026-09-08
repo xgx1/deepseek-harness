@@ -1,6 +1,6 @@
 ---
 name: dsh-master-hotfix-sync
-description: Sync a production hotfix landed directly on `master` back into the `dev` branch so ongoing dev work does not diverge. Use after a hotfix was committed and deployed on master (via `dsh-merge-deploy-master` or a direct rebuild+restart), before resuming dev work. This host only; see ~/.dsh/docs/adr/0003.
+description: Sync a production hotfix landed directly on `master` back into the `dev` branch so ongoing dev work does not diverge. Use after a hotfix was committed and deployed on master (via `dsh-merge-deploy-master` or a direct rebuild+restart), before resuming dev work. This host only; see ../../notes/implemented/process/2026-09-08-developer-worktree-non-disruptive-self-development.md.
 ---
 
 # DSH Master Hotfix Sync

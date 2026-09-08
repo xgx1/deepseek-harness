@@ -1,13 +1,13 @@
 ---
 name: dsh-merge-deploy-master
-description: Merge the `dev` worktree branch into `master`, rebuild the main worktree, and restart the systemd-managed production `dsh web` service on port 3080. Use when development on the `dev` branch is verified and ready to ship to the running production instance without disturbing in-flight agent work more than the brief restart window. This host only; the dual-instance invariant lives in ~/.dsh/docs/adr/0003.
+description: Merge the `dev` worktree branch into `master`, rebuild the main worktree, and restart the systemd-managed production `dsh web` service on port 3080. Use when development on the `dev` branch is verified and ready to ship to the running production instance without disturbing in-flight agent work more than the brief restart window. This host only; the dual-instance invariant lives in ../../notes/implemented/process/2026-09-08-developer-worktree-non-disruptive-self-development.md.
 ---
 
 # DSH Merge Deploy to Master
 
 Ship verified `dev` work to the running production instance. The production process is `dsh-web.service` (systemd user unit) executing `~/.dsh/dsh-web-launch.sh`, which runs the global `dsh` symlink → the main worktree's built `apps/cli/lib/bin.js` on port 3080, state `~/.dsh`. The dev instance on 3081 (isolated `DSH_HOME=/home/sx/MyAI/developer/.dsh-home`) is independent and must keep running through this deploy.
 
-Paths below are this-machine-specific; the invariant (separate worktrees, isolated `DSH_HOME`, `dsh` symlink → main worktree lib) is in ADR-0003.
+Paths below are this-machine-specific; the invariant (separate worktrees, isolated `DSH_HOME`, `dsh` symlink → main worktree lib) is in the [worktree decision record](../../notes/implemented/process/2026-09-08-developer-worktree-non-disruptive-self-development.md).
 
 ## Preflight
 

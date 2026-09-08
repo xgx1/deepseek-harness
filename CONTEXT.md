@@ -1,6 +1,6 @@
 # DeepSeek Harness self-development
 
-Glossary for the dual-instance self-development workflow used to develop DSH while a production instance keeps serving. The concrete, this-host realization (paths, ports, service unit, branch names) lives in `~/.dsh/docs/adr/0003` and the `dsh-dev-*` project skills; this file holds only the terms.
+Glossary for the dual-instance self-development workflow used to develop DSH while a production instance keeps serving. The concrete, this-host realization (paths, ports, service unit, branch names) lives in [the worktree decision record](.agents/notes/implemented/process/2026-09-08-developer-worktree-non-disruptive-self-development.md) and the `dsh-dev-*` project skills; this file holds only the terms.
 
 ## Language
 
