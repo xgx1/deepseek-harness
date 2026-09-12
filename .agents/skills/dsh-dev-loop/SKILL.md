@@ -7,8 +7,8 @@ description: Day-to-day operating rules for self-developing DSH in the `develope
 
 Develop DSH itself here, never in the main worktree. Two instances run on one host:
 
-- **Production**: main worktree `/home/sx/MyAI/deepseek-harness` (branch `master`), `dsh-web.service` (systemd user unit) on `3080`, state `~/.dsh`. Do not touch during dev.
-- **Dev**: worktree `/home/sx/MyAI/developer` (branch `dev`), port `3081`, isolated `DSH_HOME=/home/sx/MyAI/developer/.dsh-home`, reusing the same API key via `source ~/.dsh/dsh-env.sh`.
+- **Production**: main worktree `/home/sx/projects/MyAI/master` (branch `master`), `dsh-web.service` (systemd user unit) on `3080`, state `~/.dsh`. Do not touch during dev.
+- **Dev**: worktree `/home/sx/projects/MyAI/dev` (branch `dev`), port `3081`, isolated `DSH_HOME=/home/sx/projects/MyAI/dev/.dsh-home`, reusing the same API key via `source ~/.dsh/dsh-env.sh`.
 
 The global `dsh` symlink points at the main worktree's built `apps/cli/lib/bin.js`, so editing there would change production on its next restart — edit only in the dev worktree.
 
@@ -30,9 +30,9 @@ Host source is not watched and the dev instance serves compiled artifacts, so ho
 - **Source-launch mode (preferred for host-heavy iteration)**: run the dev instance from source via tsx, so a restart picks up fresh source without any build.
 
   ```sh
-  cd /home/sx/MyAI/developer
+  cd /home/sx/projects/MyAI/dev
   source ~/.dsh/dsh-env.sh
-  export DSH_HOME=/home/sx/MyAI/developer/.dsh-home
+  export DSH_HOME=/home/sx/projects/MyAI/dev/.dsh-home
   exec node --import tsx/esm apps/cli/src/bin.ts web --port 3081 --no-open
   ```
 
@@ -53,9 +53,9 @@ pgrep -af 'scripts/dev-web'       # watcher PID
 Start watcher and dev instance as background processes (or via the harness background-job tool in-session):
 
 ```sh
-cd /home/sx/MyAI/developer && pnpm dev:web
-cd /home/sx/MyAI/developer && source ~/.dsh/dsh-env.sh \
-  && export DSH_HOME=/home/sx/MyAI/developer/.dsh-home \
+cd /home/sx/projects/MyAI/dev && pnpm dev:web
+cd /home/sx/projects/MyAI/dev && source ~/.dsh/dsh-env.sh \
+  && export DSH_HOME=/home/sx/projects/MyAI/dev/.dsh-home \
   && exec node --import tsx/esm apps/cli/src/bin.ts web --port 3081 --no-open
 ```
 
@@ -68,7 +68,7 @@ curl -s -o /dev/null -w "prod 3080: %{http_code}\n" http://127.0.0.1:3080
 
 ## Rules
 
-- Edit only in `/home/sx/MyAI/developer`; the main worktree is production's code source.
+- Edit only in `/home/sx/projects/MyAI/dev`; the main worktree is production's code source.
 - Never run `pnpm run build` in the dev worktree while the watcher is running.
 - Restarting the dev instance never affects production; the only step that touches production is `systemctl --user restart dsh-web`, and that lives in `dsh-merge-deploy-master`.
 - Cross-session process logs are not retained unless redirected; rely on liveness checks and clean restarts.

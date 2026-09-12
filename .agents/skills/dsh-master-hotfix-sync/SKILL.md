@@ -10,8 +10,8 @@ A hotfix sometimes lands on `master` directly (production rebuilt and `dsh-web.s
 ## Check whether sync is needed
 
 ```sh
-git -C /home/sx/MyAI/developer fetch
-git -C /home/sx/MyAI/developer log --oneline dev..master
+git -C /home/sx/projects/MyAI/dev fetch
+git -C /home/sx/projects/MyAI/dev log --oneline dev..master
 ```
 
 If the list is empty, `dev` already contains every master commit — stop.
@@ -19,8 +19,8 @@ If the list is empty, `dev` already contains every master commit — stop.
 ## Merge-forward into dev
 
 ```sh
-git -C /home/sx/MyAI/developer status --short --branch   # must be clean and on dev
-git -C /home/sx/MyAI/developer merge master
+git -C /home/sx/projects/MyAI/dev status --short --branch   # must be clean and on dev
+git -C /home/sx/projects/MyAI/dev merge master
 ```
 
 Resolve conflicts deliberately in `dev`; never force-push or rewrite shared history. Do not `git reset --hard` `dev` onto `master` — that discards dev's own commits.

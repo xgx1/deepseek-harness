@@ -5,7 +5,7 @@ description: Merge the `dev` worktree branch into `master`, rebuild the main wor
 
 # DSH Merge Deploy to Master
 
-Ship verified `dev` work to the running production instance. The production process is `dsh-web.service` (systemd user unit) executing `~/.dsh/dsh-web-launch.sh`, which runs the global `dsh` symlink → the main worktree's built `apps/cli/lib/bin.js` on port 3080, state `~/.dsh`. The dev instance on 3081 (isolated `DSH_HOME=/home/sx/MyAI/developer/.dsh-home`) is independent and must keep running through this deploy.
+Ship verified `dev` work to the running production instance. The production process is `dsh-web.service` (systemd user unit) executing `~/.dsh/dsh-web-launch.sh`, which runs the global `dsh` symlink → the main worktree's built `apps/cli/lib/bin.js` on port 3080, state `~/.dsh`. The dev instance on 3081 (isolated `DSH_HOME=/home/sx/projects/MyAI/dev/.dsh-home`) is independent and must keep running through this deploy.
 
 Paths below are this-machine-specific; the invariant (separate worktrees, isolated `DSH_HOME`, `dsh` symlink → main worktree lib) is in the [worktree decision record](../../notes/implemented/process/2026-09-08-developer-worktree-non-disruptive-self-development.md).
 
@@ -14,7 +14,7 @@ Paths below are this-machine-specific; the invariant (separate worktrees, isolat
 1. Confirm the dev worktree is clean and on `dev`.
 
 ```sh
-git -C /home/sx/MyAI/developer status --short --branch
+git -C /home/sx/projects/MyAI/dev status --short --branch
 ```
 
 If anything is uncommitted, commit it first — a merge deploys only committed history.
@@ -31,7 +31,7 @@ curl -s -o /dev/null -w "%{http_code}\n" http://127.0.0.1:3080
 Merge `dev` into `master` in the **main worktree** as a merge commit (not fast-forward), so the dev history stays traceable.
 
 ```sh
-git -C /home/sx/MyAI/deepseek-harness merge --no-ff dev
+git -C /home/sx/projects/MyAI/master merge --no-ff dev
 ```
 
 ## Rebuild (main worktree, safe while production runs)
@@ -39,8 +39,8 @@ git -C /home/sx/MyAI/deepseek-harness merge --no-ff dev
 The running process keeps its already-loaded modules in memory, so rebuilding files under it does not affect live sessions — only the restart swaps the code. The global `dsh` symlink already points here, so no re-linking is needed.
 
 ```sh
-pnpm -C /home/sx/MyAI/deepseek-harness install --frozen-lockfile   # only if pnpm-lock.yaml changed
-pnpm -C /home/sx/MyAI/deepseek-harness run build
+pnpm -C /home/sx/projects/MyAI/master install --frozen-lockfile   # only if pnpm-lock.yaml changed
+pnpm -C /home/sx/projects/MyAI/master run build
 ```
 
 ## Deploy
@@ -67,7 +67,7 @@ Production must return 200; the dev instance must be untouched.
 Bring the dev branch back in sync with master so future work builds on the shipped code.
 
 ```sh
-git -C /home/sx/MyAI/developer merge --ff-only master
+git -C /home/sx/projects/MyAI/dev merge --ff-only master
 ```
 
 If it cannot fast-forward (master diverged in a way dev doesn't have), stop and reconcile deliberately rather than forcing.
