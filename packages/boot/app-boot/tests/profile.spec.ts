@@ -9,7 +9,7 @@ import {
   unlinkSync, writeFileSync,
 } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
 import { withFileLock } from '@deepseek-ai/dsh-atomic-write'
 import { afterAll, describe, expect, it } from 'vitest'
 import {
@@ -591,6 +591,77 @@ describe('healProfilesModuleFallback', () => {
 
     expect(existsSync(profileLink)).toBe(false)
     expect(existsSync(join(ownedModules, 'fallback'))).toBe(false)
+  })
+
+  it('heals a dangling dsh-owned projection from a copied profile directory', async () => {
+    const installationAnchor = stageInstallation({})
+    const bundleAnchor = stageInstallation({ 'bundle-only': {} }, 'selected-bundle')
+    const home = tmp()
+    const profile = stageProfile(home, 'copied', bundleAnchor)
+    await healProfilesModuleFallback({ installAnchor: installationAnchor, profile, home })
+    const profileLink = join(profile.dir, 'node_modules', 'bundle-only')
+    const ownedLink = join(profile.dir, '.dsh-module-fallback', 'node_modules', 'bundle-only')
+    const staleTarget = join(tmp(), 'old-home', 'profiles', 'copied', '.dsh-module-fallback', 'node_modules', 'bundle-only')
+    unlinkSync(profileLink)
+    symlinkSync(staleTarget, profileLink, 'junction')
+
+    await healProfilesModuleFallback({ installAnchor: installationAnchor, profile, home })
+
+    expect(readlinkSync(profileLink)).toBe(ownedLink)
+    expect(realpathSync.native(profileLink)).toBe(realpathSync.native(ownedLink))
+  })
+
+  it('preserves a foreign projection while healing dsh-owned ones', async () => {
+    const installationAnchor = stageInstallation({})
+    const bundleAnchor = stageInstallation({ 'bundle-only': {} }, 'selected-bundle')
+    const home = tmp()
+    const profile = stageProfile(home, 'foreign-projection', bundleAnchor)
+    const profileLink = join(profile.dir, 'node_modules', 'bundle-only')
+    mkdirSync(dirname(profileLink), { recursive: true })
+    const foreignTarget = tmp()
+    symlinkSync(foreignTarget, profileLink, 'junction')
+
+    await healProfilesModuleFallback({ installAnchor: installationAnchor, profile, home })
+
+    expect(readlinkSync(profileLink)).toBe(foreignTarget)
+  })
+
+  it('leaves a pnpm-managed package directory untouched', async () => {
+    const installationAnchor = stageInstallation({})
+    const bundleAnchor = stageInstallation({ 'bundle-only': {} }, 'selected-bundle')
+    const home = tmp()
+    const profile = stageProfile(home, 'pnpm-dir', bundleAnchor)
+    const profileLink = join(profile.dir, 'node_modules', 'bundle-only')
+    mkdirSync(profileLink, { recursive: true })
+    writeFileSync(join(profileLink, 'package.json'), JSON.stringify({ name: 'bundle-only', version: '9.9.9' }))
+
+    await healProfilesModuleFallback({ installAnchor: installationAnchor, profile, home })
+
+    expect(lstatSync(profileLink).isDirectory()).toBe(true)
+    expect(readlinkSync(join(profile.dir, '.dsh-module-fallback', 'node_modules', 'bundle-only')))
+      .toContain('bundle-only')
+  })
+
+  it('removes an obsolete dangling projection rather than leaving it behind', async () => {
+    const installationAnchor = stageInstallation({})
+    const bundleAnchor = stageInstallation({ 'bundle-only': {} }, 'selected-bundle')
+    const home = tmp()
+    const profile = stageProfile(home, 'obsolete', bundleAnchor)
+    await healProfilesModuleFallback({ installAnchor: installationAnchor, profile, home })
+    const profileLink = join(profile.dir, 'node_modules', 'bundle-only')
+    const ownedLink = join(profile.dir, '.dsh-module-fallback', 'node_modules', 'bundle-only')
+    const staleTarget = join(tmp(), 'old-home', 'profiles', 'obsolete', '.dsh-module-fallback', 'node_modules', 'bundle-only')
+    unlinkSync(profileLink)
+    symlinkSync(staleTarget, profileLink, 'junction')
+
+    await healProfilesModuleFallback({
+      installAnchor: installationAnchor,
+      profile: { ...profile, layers: [] },
+      home,
+    })
+
+    expect(existsSync(profileLink)).toBe(false)
+    expect(existsSync(ownedLink)).toBe(false)
   })
 
   it('replaces a wrong symlink', async () => {
