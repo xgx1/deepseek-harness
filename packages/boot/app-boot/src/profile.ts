@@ -255,14 +255,29 @@ function symlinkPointsTo(link: string, target: string): boolean {
   return canonicalActual !== undefined && canonicalActual === canonicalTarget
 }
 
-/** Add one profile-owned fallback link without replacing a pnpm-managed entry. */
+/** Return whether a symlink target names a dsh-owned profile module fallback. */
+function isModuleFallbackTarget(target: string): boolean {
+  return target.replaceAll('\\', '/').includes(`/${PROFILE_MODULE_FALLBACK_DIR}/node_modules/`)
+}
+
+/**
+ * Add one profile-owned fallback link without replacing a pnpm-managed entry.
+ * A dsh-owned projection whose target moved or vanished — a copied or migrated
+ * profile directory leaves absolute links dangling — is rebuilt; a foreign
+ * entry, including a user symlink, stays untouched.
+ */
 function ensureProfileSymlink(link: string, target: string): void {
+  let stat
   try {
-    lstatSync(link)
-    return
+    stat = lstatSync(link)
   } catch (error) {
     /* v8 ignore next -- a non-ENOENT lstat failure requires a host filesystem fault */
     if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
+    stat = undefined
+  }
+  if (stat !== undefined) {
+    if (!stat.isSymbolicLink() || !isModuleFallbackTarget(readlinkSync(link))) return
+    if (symlinkPointsTo(link, target)) return
   }
   ensureSymlink(link, target)
 }
@@ -279,12 +294,15 @@ function ownedPackageNames(modulesDir: string): string[] {
   })
 }
 
-/** Remove an obsolete owned target and its profile projection when still connected. */
+/** Remove an obsolete owned target and its profile projection when connected or dsh-owned. */
 function removeProfileSymlink(profileModulesDir: string, ownedModulesDir: string, packageName: string): void {
   const ownedLink = join(ownedModulesDir, packageName)
   const profileLink = join(profileModulesDir, packageName)
   try {
-    if (lstatSync(profileLink).isSymbolicLink() && symlinkPointsTo(profileLink, ownedLink)) unlinkSync(profileLink)
+    if (lstatSync(profileLink).isSymbolicLink()
+      && (symlinkPointsTo(profileLink, ownedLink) || isModuleFallbackTarget(readlinkSync(profileLink)))) {
+      unlinkSync(profileLink)
+    }
   } catch (error) {
     /* v8 ignore next -- a non-ENOENT lstat failure requires a host filesystem fault */
     if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
