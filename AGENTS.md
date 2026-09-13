@@ -153,8 +153,3 @@ Docs accompany every code change: update affected README and JSDoc contracts tog
 ## Vendoring policy
 
 `vendor/` packages are pinned source copies (manifest with upstream SHAs in [vendor/README.md](vendor/README.md)). Update via the sync procedure there; re-apply or retire the logged local modifications; rerun `pnpm run test && pnpm run build`.
-
-## Self-development on this host
-
-- DSH self-development happens in this worktree (`master`); the separate `developer` worktree and its 3081 dev instance were retired on 2026-09-13.
-- The `dsh` symlink and `dsh-web.service` (port 3080, state `~/.dsh`) serve production from here, so editing changes what production loads at its next restart — which interrupts the active conversation. Confirm before restarting. Procedure: `dsh-deploy-master`.
