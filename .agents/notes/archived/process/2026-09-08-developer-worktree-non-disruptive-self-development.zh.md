@@ -1,6 +1,7 @@
 # Agent Note: developer worktree 双实例自举开发（不打断生产）
 
 Status: implemented
+Archived: 2026-09-13
 
 [English](2026-09-08-developer-worktree-non-disruptive-self-development.md) | 中文
 

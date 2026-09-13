@@ -154,7 +154,7 @@ Docs accompany every code change: update affected README and JSDoc contracts tog
 
 `vendor/` packages are pinned source copies (manifest with upstream SHAs in [vendor/README.md](vendor/README.md)). Update via the sync procedure there; re-apply or retire the logged local modifications; rerun `pnpm run test && pnpm run build`.
 
-## Dual-instance self-development (this host only)
+## Self-development on this host
 
-- All DSH self-development on this host happens in the `developer` worktree (`/home/sx/projects/MyAI/dev`, branch `dev`) unless explicitly stated otherwise; never edit the main worktree (`/home/sx/projects/MyAI/master`), which serves production.
-- Production: main worktree `master` + `dsh-web.service` (systemd user unit, port 3080, state `~/.dsh`). Dev instance: port 3081, isolated `DSH_HOME=/home/sx/projects/MyAI/dev/.dsh-home`. Invariant and workflows: [the worktree decision record](.agents/notes/implemented/process/2026-09-08-developer-worktree-non-disruptive-self-development.md) and the project skills `dsh-dev-loop`, `dsh-merge-deploy-master`, `dsh-master-hotfix-sync`.
+- DSH self-development happens in this worktree (`master`); the separate `developer` worktree and its 3081 dev instance were retired on 2026-09-13.
+- The `dsh` symlink and `dsh-web.service` (port 3080, state `~/.dsh`) serve production from here, so editing changes what production loads at its next restart — which interrupts the active conversation. Confirm before restarting. Procedure: `dsh-deploy-master`.
