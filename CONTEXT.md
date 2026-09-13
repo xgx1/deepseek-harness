@@ -15,7 +15,7 @@ _Avoid_: 发布、上线
 ## This host
 
 **Self-development checkout**:
-This worktree (`master`, branch `master`); the separate `developer` worktree and its 3081 dev instance were retired on 2026-09-13.
+This worktree (directory `deepseek-harness`, branch `master` — the directory was renamed from `master` on 2026-09-13); the separate `developer` worktree and its 3081 dev instance were retired on 2026-09-13.
 _Avoid_: dev worktree、dev 分支
 
 **Production restart**:

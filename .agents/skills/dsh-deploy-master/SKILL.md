@@ -14,7 +14,7 @@ Self-development happens in this same worktree, so there is no branch to merge: 
 1. Confirm the worktree is clean and on `master`. Commit before deploying — the rebuild ships whatever is in the tree.
 
 ```sh
-git -C /home/sx/projects/MyAI/master status --short --branch
+git -C /home/sx/projects/MyAI/deepseek-harness status --short --branch
 ```
 
 2. Confirm production is healthy. **The restart interrupts the active conversation**, so confirm with the user before running it.
@@ -29,8 +29,8 @@ curl -s -o /dev/null -w "%{http_code}\n" http://127.0.0.1:3080
 The running process keeps its already-loaded modules in memory, so rebuilding files under it does not affect live sessions — only the restart swaps the code. The global `dsh` symlink already points here, so no re-linking is needed.
 
 ```sh
-pnpm -C /home/sx/projects/MyAI/master install --frozen-lockfile   # only if pnpm-lock.yaml changed
-pnpm -C /home/sx/projects/MyAI/master run build
+pnpm -C /home/sx/projects/MyAI/deepseek-harness install --frozen-lockfile   # only if pnpm-lock.yaml changed
+pnpm -C /home/sx/projects/MyAI/deepseek-harness run build
 ```
 
 ## Restart
