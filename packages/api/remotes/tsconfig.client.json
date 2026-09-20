@@ -78,6 +78,9 @@
       "path": "../settings-controller"
     },
     {
+      "path": "../skill-filter-controller"
+    },
+    {
       "path": "../workspace-controller/tsconfig.client.json"
     },
     {

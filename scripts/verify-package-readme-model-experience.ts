@@ -45,6 +45,8 @@ const NO_MODEL_EXPERIENCE_SECTION: Readonly<Record<string, string>> = {
  */
 const SENTENCE_MODEL_EXPERIENCE: Readonly<Record<string, SentenceContract>> = {
   'packages/api/terminal-controller': { kind: 'none', reason: 'User-owned terminal processes and screen streams never enter model requests or Session events.' },
+  'packages/api/skill-filter-controller': { kind: 'none', reason: 'The owner only reads, validates, and persists the YAML config files; the catalog filtering those rules produce belongs to dsh-skill-filter.' },
+  'packages/client/ui-skill-filter': { kind: 'none', reason: 'Browser-side settings and Sidebar surfaces for rules dsh-skill-filter applies; the package registers nothing model-facing.' },
   'packages/client/ui-sidebar-terminal': { kind: 'none', reason: 'The browser renders user terminal screens without exposing them to the model.' },
   'packages/ssh/ssh': { kind: 'none', reason: 'The connection owner transports private provider operations; consumers own all model-facing content.' },
   'packages/ssh/fs-ssh': { kind: 'indirect', reason: 'The remote filesystem delegates model rendering to the existing filesystem consumers.' },

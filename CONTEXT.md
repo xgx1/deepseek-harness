@@ -22,6 +22,16 @@ _Avoid_: dev worktree、dev 分支
 The `dsh` symlink and `dsh-web.service` (port 3080, state `~/.dsh`) serve production from this worktree, so editing changes what production loads at its next restart — which interrupts the active conversation. Confirm before restarting; procedure in `dsh-deploy-master`.
 _Avoid_: 重载、热更新
 
+## Skill filtering
+
+**Skill Filter Plugin**:
+`dsh-skill-filter` hides denied skills from the model catalog while keeping them `/name`-callable (ADR-0001, ADR-0002).
+_Avoid_: 技能过滤、技能白名单
+
+**Skill Filter Config**:
+`~/.dsh/skill-filter.yaml` (personal) and `<cwd>/.dsh/skill-filter.yaml` (project overrides personal); required `allow`, optional `deny`, specific names beat globs.
+_Avoid_: 技能配置、过滤配置
+
 ## Retired
 
-The dual-instance workflow was retired on 2026-09-13. It comprised a separate `developer` worktree on branch `dev`, a second `dsh web` instance on port 3081 with isolated `DSH_HOME`, and the Merge Deploy / Hotfix Sync procedures that moved work between the branches. DSH self-development now happens directly in this worktree; the setup, its decision record, and its skills were removed, and remain available in git history.
+The dual-instance workflow — a separate `developer` worktree, a 3081 dev instance, and the Merge Deploy / Hotfix Sync procedures — was retired on 2026-09-13 and remains only in git history.

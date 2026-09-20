@@ -114,6 +114,12 @@
     - id: settings-controller
       name: '@deepseek-ai/dsh-api-settings-controller'
 
+    # Skill-filter config reads and writes over Typert Remote. The owner also
+    # publishes persisted config writes so the preset-plane provider can
+    # invalidate its catalog without crossing fibers through an event.
+    - id: skill-filter-controller
+      name: '@deepseek-ai/dsh-api-skill-filter-controller'
+
     # Workspace commands and reconnect-safe projection over Typert Remote.
     - id: workspace-controller
       name: '@deepseek-ai/dsh-api-workspace-controller'
@@ -242,6 +248,11 @@
     # The right Sidebar's workspace file tree tab type.
     - id: ui-sidebar-files
       name: '@deepseek-ai/dsh-client-ui-sidebar-files'
+
+    # Skill filtering: the Settings page for the personal rule lists and the
+    # right-Sidebar tab for the merged rules plus the project override.
+    - id: ui-skill-filter
+      name: '@deepseek-ai/dsh-client-ui-skill-filter'
 
     - id: ui-settings
       name: '@deepseek-ai/dsh-client-ui-settings'

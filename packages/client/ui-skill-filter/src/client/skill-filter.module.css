@@ -1,0 +1,172 @@
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+  overflow-y: auto;
+}
+
+.heading {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.title {
+  font-size: 13px;
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border: 0.5px solid var(--dsw-alias-border-secondary, rgba(127, 127, 127, 0.35));
+  border-radius: 8px;
+}
+
+.note {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--dsw-alias-text-secondary, inherit);
+}
+
+.error {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--dsw-alias-text-danger, #d14343);
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ruleList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ruleHeading {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.patterns {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.patternRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.patternInput {
+  flex: 1;
+  min-width: 0;
+  padding: 4px 8px;
+  font: inherit;
+  font-size: 12px;
+  color: inherit;
+  background: transparent;
+  border: 0.5px solid var(--dsw-alias-border-secondary, rgba(127, 127, 127, 0.35));
+  border-radius: 6px;
+}
+
+.groups {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.groupRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.groupName {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--dsw-font-mono, monospace);
+}
+
+.search {
+  width: 100%;
+}
+
+.skills {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.skillRow {
+  display: grid;
+  grid-template-columns: minmax(120px, 1fr) minmax(120px, 2fr) auto auto;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  font-size: 12px;
+}
+
+.skillName {
+  font-family: var(--dsw-font-mono, monospace);
+  overflow-wrap: anywhere;
+}
+
+.skillDescription {
+  color: var(--dsw-alias-text-secondary, inherit);
+  overflow-wrap: anywhere;
+}
+
+.skillState {
+  padding: 0 6px;
+  border-radius: 999px;
+  corner-shape: round;
+  border: 0.5px solid var(--dsw-alias-border-secondary, rgba(127, 127, 127, 0.35));
+}
+
+.skillState[data-state='visible'] {
+  color: var(--dsw-alias-text-success, #2e7d32);
+}
+
+.skillState[data-state='hidden'] {
+  color: var(--dsw-alias-text-secondary, inherit);
+}
+
+.skillActions {
+  display: flex;
+  gap: 4px;
+}
+
+.mergedPatterns {
+  margin: 0;
+  font-size: 12px;
+  font-family: var(--dsw-font-mono, monospace);
+  overflow-wrap: anywhere;
+}
