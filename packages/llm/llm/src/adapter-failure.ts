@@ -4,11 +4,16 @@
  * @module @deepseek-ai/dsh-llm/adapter-failure
  */
 
-import { HarnessError } from './error.ts'
+import { codeForHttpStatus, HarnessError } from './error.ts'
 import type { LlmFailure } from './types.ts'
 
 /**
  * Detach serializable provider facts from a value thrown by an adapter.
+ *
+ * A value that carries no harness-owned `failure` snapshot still contributes
+ * one observable provider fact: an own numeric HTTP status. Classifying that
+ * status keeps a server-side failure thrown by a third-party SDK inside the
+ * retry policy's decision instead of collapsing it to `UNKNOWN`.
  * @param value - arbitrary value thrown during adapter dispatch or iteration.
  * @returns immutable provider-neutral facts suitable for a terminal finish chunk.
  * @internal
@@ -21,10 +26,33 @@ export function normalizeLlmFailure(value: unknown): LlmFailure {
   // carried facts only when both own properties agree after validation.
   const carried = ownFailureSnapshot(error)
   if (carried !== undefined && carried.code === ownErrorCode(error)) return carried
+  const status = ownHttpStatus(error) ?? ownHttpStatus(value)
   return Object.freeze({
     message: errorMessage(error),
-    code: harnessErrorCode(error),
+    code: status === undefined ? harnessErrorCode(error) : codeForHttpStatus(status),
+    ...status === undefined ? {} : { status },
   })
+}
+
+/**
+ * Read an own numeric HTTP status without invoking an SDK-defined accessor.
+ * @param value - thrown value, or its carrier Error.
+ * @returns the status when an own data property holds a plausible HTTP code.
+ */
+function ownHttpStatus(value: unknown): number | undefined {
+  if (typeof value !== 'object' || value === null) return undefined
+  for (const key of ['status', 'statusCode']) {
+    try {
+      const descriptor = Object.getOwnPropertyDescriptor(value, key)
+      const candidate: unknown = descriptor !== undefined && 'value' in descriptor ? descriptor.value : undefined
+      if (Number.isInteger(candidate) && (candidate as number) >= 100 && (candidate as number) <= 599) {
+        return candidate as number
+      }
+    } catch (_sdkPropertyTrap) {
+      // A trapped descriptor yields no status; the failure keeps its UNKNOWN code.
+    }
+  }
+  return undefined
 }
 
 /** Render a non-Error throw without letting hostile coercion escape normalization. */

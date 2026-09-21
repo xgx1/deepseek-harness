@@ -11,6 +11,7 @@
 import { brandString } from '@deepseek-ai/dsh-brand'
 import { EMPTY_RESPONSE_CODE, LlmError } from '@deepseek-ai/dsh-llm'
 import type { ContentBlock, FinishReason, StreamChunk, TokenUsage, ToolCallId } from '@deepseek-ai/dsh-llm'
+import { inBandProviderErrorCode } from '../../common/provider-error.ts'
 import { DONE } from './sse.ts'
 import type { WireChunk, WireUsage } from './types.ts'
 
@@ -102,7 +103,10 @@ function closeBlock(block: OpenBlock): ContentBlock {
 
 /**
  * Consume SSE data payloads (ending with `[DONE]`) and yield StreamChunks.
- * Malformed JSON payloads abort the stream with `MALFORMED_RESPONSE`.
+ * Malformed JSON payloads abort the stream with `MALFORMED_RESPONSE`. An error
+ * envelope delivered in band on a 200 response aborts it as a classified
+ * provider failure, so a gateway error mid-stream never closes the attempt as a
+ * successful answer.
  * @param payloads - SSE data payloads from {@link parseSse}, `[DONE]`-terminated.
  * @returns deltas as they arrive; `block-end`s, `usage`, and `finish` are all deferred to the `[DONE]` sentinel.
  *   A `stop` (or absent) finish with no opened blocks is a degenerate provider completion and maps to an
@@ -147,6 +151,22 @@ export async function* translate(payloads: AsyncIterable<string>): AsyncGenerato
       chunk = JSON.parse(payload) as WireChunk
     } catch {
       throw new LlmError(`malformed SSE payload: ${payload.slice(0, 120)}`, 'MALFORMED_RESPONSE')
+    }
+
+    // A gateway may report a failed upstream as an in-band error envelope on a
+    // 200 response; `error: null` is not one, so it stays a content chunk.
+    if (chunk.error !== undefined && chunk.error !== null) {
+      const fields = chunk.error
+      throw new LlmError(
+        typeof fields.message === 'string' && fields.message.length > 0
+          ? fields.message
+          : 'DeepSeek stream error',
+        inBandProviderErrorCode({
+          ...fields.code === undefined ? {} : { code: fields.code },
+          ...fields.type === undefined ? {} : { type: fields.type },
+          ...fields.message === undefined ? {} : { message: fields.message },
+        }),
+      )
     }
 
     for (const choice of chunk.choices ?? []) {
@@ -206,5 +226,5 @@ export async function* translate(payloads: AsyncIterable<string>): AsyncGenerato
 
   // parseSse guarantees the [DONE] sentinel (or throws); reaching here means
   // the payload source violated that contract.
-  throw new LlmError('SSE payload stream ended without [DONE]', 'STREAM_CLOSED')
+  throw new LlmError('SSE payload stream ended without [DONE]', 'TRANSPORT')
 }

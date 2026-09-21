@@ -40,13 +40,15 @@ interface LlmFailure {
 
 `code` 仍是 `HarnessError` 建立的 provider-neutral 机器路由分类；新字段是在 provider 边界观测到的事实。`ProviderRequestId` 由 `dsh-llm` 拥有并构造，序列化后是 provider 发放的字符串。该 payload 有意不包含 `retryable`、`failover`、`partialOutput`、provider、model、phase 或 route id。是否可重试属于 policy，provider/model 已位于持久 request header 中，部分输出由失败 attempt 的嵌入式 stream 保留。
 
-`LlmError` 携带 `failure: LlmFailure`，并保持 `failure.code === error.code`。`FinishReasonMap.error` 和 `FinishReasonMap.aborted` 携带同一载荷，而不是并行的失败形状。最终适配器边界会从适配器抛出值中分离这些事实，并发出相应的终止 finish；未知 SDK 异常会获得 `UNKNOWN` 载荷。精确的抛出对象身份不会跨越 LLM 流 seam。
+`LlmError` 携带 `failure: LlmFailure`，并保持 `failure.code === error.code`。`FinishReasonMap.error` 和 `FinishReasonMap.aborted` 携带同一载荷，而不是并行的失败形状。最终适配器边界会从适配器抛出值中分离这些事实，并发出相应的终止 finish。不带 harness failure 快照的抛出值，只要自身带有 HTTP status 仍会贡献它，并按适配器使用的同一套 code 分类——5xx 与 425 Too Early 为 `SERVER`、408 Request Timeout 为 `TIMEOUT`、429 为 `RATE_LIMIT`——因此第三方 SDK 抛出的服务器侧失败会到达重试策略。没有可分类 status 的异常仍会获得 `UNKNOWN` 载荷。精确的抛出对象身份不会跨越 LLM 流 seam。
 
 agent loop（智能体循环）会将终止 finish 的 `LlmFailure` 传给 `agent/request-error`，并在记录未恢复的 `turn/end.reason` 时使用同一载荷。
 
 适配器会先提取结构化事实，再回退到消息检查。它们会验证 HTTP 状态，将 `Retry-After` 的秒数或日期解析为正的有限毫秒延迟，在提供方公开请求 id 时将其品牌化，并区分自身超时与调用方中止。提供方专用 code 和消息可以细化映射，但恢复监听器不会解析它们。
 
-共享的暂时性 code 集有意保持很小：适配器针对 `RATE_LIMIT` 和 `SERVER` 的映射，远程失败使用的显式 `TIMEOUT` 和 `TRANSPORT` code，以及提供方响应已完成却没有内容块时使用的 `EMPTY_RESPONSE`。两个适配器都会把最后一种情况归类为错误 finish；详见[空模型响应可重试](../../archived/bug-fix/2026-07-24-empty-model-response-is-retryable.md)。身份验证、配额、无效请求、上下文溢出、协议、中止和未知失败都保留不同的稳定 code，且默认不属于暂时性失败。新增 code 需要适配器 fixture（测试前置数据）和已记录的策略决策；无需扩展第二个失败类枚举。
+共享的暂时性 code 集有意保持很小：适配器针对 `RATE_LIMIT` 和 `SERVER` 的映射，远程失败使用的显式 `TIMEOUT` 和 `TRANSPORT` code，以及提供方响应已完成却没有内容块时使用的 `EMPTY_RESPONSE`。两个适配器都会把最后一种情况归类为错误 finish；详见[空模型响应可重试](../../archived/bug-fix/2026-07-24-empty-model-response-is-retryable.md)。身份验证、配额、无效请求、上下文溢出、协议、中止和未知失败都保留不同的稳定 code，且默认不属于暂时性失败；HTTP 429 状态即使响应体点名配额或账单条件也按限流处理，因为该状态本身就是限流指令，尝试的取舍归重试策略。新增 code 需要适配器 fixture（测试前置数据）和已记录的策略决策；无需扩展第二个失败类枚举。
+
+提供方报告的每一类失败都被分类进该集合，或进一个点名终止条件的 code，因此没有服务器侧错误会以未分类状态到达策略。状态映射负责错误体无法区分的可用性状态——5xx 与 425 Too Early 为 `SERVER`、408 Request Timeout 为 `TIMEOUT`、429 为 `RATE_LIMIT`（状态优先于配额措辞）；在终止符之前被截断的响应为 `TRANSPORT`，因为关闭它的是远端；200 响应上带内交付的错误信封默认为 `SERVER`，因为报告它的是服务器；pi-ai 的暂时性提供方判定式则分类适配器未枚举的提供方措辞，同时仍然挡住配额、账单与真正未知的失败。
 
 ### 将重试策略放在现有失败步骤扩展点上
 

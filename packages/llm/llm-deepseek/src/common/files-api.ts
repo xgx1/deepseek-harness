@@ -49,13 +49,19 @@ export class DeepSeekFilesError extends LlmError {
    * @param detail - provider error fields joined for classification.
    */
   constructor(message: string, status: number, detail: string) {
-    super(message, status === 401 || status === 403
-      ? 'AUTH'
-      : status === 429
-        ? 'RATE_LIMIT'
-        : status >= 500
-          ? 'SERVER'
-          : 'FILES_API', { status })
+    // Availability statuses keep the codes the model-request boundary uses, so a
+    // Files failure the provider reported is retried like any other.
+    super(message, status === 408
+      ? 'TIMEOUT'
+      : status === 425
+        ? 'SERVER'
+        : status === 401 || status === 403
+          ? 'AUTH'
+          : status === 429
+            ? 'RATE_LIMIT'
+            : status >= 500
+              ? 'SERVER'
+              : 'FILES_API', { status })
     this.name = 'DeepSeekFilesError'
     this.detail = detail
   }

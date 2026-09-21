@@ -833,6 +833,8 @@ describe('toStreamChunks', () => {
   it('rejects a stream that ends without done or error', async () => {
     await expect(collect(toStreamChunks(feed({ type: 'start', partial: assistant() }))))
       .rejects.toThrow(/without done\/error/)
+    await expect(collect(toStreamChunks(feed({ type: 'start', partial: assistant() }))))
+      .rejects.toMatchObject({ code: 'TRANSPORT' })
   })
 
   it('preserves an unknown SDK iterator Error exactly', async () => {
@@ -889,11 +891,13 @@ describe('mapStopReason / mapUsage', () => {
     expect(mapStopReason(assistant({ stopReason: 'error', errorMessage: 'HTTP 429: rate limit' })))
       .toMatchObject({ kind: 'error', failure: { code: 'RATE_LIMIT' } })
     expect(mapStopReason(assistant({ stopReason: 'error', errorMessage: 'HTTP 429: insufficient_quota' })))
-      .toMatchObject({ kind: 'error', failure: { code: 'QUOTA' } })
+      .toMatchObject({ kind: 'error', failure: { code: 'RATE_LIMIT' } })
     expect(mapStopReason(assistant({
       stopReason: 'error',
       errorMessage: 'OpenAI API error (429): You exceeded your current quota, please check your plan and billing details.',
-    }))).toMatchObject({ kind: 'error', failure: { code: 'QUOTA' } })
+    }))).toMatchObject({ kind: 'error', failure: { code: 'RATE_LIMIT' } })
+    expect(mapStopReason(assistant({ stopReason: 'error', errorMessage: 'insufficient_quota' })))
+      .toMatchObject({ kind: 'error', failure: { code: 'QUOTA' } })
     expect(mapStopReason(assistant({ stopReason: 'error', errorMessage: 'HTTP 500: backend down' })))
       .toMatchObject({ kind: 'error', failure: { code: 'SERVER' } })
     expect(mapStopReason(assistant({ stopReason: 'error', errorMessage: 'provider timed out' })))
@@ -922,6 +926,37 @@ describe('mapStopReason / mapUsage', () => {
       stopReason: 'error',
       errorMessage: 'vector length limit exceeded',
     }))).toMatchObject({ kind: 'error', failure: { code: 'PI_AI_ERROR' } })
+  })
+
+  it('routes unenumerated provider-side wording through pi-ai transient classification', () => {
+    // Wording this adapter does not enumerate: pi-ai's own transient predicate
+    // recognizes it as a server-side failure, so retry policy decides it.
+    expect(mapStopReason(assistant({ stopReason: 'error', errorMessage: 'Overloaded' })))
+      .toMatchObject({ kind: 'error', failure: { code: 'SERVER' } })
+    expect(mapStopReason(assistant({ stopReason: 'error', errorMessage: 'Service Unavailable' })))
+      .toMatchObject({ kind: 'error', failure: { code: 'SERVER' } })
+    expect(mapStopReason(assistant({ stopReason: 'error', errorMessage: 'Internal Server Error' })))
+      .toMatchObject({ kind: 'error', failure: { code: 'SERVER' } })
+    expect(mapStopReason(assistant({ stopReason: 'error', errorMessage: 'Provider returned error' })))
+      .toMatchObject({ kind: 'error', failure: { code: 'SERVER' } })
+    expect(mapStopReason(assistant({
+      stopReason: 'error',
+      errorMessage: 'exceeded request buffer limit while retrying upstream',
+    }))).toMatchObject({ kind: 'error', failure: { code: 'SERVER' } })
+  })
+
+  it('keeps genuinely unknown and account-limit failures out of the transient bucket', () => {
+    expect(mapStopReason(assistant({ stopReason: 'error', errorMessage: 'boom' })))
+      .toMatchObject({ kind: 'error', failure: { code: 'PI_AI_ERROR' } })
+    // pi-ai's transient predicate names these account limits non-retryable, so
+    // the fallback leaves them alone even though DSH's own patterns do not
+    // recognize the wording.
+    expect(mapStopReason(assistant({ stopReason: 'error', errorMessage: 'GoUsageLimitError: plan limit reached' })))
+      .toMatchObject({ kind: 'error', failure: { code: 'PI_AI_ERROR' } })
+    expect(mapStopReason(assistant({ stopReason: 'error', errorMessage: 'FreeUsageLimitError: monthly usage limit reached' })))
+      .toMatchObject({ kind: 'error', failure: { code: 'QUOTA' } })
+    expect(mapStopReason(assistant({ stopReason: 'error', errorMessage: 'billing: insufficient balance' })))
+      .toMatchObject({ kind: 'error', failure: { code: 'QUOTA' } })
   })
 
   it.each([

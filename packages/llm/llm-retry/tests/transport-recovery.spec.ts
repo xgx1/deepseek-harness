@@ -175,11 +175,12 @@ describe('bounded retry through the real DeepSeek HTTP/SSE adapter', () => {
     expect(finalAssistantText(agent)).toBe('recovered from empty')
   })
 
-  it('exposes a clean partial EOF as non-default-retryable STREAM_CLOSED', async () => {
+  it('retries a clean partial EOF as TRANSPORT', async () => {
     const server = await start(['partial_eof', 'success'], {
       apiKey: 'mock-key',
       partialText: 'discarded clean eof',
       chunkSize: 100,
+      successText: 'recovered after clean eof',
     })
     context = await harness(server.baseURL)
     const agent = await context.agentLoop.create(SessionId('wire-partial-eof'), {
@@ -189,15 +190,71 @@ describe('bounded retry through the real DeepSeek HTTP/SSE adapter', () => {
 
     await sendAndWait(context, agent)
 
-    expect(server.requests).toHaveLength(1)
-    const attempt = agent.session.snapshotEvents().find(event => event.type === 'assistant/attempt' && event.data.turn === 1)
-    expect(attempt?.type === 'assistant/attempt' ? expandAssistantStream(attempt.data.stream) : []).toHaveLength(3)
-    expect(agent.session.snapshotEvents().some(event => event.type === 'assistant/message')).toBe(false)
-    expect(agent.session.snapshotEvents().some(event => event.type === 'llm/retry')).toBe(false)
-    expect(agent.session.snapshotEvents().at(-1)).toMatchObject({
-      type: 'turn/end',
-      data: { reason: { kind: 'error', error: { message: 'SSE stream ended without [DONE]', code: 'STREAM_CLOSED' } } },
+    expect(server.requests).toHaveLength(2)
+    expect(server.requests[0]?.body).toEqual(server.requests[1]?.body)
+    const retryEvent = agent.session.snapshotEvents().find(event => event.type === 'llm/retry')
+    const failedAttempts = agent.session.snapshotEvents().filter((event): event is SessionEvent<'assistant/attempt'> =>
+      event.type === 'assistant/attempt'
+      && retryEvent !== undefined
+      && event.seq < retryEvent.seq,
+    )
+    expect(failedAttempts).toHaveLength(1)
+    expect(expandAssistantStream(failedAttempts[0]!.data.stream)).toHaveLength(3)
+    expect(agent.session.snapshotEvents().filter(event => event.type === 'assistant/message')
+      .map(event => [event.data.turn, event.data.step]))
+      .toEqual([[1, 1]])
+    expect(agent.session.snapshotEvents().filter(event => event.type === 'llm/retry').map(event => event.data.failure.code))
+      .toEqual(['TRANSPORT'])
+    expect(finalAssistantText(agent)).toBe('recovered after clean eof')
+  })
+
+  it('retries an in-band SSE error envelope delivered on a 200 response', async () => {
+    // A gateway that reports a failed upstream as an SSE payload instead of a
+    // non-2xx status: the adapter classifies it and policy retries it.
+    const requests: string[] = []
+    const server = createServer((request, response) => {
+      const chunks: Buffer[] = []
+      request.on('data', (chunk: Buffer) => { chunks.push(chunk) })
+      request.on('end', () => {
+        const url = request.url ?? ''
+        requests.push(url)
+        response.writeHead(200, { 'content-type': 'text/event-stream' })
+        if (requests.length === 1) {
+          response.end('data: {"error":{"type":"server_error","message":"upstream is down"}}\n\n')
+          return
+        }
+        response.end([
+          'data: {"choices":[{"delta":{"role":"assistant","content":"recovered"}}]}',
+          '',
+          'data: {"choices":[{"delta":{},"finish_reason":"stop"}],"usage":{"prompt_tokens":1,"completion_tokens":1}}',
+          '',
+          'data: [DONE]',
+          '',
+          '',
+        ].join('\n'))
+      })
     })
+    await new Promise<void>((resolve) => { server.listen(0, '127.0.0.1', resolve) })
+    const port = (server.address() as AddressInfo).port
+    context = await harness(`http://127.0.0.1:${port}`)
+    const agent = await context.agentLoop.create(SessionId('wire-in-band-error'), {
+      provider: 'deepseek-official',
+      model: 'mock-model',
+    })
+
+    try {
+      await sendAndWait(context, agent)
+    } finally {
+      await new Promise<void>((resolve) => { server.close(() => { resolve() }) })
+    }
+
+    expect(requests).toHaveLength(2)
+    expect(agent.session.snapshotEvents().filter(event => event.type === 'llm/retry').map(event => event.data.failure.code))
+      .toEqual(['SERVER'])
+    expect(agent.session.snapshotEvents().filter(event => event.type === 'assistant/message')
+      .map(event => [event.data.turn, event.data.step]))
+      .toEqual([[1, 1]])
+    expect(finalAssistantText(agent)).toBe('recovered')
   })
 
   it('turns a stalled body into TIMEOUT and succeeds on the next request', async () => {

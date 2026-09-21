@@ -1424,10 +1424,12 @@ describe('DeepSeekAdapter against a mock server', () => {
     expect(httpErrorCode(413, { code: 'context_length_exceeded' })).toBe('INVALID_REQUEST')
   })
 
-  it('distinguishes terminal quota exhaustion from transient HTTP 429 throttling', () => {
+  it('classifies any HTTP 429 as throttling even when the body names quota', () => {
     expect(httpErrorCode(429, { code: 'insufficient_quota', message: 'account credits exhausted' }))
-      .toBe(QUOTA_EXCEEDED_CODE)
+      .toBe('RATE_LIMIT')
     expect(httpErrorCode(429, { message: 'request rate limit exceeded' })).toBe('RATE_LIMIT')
+    // The quota distinction stays alive for non-429 statuses.
+    expect(httpErrorCode(400, { message: 'account credits exhausted' })).toBe(QUOTA_EXCEEDED_CODE)
   })
 
   it('keeps the status-line message for JSON error bodies without a message', async () => {
@@ -1452,6 +1454,70 @@ describe('DeepSeekAdapter against a mock server', () => {
 
   it('maps unusual statuses to HTTP_<status>', () => {
     expect(httpErrorCode(418)).toBe('HTTP_418')
+  })
+
+  it('routes server-side availability statuses to retryable codes', () => {
+    expect(httpErrorCode(408)).toBe('TIMEOUT')
+    expect(httpErrorCode(425)).toBe('SERVER')
+    expect(httpErrorCode(500)).toBe('SERVER')
+    expect(httpErrorCode(503)).toBe('SERVER')
+    expect(httpErrorCode(504)).toBe('SERVER')
+    expect(httpErrorCode(429)).toBe('RATE_LIMIT')
+    expect(httpErrorCode(401)).toBe('AUTH')
+    expect(httpErrorCode(413)).toBe('INVALID_REQUEST')
+  })
+
+  it('fails the attempt when a 200 stream delivers an error envelope', async () => {
+    const server = await mockServer([
+      { kind: 'sse', events: ['{"error":{"type":"server_error","message":"mock upstream failure"}}'] },
+      { kind: 'sse', events: textEvents },
+    ])
+    const ctx = await harness(server.url)
+    const result = await assemble(ctx, { model: 'deepseek-v4-flash', messages: [] })
+    expect(result.finish).toEqual({
+      kind: 'error',
+      failure: { message: 'mock upstream failure', code: 'SERVER' },
+    })
+    expect(server.requests).toHaveLength(1)
+  })
+
+  it('classifies an in-band error envelope that names a terminal condition', async () => {
+    const server = await mockServer([
+      { kind: 'sse', events: ['{"error":{"type":"rate_limit_error","message":"slow down"}}'] },
+      { kind: 'sse', events: textEvents },
+    ])
+    const ctx = await harness(server.url)
+    const result = await assemble(ctx, { model: 'deepseek-v4-flash', messages: [] })
+    expect(result.finish).toEqual({ kind: 'error', failure: { message: 'slow down', code: 'RATE_LIMIT' } })
+  })
+
+  it('classifies an in-band error envelope that names exhausted credit', async () => {
+    const server = await mockServer([
+      { kind: 'sse', events: ['{"error":{"message":"account credits exhausted"}}'] },
+      { kind: 'sse', events: textEvents },
+    ])
+    const ctx = await harness(server.url)
+    const result = await assemble(ctx, { model: 'deepseek-v4-flash', messages: [] })
+    expect(result.finish).toEqual({ kind: 'error', failure: { message: 'account credits exhausted', code: 'QUOTA' } })
+  })
+
+  it('keeps text emitted before an in-band error envelope out of a committed message', async () => {
+    // The assembler retains the partial blocks; the agent loop's failed-attempt
+    // settlement is what keeps them out of a committed assistant message, which
+    // the llm-retry suite covers end to end. This asserts the classification.
+    const server = await mockServer([
+      { kind: 'sse', events: [
+        '{"choices":[{"delta":{"role":"assistant","content":"partial"}}]}',
+        '{"error":{"message":"mock upstream failure"}}',
+      ] },
+      { kind: 'sse', events: textEvents },
+    ])
+    const ctx = await harness(server.url)
+    const result = await assemble(ctx, { model: 'deepseek-v4-flash', messages: [] })
+    expect(result.finish).toEqual({
+      kind: 'error',
+      failure: { message: 'mock upstream failure', code: 'SERVER' },
+    })
   })
 
   it('reports a transport failure with the endpoint in the message', async () => {

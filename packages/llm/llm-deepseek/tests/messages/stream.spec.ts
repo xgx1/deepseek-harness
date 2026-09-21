@@ -88,7 +88,7 @@ describe('Messages stream', () => {
   it('refuses unsupported response content, empty responses and premature EOF', async () => {
     await expect(chunks(translate(events([start, { type: 'content_block_start', index: 0, content_block: { type: 'redacted_thinking', data: 'x' } }]), MODEL))).rejects.toMatchObject({ code: 'UNSUPPORTED_CONTENT' })
     await expect(chunks(translate(events([start, ...end()]), MODEL))).rejects.toMatchObject({ code: 'EMPTY_RESPONSE' })
-    await expect(chunks(translate(events(textEvents.slice(0, -1)), MODEL))).rejects.toMatchObject({ code: 'STREAM_CLOSED' })
+    await expect(chunks(translate(events(textEvents.slice(0, -1)), MODEL))).rejects.toMatchObject({ code: 'TRANSPORT' })
   })
 })
 
@@ -114,7 +114,7 @@ describe('SSE framing and provider failures', () => {
     await expect(read(text)).rejects.toMatchObject({ code: 'MALFORMED_RESPONSE' })
   })
   it('does not flush an unterminated terminal event', async () => {
-    await expect(read(sse(textEvents).trimEnd())).rejects.toMatchObject({ code: 'STREAM_CLOSED' })
+    await expect(read(sse(textEvents).trimEnd())).rejects.toMatchObject({ code: 'TRANSPORT' })
   })
   it('normalizes in-band overloads', async () => {
     await expect(read(sse([{ type: 'error', error: { type: 'overloaded_error', message: 'busy' } }]))).rejects.toMatchObject({ code: 'SERVER' })
@@ -122,8 +122,15 @@ describe('SSE framing and provider failures', () => {
   it.each([
     [401, {}, 'AUTH'], [403, {}, 'AUTH'], [402, {}, 'QUOTA'], [429, {}, 'RATE_LIMIT'],
     [400, {}, 'INVALID_REQUEST'], [413, {}, 'INVALID_REQUEST'], [503, {}, 'SERVER'], [404, {}, 'HTTP_404'],
+    [408, {}, 'TIMEOUT'], [425, {}, 'SERVER'],
+    [429, { message: 'account credits exhausted' }, 'RATE_LIMIT'],
+    [undefined, { message: '429: insufficient_quota' }, 'RATE_LIMIT'],
+    [undefined, { message: 'rate limit reached' }, 'RATE_LIMIT'],
     [undefined, { type: 'authentication_error' }, 'AUTH'], [undefined, { type: 'rate_limit_error' }, 'RATE_LIMIT'],
     [undefined, { type: 'invalid_request_error' }, 'INVALID_REQUEST'], [undefined, {}, 'SERVER'],
+    [undefined, { code: 'insufficient_quota' }, 'QUOTA'],
+    [undefined, { message: 'maximum context length exceeded' }, 'CONTEXT_WINDOW_EXCEEDED'],
+    [500, { type: 'overloaded_error' }, 'SERVER'],
     [400, { message: 'maximum context length exceeded' }, 'CONTEXT_WINDOW_EXCEEDED'],
     [400, { message: 'insufficient balance' }, 'QUOTA'],
   ])('classifies status %s and error %j', (status, error, code) => {

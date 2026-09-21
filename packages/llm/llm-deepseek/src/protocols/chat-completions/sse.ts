@@ -19,8 +19,9 @@ export const DONE = '[DONE]'
 
 /**
  * Parse an SSE byte stream into data payloads. Yields `[DONE]` as the final
- * value and returns; throws `LlmError('STREAM_CLOSED')` when the stream ends
- * without it (truncated response — the model call cannot be trusted).
+ * value and returns; throws `LlmError('TRANSPORT')` when the stream ends
+ * without it — the remote side truncated the response, so retry policy owns
+ * the attempt.
  * @param stream - raw SSE bytes; reads may split anywhere, including mid-UTF-8 sequence.
  * @param onComment - optional transport-activity callback; comments never enter the yielded payload stream.
  * @returns each event's data payload in arrival order, the `[DONE]` sentinel last.
@@ -36,5 +37,5 @@ export async function* parseSse(
     yield data
     if (data === DONE) return
   }
-  throw new LlmError('SSE stream ended without [DONE]', 'STREAM_CLOSED')
+  throw new LlmError('SSE stream ended without [DONE]', 'TRANSPORT')
 }

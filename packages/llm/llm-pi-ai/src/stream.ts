@@ -12,6 +12,7 @@ import { brandString } from '@deepseek-ai/dsh-brand'
 import { CONTEXT_WINDOW_EXCEEDED_CODE, EMPTY_RESPONSE_CODE, isContextWindowExceededError, isQuotaExceededError, LlmError, QUOTA_EXCEEDED_CODE } from '@deepseek-ai/dsh-llm'
 import type { FinishReason, StreamChunk, TokenUsage, ToolCallId } from '@deepseek-ai/dsh-llm'
 import { isContextOverflow } from '@earendil-works/pi-ai/utils/overflow'
+import { isRetryableAssistantError } from '@earendil-works/pi-ai/utils/retry'
 import type { AssistantMessage, AssistantMessageEvent, Usage as PiUsage } from '@earendil-works/pi-ai'
 import { toPiReplayState } from './replay.ts'
 
@@ -39,32 +40,41 @@ export function mapUsage(usage: PiUsage): TokenUsage {
 // wrapper a bare `terminated`, so we are left pattern-matching terse words here.
 // If pi-ai ever forwards the original Error (or a fetch/dispatcher hook that lets
 // us capture the cause ourselves), classify on `code`/`cause` instead of text.
-function classifyPiAiError(message: string): string {
-  if (/\b(?:401|403)\b/.test(message)) return 'AUTH'
-  if (isQuotaExceededError(message)) return QUOTA_EXCEEDED_CODE
-  if (/\b429\b|rate.?limit/i.test(message)) return 'RATE_LIMIT'
+function classifyPiAiError(text: string, message: AssistantMessage): string {
+  if (/\b(?:401|403)\b/.test(text)) return 'AUTH'
+  // An explicit 429 is a rate-limit instruction even when the message also
+  // names quota or billing conditions, so it wins over the wording below.
+  if (/\b429\b/.test(text)) return 'RATE_LIMIT'
+  if (isQuotaExceededError(text)) return QUOTA_EXCEEDED_CODE
+  if (/rate.?limit/i.test(text)) return 'RATE_LIMIT'
   // A rejected request body (gateway or provider size cap): resending the
   // same request cannot succeed, so it is invalid, not transient.
-  if (/\b413\b|failed to buffer the request body:\s*length limit exceeded|payload too large|request body too large/i.test(message)) return 'INVALID_REQUEST'
-  if (/\b400\b|invalid.?request/i.test(message)) return 'INVALID_REQUEST'
-  if (/\b5\d\d\b/.test(message)) return 'SERVER'
-  if (/\btime(?:d)?\s*out\b|timeout/i.test(message)) return 'TIMEOUT'
+  if (/\b413\b|failed to buffer the request body:\s*length limit exceeded|payload too large|request body too large/i.test(text)) return 'INVALID_REQUEST'
+  if (/\b400\b|invalid.?request/i.test(text)) return 'INVALID_REQUEST'
+  if (/\b5\d\d\b/.test(text)) return 'SERVER'
+  if (/\btime(?:d)?\s*out\b|timeout/i.test(text)) return 'TIMEOUT'
   // A stream truncated before the provider's terminal event: each pi-ai provider
   // throws its own wording when the wire closes mid-response without a terminal
   // event (`… stream ended before message_stop`, `… before a terminal response
   // event`, `… ended without a terminal event`, `Stream ended without
   // finish_reason`). The connection dropped mid-response, so this is a transport
   // truncation, not a model-level error.
-  if (/stream ended (?:before|without)\b/i.test(message)) return 'TRANSPORT'
-  if (/\b(?:network|connection|socket|fetch)\b|\bECONN[A-Z]+\b/i.test(message)
-    || /\b(?:other side closed|HTTP2 request did not get a response|WebSocket closed unexpectedly)\b/i.test(message)
+  if (/stream ended (?:before|without)\b/i.test(text)) return 'TRANSPORT'
+  if (/\b(?:network|connection|socket|fetch)\b|\bECONN[A-Z]+\b/i.test(text)
+    || /\b(?:other side closed|HTTP2 request did not get a response|WebSocket closed unexpectedly)\b/i.test(text)
+    || /\bupstream\s+connect\b|reset before headers|getaddrinfo|ENOTFOUND|EAI_AGAIN/i.test(text)
     // undici renders a mid-stream socket drop as a bare `terminated` (its
     // `cause` — the real SocketError — was flattened away upstream); Node's
     // stream layer says `Premature close`.
-    || /\bterminated\b|premature close/i.test(message)) {
+    || /\bterminated\b|premature close/i.test(text)) {
     return 'TRANSPORT'
   }
-  return 'PI_AI_ERROR'
+  // Wording this adapter has not enumerated: consult pi-ai's own transient
+  // provider predicate, which also excludes quota and billing exhaustion. A
+  // provider-side failure that predicate recognizes still reaches retry policy
+  // as SERVER instead of the non-retryable PI_AI_ERROR bucket; a genuinely
+  // unknown failure keeps PI_AI_ERROR.
+  return isRetryableAssistantError(message) ? 'SERVER' : 'PI_AI_ERROR'
 }
 
 /**
@@ -122,7 +132,7 @@ export function mapStopReason(message: AssistantMessage, contextWindow?: number)
     }
     case 'error': {
       const text = message.errorMessage ?? 'pi-ai stream error'
-      return { kind: 'error', failure: { message: text, code: classifyPiAiError(text) } }
+      return { kind: 'error', failure: { message: text, code: classifyPiAiError(text, message) } }
     }
   }
 }
@@ -137,7 +147,7 @@ export function mapStopReason(message: AssistantMessage, contextWindow?: number)
  *   in-band terminal error an aborted finish.
  * @param requestedModel - request model identity recorded for durable replay.
  * @returns the harness chunks, ending with `usage` then `finish`; throws
- *   `LlmError` (`STREAM_CLOSED`) if the source ends without a terminal event.
+ *   `LlmError` (`TRANSPORT`) if the source ends without a terminal event.
  */
 export async function* toStreamChunks(
   events: AsyncIterable<AssistantMessageEvent>,
@@ -230,5 +240,7 @@ export async function* toStreamChunks(
       // when one is added (switch covers all current variants).
     }
   }
-  throw new LlmError('pi-ai event stream ended without done/error', 'STREAM_CLOSED')
+  // The event source ended without a terminal event: the remote side
+  // truncated the response, which retry policy owns.
+  throw new LlmError('pi-ai event stream ended without done/error', 'TRANSPORT')
 }

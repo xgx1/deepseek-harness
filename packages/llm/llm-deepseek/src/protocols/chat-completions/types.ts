@@ -118,6 +118,12 @@ export interface WireTool {
 /** One parsed SSE `data:` payload (a chat.completion.chunk). */
 export interface WireChunk {
   choices?: WireChoice[]
+  /**
+   * Error envelope delivered in band on a 200 response. Some gateways report a
+   * failed upstream as an SSE payload instead of a non-2xx status. `null` is
+   * the absent case and carries no failure.
+   */
+  error?: WireError['error'] | null
   /** Arrives attached to the finish chunk and/or as a trailing usage-only chunk. */
   usage?: WireUsage | null
 }

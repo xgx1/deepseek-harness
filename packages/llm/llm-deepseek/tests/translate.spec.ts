@@ -256,8 +256,42 @@ describe('translate: errors', () => {
     await expect(collect(translate(feed('{bad json')))).rejects.toThrow(/malformed SSE payload/)
   })
 
-  it('throws STREAM_CLOSED when the payload source ends without DONE', async () => {
+  it('throws TRANSPORT when the payload source ends without DONE', async () => {
     await expect(collect(translate(feed(firstChunk)))).rejects.toThrow(/without \[DONE\]/)
+  })
+
+  it('classifies an in-band error envelope instead of treating it as content', async () => {
+    await expect(collect(translate(feed({ error: { message: 'upstream is down' } }))))
+      .rejects.toMatchObject({ code: 'SERVER' })
+    await expect(collect(translate(feed({ error: { code: 'server_error', type: 'server_error', message: 'upstream is down' } }))))
+      .rejects.toMatchObject({ code: 'SERVER', message: 'upstream is down' })
+    await expect(collect(translate(feed({ error: { type: 'rate_limit_error', message: 'slow down' } }))))
+      .rejects.toMatchObject({ code: 'RATE_LIMIT' })
+    await expect(collect(translate(feed({ error: { message: 'insufficient balance' } }))))
+      .rejects.toMatchObject({ code: 'QUOTA' })
+    await expect(collect(translate(feed({ error: { message: '429: insufficient_quota' } }))))
+      .rejects.toMatchObject({ code: 'RATE_LIMIT' })
+    await expect(collect(translate(feed({ error: { type: 'invalid_request_error', message: 'bad field' } }))))
+      .rejects.toMatchObject({ code: 'INVALID_REQUEST' })
+    await expect(collect(translate(feed({ error: {} })))).rejects.toMatchObject({
+      code: 'SERVER',
+      message: 'DeepSeek stream error',
+    })
+  })
+
+  it('treats a null error field as absent', async () => {
+    const chunks = await collect(translate(feed(
+      { choices: [{ delta: { content: 'ok' } }], error: null },
+      DONE,
+    )))
+    expect(chunks.at(-1)).toEqual({ type: 'finish', reason: { kind: 'stop' } })
+  })
+
+  it('aborts on an in-band error that follows partial content', async () => {
+    await expect(collect(translate(feed(
+      { choices: [{ delta: { content: 'partial' } }] },
+      { error: { message: 'upstream is down' } },
+    )))).rejects.toMatchObject({ code: 'SERVER' })
   })
 })
 

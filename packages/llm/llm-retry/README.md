@@ -55,7 +55,7 @@ Each scheduled retry is durable before its wait: the plugin appends a non-surfac
 
 ### Failures and recovery
 
-A failure before any final adapter is selected has no provider policy and delegates downstream unchanged. In normal mode, a failure code outside the eligible set, or an exhausted budget, delegates; in always mode, an over-cap provider delay uses the configured local backoff so the policy cannot terminate on that instruction. Nothing here is model-visible: no retry event, delay, provider error, or failed partial output reaches the model or derived messages.
+A failure before any final adapter is selected has no provider policy and delegates downstream unchanged. In normal mode, a failure code outside the eligible set, or an exhausted budget, delegates; in always mode, an over-cap provider delay uses the configured local backoff so the policy cannot terminate on that instruction. Provider adapters classify every server-side failure — non-2xx statuses, in-band error envelopes, truncated responses, and thrown provider errors — into the eligible codes, so a failure the provider reported reaches this decision instead of an unclassified bucket. Nothing here is model-visible: no retry event, delay, provider error, or failed partial output reaches the model or derived messages.
 
 -----
 

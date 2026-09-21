@@ -233,6 +233,8 @@ describe('DeepSeekFilesClient', () => {
     [429, 'RATE_LIMIT'],
     [500, 'SERVER'],
     [400, 'FILES_API'],
+    [408, 'TIMEOUT'],
+    [425, 'SERVER'],
   ] as const)('classifies HTTP %i Files failures as %s', async (status, code) => {
     const client = new DeepSeekFilesClient({
       protocol: 'chat-completions',

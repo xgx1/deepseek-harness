@@ -47,6 +47,25 @@ export const EMPTY_RESPONSE_CODE = 'EMPTY_RESPONSE'
  */
 export const INVALID_CREDENTIAL_CODE = 'INVALID_CREDENTIAL'
 
+/**
+ * Classify one HTTP status observed at a model-provider boundary when no
+ * provider error body refines it. Availability failures the provider owns —
+ * every 5xx and 425 Too Early — map to `SERVER`, a request the server timed
+ * out to `TIMEOUT`, throttling to `RATE_LIMIT`, and an oversized body to
+ * `INVALID_REQUEST`, so retry policy can decide the attempt from its status
+ * alone instead of an opaque `HTTP_<status>` code.
+ * @param status - HTTP status from 100 through 599.
+ * @returns the stable machine-routable failure code for that status.
+ */
+export function codeForHttpStatus(status: number): string {
+  if (status === 401 || status === 403) return 'AUTH'
+  if (status === 408) return 'TIMEOUT'
+  if (status === 413) return 'INVALID_REQUEST'
+  if (status === 425 || status >= 500) return 'SERVER'
+  if (status === 429) return 'RATE_LIMIT'
+  return `HTTP_${status}`
+}
+
 /** Structured codes and plain phrases that explicitly name a context bound being exceeded. */
 const STRUCTURED_CONTEXT_OVERFLOW = new RegExp(
   String.raw`(?:^|[^a-z0-9])context[\s_-](?:length|window)[\s_-]`
