@@ -9,18 +9,22 @@
 
 import z from '@deepseek-ai/schemastery'
 import { MAX_TIMER_DELAY_MS } from '@deepseek-ai/dsh-timeout'
-import { EMPTY_RESPONSE_CODE } from './error.ts'
+import { EMPTY_RESPONSE_CODE, QUOTA_EXCEEDED_CODE } from './error.ts'
 
 const DEFAULT_MAX_RETRIES = 5
 const DEFAULT_INITIAL_DELAY_MS = 500
 const DEFAULT_MAX_DELAY_MS = 10_000
 const DEFAULT_JITTER_RATIO = 0.1
+// Every server-reported failure class is retryable by default; quota exhaustion
+// too, because a provider can report a temporary per-minute or per-plan quota
+// with the same wording as a permanent one, and the bounded budget decides.
 const DEFAULT_RETRYABLE_CODES = Object.freeze([
   EMPTY_RESPONSE_CODE,
   'RATE_LIMIT',
   'SERVER',
   'TIMEOUT',
   'TRANSPORT',
+  QUOTA_EXCEEDED_CODE,
 ])
 
 /** Bounded exponential backoff with symmetric jitter around each local delay. */

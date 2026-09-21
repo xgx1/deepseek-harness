@@ -260,6 +260,37 @@ describe('provider-routed retry policy', () => {
     })
   })
 
+  it('retries a QUOTA failure under the default retryable codes', async () => {
+    vi.useFakeTimers()
+    const adapter = new ScriptedAdapter([
+      new LlmError('account credits exhausted', 'QUOTA'),
+      textResponse('recovered after quota'),
+    ])
+    // No retryableCodes override: quota is in the default policy set, because a
+    // provider reports temporary per-minute or per-plan quota with the same
+    // wording as permanent exhaustion and the bounded budget decides.
+    ;({ ctx: context } = await harness(adapter))
+    const agent = await context.agentLoop.create(SessionId('retry-quota'), { provider: 'mock', model: 'mock' })
+    const scheduled = waitForRetry(context, agent, 1)
+
+    agent.followup(createUserMessage({ content: [{ type: 'text', text: 'go' }], source: { kind: 'user' } }))
+    const event = await scheduled
+    expect(event.data.failure).toEqual({
+      message: 'account credits exhausted',
+      code: 'QUOTA',
+    })
+
+    const idle = waitForIdle(context, agent)
+    await vi.advanceTimersByTimeAsync(500)
+    await idle
+
+    expect(adapter.requests).toHaveLength(2)
+    expect(agent.session.deriveMessages().at(-1)).toMatchObject({
+      role: 'assistant',
+      content: [{ type: 'text', text: 'recovered after quota' }],
+    })
+  })
+
   it('leaves partial failed chunks on their step without committing a message or tool side effect', async () => {
     vi.useFakeTimers()
     const adapter = new ScriptedAdapter([
