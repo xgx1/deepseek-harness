@@ -51,6 +51,11 @@ export { BlockAssembler } from './assembler.ts'
 export { callConfigEquals, isAgentLoopRequest, markAgentLoopRequest } from './call-config.ts'
 export type { LlmCallConfig, LlmCallConfigAdapterDefaults } from './call-config.ts'
 
+// Compatibility re-export: the external turtle-ui TUI (git commit b08ed69) still
+// imports `assertNever` from this package; the helper lives in dsh-util-values.
+// Keep until turtle-ui migrates, otherwise a rebuild breaks `dsh tui` import.
+export { assertNever } from '@deepseek-ai/dsh-util-values'
+
 declare module '@deepseek-ai/cordis' {
   interface Context {
     llm: LlmRuntime

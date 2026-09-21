@@ -26,10 +26,15 @@ export interface BrowserMcpLaunchConfig {
 
 /** Attachment to an externally owned Chromium browser. */
 export interface BrowserMcpAttachConfig {
-  /** Exclusively attach one live Session to the configured browser. */
+  /** Attach to a browser owned outside this provider. */
   mode: 'attach'
   /** HTTP(S) debugging URL or WS(S) browser debugging endpoint. */
   endpoint: string
+  /**
+   * Whether another live Session must wait for the attached browser to be released; defaults to true.
+   * Set false to let several live Sessions attach to the same endpoint at once.
+   */
+  exclusive?: boolean
   /** Per-call timeout override in milliseconds; omission uses the MCP client default. */
   toolCallTimeoutMs?: number
 }
@@ -48,6 +53,7 @@ export const BrowserMcpConfig: Schema<BrowserMcpAttachConfig | (Omit<BrowserMcpL
   Schema.object({
     mode: Schema.const('attach').required(),
     endpoint: Schema.string().pattern(/^https?:\/\/[^\s/]+|^wss?:\/\/[^\s/]+/u).required(),
+    exclusive: Schema.boolean().default(true),
     toolCallTimeoutMs: Schema.number().min(1),
   }),
 ])
@@ -150,7 +156,7 @@ export function mountSessionMcp(ctx: Context, options: SessionMcpOptions): void 
             ...agent.session.header.cwd === undefined ? {} : { cwd: agent.session.header.cwd },
             ...options.toolCallTimeoutMs === undefined ? {} : { toolCallTimeoutMs: options.toolCallTimeoutMs },
             failOnStartupError: true,
-            reconnect: { enabled: false },
+            reconnect: { enabled: true },
           }))
           signal.throwIfAborted()
           return {

@@ -36,6 +36,8 @@ export interface Config {
   extensionId?: string
   /** Installed Chrome/Chromium executable used in launch mode. */
   executablePath?: string
+  /** Whether another live Session must wait for the attached browser to be released; defaults to true. */
+  exclusive?: boolean
   /** Hide an owned browser's window. */
   headless?: boolean
   /** Deadline for Chromium startup and Stagehand navigation/action operations. */
@@ -57,6 +59,7 @@ export const Config: Schema<Config, ResolvedConfig> = Schema.object({
   cdpEndpoint: Schema.string(),
   extensionId: Schema.string(),
   executablePath: Schema.string(),
+  exclusive: Schema.boolean().default(true),
   headless: Schema.boolean().default(true),
   // Stagehand adds ten seconds to the action RPC timeout before arming its timer.
   operationTimeoutMs: Schema.number().step(1).min(1).max(2 ** 31 - 1 - 10_000).default(30_000),
@@ -99,7 +102,7 @@ export function apply(ctx: Context, input: Config): void {
     yield ctx.browserUse.register(BrowserUseProviderName('stagehand-native'))
     const resources = new SessionResources<BrowserResource>(ctx, {
       label: 'stagehand-native',
-      exclusive: config.mode === 'attach',
+      exclusive: config.mode === 'attach' ? config.exclusive ?? true : false,
       async open(_agent, signal) {
         signal.throwIfAborted()
         const chromium = config.mode === 'launch' ? await launchChromium(config, signal) : undefined
