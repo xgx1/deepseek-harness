@@ -10,7 +10,7 @@ import AgentRegistry, { installModelSelection } from '@deepseek-ai/dsh-agent'
 import type { Agent, ModelSelectionRef } from '@deepseek-ai/dsh-agent'
 import AgentLoop from '@deepseek-ai/dsh-agent-loop'
 import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
-import ToolRuntime from '@deepseek-ai/dsh-tools'
+import ToolRuntime, { defineContentToolFixture } from '@deepseek-ai/dsh-tools'
 import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
 import { AttachmentId } from '@deepseek-ai/dsh-attachment'
 import Loader from '@deepseek-ai/cordis-plugin-loader'
@@ -24,7 +24,7 @@ import SessionStore, { SessionId } from '@deepseek-ai/dsh-session'
 import { DeepSeekMessagesAdapter } from '../../src/protocols/messages/adapter.ts'
 import { DeepSeekFileStore } from '../../src/common/file-store.ts'
 import * as Messages from '../../src/index.ts'
-import { adapter, assemble, chunks, MODEL, options, prepareExtensions, server, sse, textEvents, user } from './helpers.ts'
+import { adapter, assemble, chunks, end, MODEL, options, prepareExtensions, server, sse, start, textEvents, user } from './helpers.ts'
 
 const cleanup: (() => Promise<unknown>)[] = []
 afterEach(async () => {
@@ -397,5 +397,28 @@ describe('Cordis provider composition', () => {
     expect((await assemble(ctx.llm.stream(options()))).assembler.finish).toMatchObject({ kind: 'error', failure: { code: 'INVALID_CREDENTIAL' } })
     await fiber.dispose()
     expect(ctx.llm.listProviders()).toEqual([])
+  })
+
+  it('continues the turn when the model returns unusable tool arguments', async () => {
+    const unusable = sse([start,
+      { type: 'content_block_start', index: 0, content_block: { type: 'tool_use', id: 'call_1', name: 'echo', input: {} } },
+      { type: 'content_block_delta', index: 0, delta: { type: 'input_json_delta', partial_json: '{"text": "hi"}}' } },
+      { type: 'content_block_stop', index: 0 }, ...end('tool_use')])
+    const { ctx, http } = await boot((response, count) => response.end(count === 1 ? unusable : sse(textEvents)))
+    ctx.tools.register(defineContentToolFixture({
+      name: 'echo',
+      description: 'echoes text',
+      parameters: { text: { type: 'string', required: true } },
+      async execute(args) { return [{ type: 'text', text: args.text }] },
+    }))
+    const agent = await ctx.agentLoop.create(SessionId('unusable-tool-arguments'), { provider: 'deepseek-official', model: MODEL })
+    await send(agent, 'echo hi')
+    const results = agent.session.snapshotEvents().filter(event => event.type === 'tool/result')
+    expect(results).toHaveLength(1)
+    expect(results[0]!.data.message.content[0]).toMatchObject({ type: 'tool-result', isError: true })
+    expect(JSON.stringify(results[0]!.data.message.content[0])).toContain('invalid arguments')
+    expect((http.requests[1]!.body.messages as { role: string; content: unknown[] }[]).at(-2)).toMatchObject({
+      role: 'assistant', content: [{ type: 'tool_use', id: 'call_1', name: 'echo', input: {} }],
+    })
   })
 })
