@@ -25,42 +25,7 @@ kind: "package-reference"
 <a id="use-this-package"></a>
 ## 使用本包
 
-当某个会话应当能临时扩展它自己的运行时——例如一个对当前工作有用、但不应成为仓库插件的模型编写的工具、服务或浏览器 UI——挂载本插件。请与 host runner 一同组合；没有 runner，这些工具永远不会激活，而且任何已发布的组合包都不会挂载这套工具集（web profile 已挂载 host runner 与浏览器侧组件），所以要显式地添加工具行。
-
-同一进程可以有多个预设携带本工具包：四个 Host 检查提供器注册在进程级注册表里，完全相同的重复注册会被共享而不是失败——因此本地创作的 `cordis` 预设副本可以与自带的那个并存挂载。同一 id 下注册内容不同的仍然会高声失败。
-
-### 最小组合
-
-```yaml
-- name: '@deepseek-ai/dsh-cordis-host-runner'
-  config:
-    vmTimeoutMs: 5000
-- name: '@deepseek-ai/dsh-tool-cordis'
-```
-
-CLI 示例 [`apps/cli/config/examples/cordis/cordis.yml`](../../../apps/cli/config/examples/cordis/cordis.yml) 同时组合了这两者。带浏览器半的包还额外需要客户端组合里的浏览器 runner 与 UI 包；纯 host 包则两者都不需要。
-
-### 工具能做什么
-
-三个检查工具只读；四个生命周期工具定义并管理包。所有结果都是渲染成文本的 JSON。
-
-- `cordis_inspect_list`——列出 Inspect Provider（host 与 client）及其查询方法。
-- `cordis_inspect_query`——执行一次提供方查询：精确的服务方法、事件模式、builtin 签名、工具 schema、主题 token 或实时 slot 树。
-- `cordis_inspect_self`——本会话的动态插件：版本指针、最近一次运行，以及（对某个精确包而言）源码与运行时诊断。
-- `cordis_define`——登记一个包：新插件（`plugin.kind: "new"`，配 3–6 个字母的 `idPrefix`），或既有插件的新版本（`plugin.kind: "existing"`，配其 `pluginId`）。它只校验参数与语法；不运行任何东西，也不请求审批。
-- `cordis_run`——激活一个包（首次激活或重启用 `mode: "run"`，切换版本用 `mode: "update"`）。带浏览器半的包可能先返回 `awaiting-approval`，直到有人允许；工具从不等待最终结果。
-- `cordis_stop`——停止当前运行并取消任何待审批请求，保留插件与全部包版本。
-- `cordis_undefine`——停止并彻底移除一个插件及其全部包。
-
-### 典型工作流
-
-先检查、再定义、后运行：`cordis_inspect_query` 读取包要用的服务或 slot 的精确约定，`cordis_define` 记录源码（会话里会出现一张 define 卡片，指向存放运行控件的面板），`cordis_run` 激活它。当用户输入 `@pluginId` 时，本包注入一条上下文消息，钉住所引用的插件、其基准包与更新路径。技术性失败之后，用 `cordis_inspect_self` 读取诊断，向同一插件追加修正版，再更新到该版本。
-
-### 需要规划的边界
-
-定义以会话为界、以进程为本：包只在定义它的会话里可见可控，可跨后续轮次保持活跃，运行时也可能影响同一进程中的其他会话。停止、移除、卸载工具集或重启 DSH 都会清除它。沙箱隔离全局变量，但不是安全边界——对待动态包要像对待 bash 访问一样，加载本插件时也要像授予 bash 工具那样慎重。
-
-0.1.6 新增了 [Plugin Manager](../../boot/plugin-manager/README.zh.md)，可以安装包含插件代码或 MCP 配置的组合包。
+创造模式包含这组工具。其他组合需要在宿主组合里、提供 `cordisInspect` 的 host runner 旁挂载一次 `@deepseek-ai/dsh-tool-cordis/host`，并在每个要暴露这些工具的 agent preset 里挂载 `@deepseek-ai/dsh-tool-cordis`；仅有 preset 行不会注册任何 Host provider。调用 `cordis_inspect_list` 发现 provider，再用 `cordis_inspect_query` 查询其具体方法和类型。Host 的 `Config` provider 分页列出运行中的 Loader entry（`offset`、最多 100 的 `limit`、可选的精确插件 `name`；`total` 与 `nextOffset` 界定遍历），每个 entry 带 Loader id、patch 所寻址的树内 id 及其 Config 状态（`schema`、`absent`、`unsupported`、group 与 include 载体为 `tree`、禁用、未导入或已销毁的 entry 为 `inactive`），并把单个 entry 的原生 Config 投影为自包含的 JSON Schema 文档，同时在 profile 包查找能解析时给出该 entry 的 `packageDir`，即包 README 与构建产物 `lib/` 所在目录。通过 [Plugin Manager](../../boot/plugin-manager/README.zh.md) 安装包含插件代码或 MCP 配置的组合包。
 
 -----
 
@@ -70,7 +35,7 @@ CLI 示例 [`apps/cli/config/examples/cordis/cordis.yml`](../../../apps/cli/conf
 <details>
 <summary>实现细节 — 点击展开</summary>
 
-Host provider 结合生成的 Service/Event 目录与请求 agent 的工具注册表。Client provider 通过现有检查注册表同步清单，并从已连接页面回答查询。工具插件通过 Cordis effect 持有注册；释放时移除工具和提示词贡献。检查直接读取 provider，不维护独立运行时投影，因此不发布不变式配套插件。
+Host provider 结合生成的 Service/Event 目录、经 app-boot Config 投影器投影的运行中 Loader 树，以及请求 agent 的工具注册表。Client provider 通过现有检查注册表同步清单，并从已连接页面回答查询。宿主入口持有 Host provider 的注册，preset 行持有两个工具，都通过 Cordis effect；注册表拒绝重复的 provider id，所以 provider 按进程注册一次而不是按 preset 注册。
 
 </details>
 
@@ -89,21 +54,22 @@ Host provider 结合生成的 Service/Event 目录与请求 agent 的工具注�
 
 #### 模型所见
 
-[工具目录](../../../docs/tool-catalog.zh.md#deepseek-aidsh-tool-cordis) 描述两个只读检查工具。[提示词](src/prompt.ts) 指引模型通过 Plugin Manager 进行持久化变更并说明 MCP 设置方式。创造模式的视觉请求默认通过已安装的 UI 插件显示在当前 Web 页面；开发技能说明 Client 打包和 slot 注册方法。查询结果包含所请求的 API 声明或当前工具 schema。
+[工具目录](../../../docs/tool-catalog.zh.md#deepseek-aidsh-tool-cordis) 描述两个只读检查工具。插件不贡献 system prompt 段落：工具描述已说明何时调用每个工具以及查询不会调用业务方法。在 `cordis` preset 中，首轮 skill catalog 携带两个随附技能的描述，把插件、MCP、组合编辑和未指定去向的视觉请求路由到覆盖 Plugin Manager、MCP 设置、Client 打包和 slot 注册的技能。查询结果包含所请求的 API 声明、当前工具 schema、带 Config 状态的运行中 entry 目录，或单个 entry 投影后的 Config JSON Schema。
 
 #### Token 影响
 
-插件可见时，两个工具 schema 和指导段落进入模型请求。查询结果追加到转录中；精确查询避免加载无关声明。
+插件可见时，只有两个工具 schema 进入模型请求。查询结果追加到转录中；精确查询避免加载无关声明。
 
 #### KV Cache 影响
 
-未改变的 schema 和指导保持前缀稳定。查询结果追加到历史中；启用其他插件可能改变后续工具 schema。
+未改变的工具 schema 保持前缀稳定。查询结果追加到历史中；启用其他插件可能改变后续工具 schema。
 
 ## 已知限制与待办
 
 <a id="known-limitations-and-deferred-work"></a>
 
-- Client 查询等待页面响应或取消。检查不能调用服务方法、配置插件或执行生成代码。
+- Client 查询需要页面响应，并采用 Host runner 的[有界等待与重试策略](../cordis-host-runner/README.zh.md#client-inspection)。检查不能调用服务方法、配置插件或执行生成代码。
+- `Config.listConfigs` 只遍历 profile 的 Loader 树。Agent preset 的 `plugins` 列表挂载在独立的 preset 树中，所以只出现在 preset 声明里的插件不会被列出，除非 profile 树也挂载了它。
 
 <a id="dev-note"></a>
 ### 开发备注
