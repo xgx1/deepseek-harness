@@ -1,6 +1,52 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/client/ui-skill-filter/README.md
-README.md: cd20aad46f913a704b1d6fac229079ad815fa4da
-README.zh.md: 7b99fab35bc7e5407b5818ecb72667f37260d0db
+/:
+  en: a2110d1d0449e084
+  zh: 7ff344bf4a2d2ee2
+/deepseek-ai-dsh-client-ui-skill-filter:
+  en: b0dc7aeffe2f45ae
+  zh: cf132dc857171e14
+/deepseek-ai-dsh-client-ui-skill-filter/summary:
+  en: a8024f0b7e1a78f6
+  zh: 03515d581ec8a27d
+/deepseek-ai-dsh-client-ui-skill-filter/table-of-contents:
+  en: b563e4ec4727d0de
+  zh: 96743a2cfcba9955
+/deepseek-ai-dsh-client-ui-skill-filter/use-this-package:
+  en: ed65408d79a2dba3
+  zh: 2518b5be5b8e463e
+/deepseek-ai-dsh-client-ui-skill-filter/use-this-package/when-to-choose-it:
+  en: 201d363af20e5aa3
+  zh: e624c1268f86bd02
+/deepseek-ai-dsh-client-ui-skill-filter/use-this-package/what-each-surface-shows:
+  en: fa03d65679f54b80
+  zh: 4eddc29a0c1cc9bf
+/deepseek-ai-dsh-client-ui-skill-filter/use-this-package/minimal-composition:
+  en: ad6dd29ee7479724
+  zh: 6d9f18154ab43733
+/deepseek-ai-dsh-client-ui-skill-filter/understand-the-implementation:
+  en: 42b15ac6321706aa
+  zh: 8d8e9843515830f6
+/deepseek-ai-dsh-client-ui-skill-filter/understand-the-implementation/one-host-face:
+  en: c3ab593e437cfafd
+  zh: 36d31a46447af6dc
+/deepseek-ai-dsh-client-ui-skill-filter/understand-the-implementation/draft-ownership:
+  en: a33d7f7bcf49e0e0
+  zh: 15bf480b61b588d1
+/deepseek-ai-dsh-client-ui-skill-filter/further-exploration:
+  en: 827a46800de9bad6
+  zh: 95d23080eab9cf08
+/deepseek-ai-dsh-client-ui-skill-filter/model-experience:
+  en: 27869ccb0da34a53
+  zh: b017b1e6f746bbeb
+/deepseek-ai-dsh-client-ui-skill-filter/model-experience/kv-cache-effect:
+  en: ca75c51c89c2c9b0
+  zh: 2064958b0754647e
+/deepseek-ai-dsh-client-ui-skill-filter/known-limitations-and-deferred-work:
+  en: 1c008884c8519692
+  zh: 16c4d7ec6ec48886
+/deepseek-ai-dsh-client-ui-skill-filter/known-limitations-and-deferred-work/dev-note:
+  en: e67f633dc6fe7773
+  zh: 7e07e6178cc432a1

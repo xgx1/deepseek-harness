@@ -1,6 +1,6 @@
 /** Static skill-filter tab type and guide declaration. */
 import type { TranslateNS } from '@deepseek-ai/dsh-client-locale/client'
-import { IconAgentPresetOutline16 } from '@deepseek-ai/dsh-client-ui-primitives'
+import { IconAgentPresetOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { SidebarRightTabDefinition } from '@deepseek-ai/dsh-client-ui-sidebar-right/client'
 import type {} from './locales.ts'
 
@@ -27,7 +27,7 @@ export function skillFilterDefinition(t: TranslateNS<'skillFilter'>): SidebarRig
       order: 40,
       title: () => t('guide.title'),
       description: () => t('guide.description'),
-      icon: IconAgentPresetOutline16,
+      icon: IconAgentPresetOutlineRegular,
     }],
   }
 }

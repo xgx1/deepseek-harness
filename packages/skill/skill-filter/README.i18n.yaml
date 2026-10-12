@@ -1,6 +1,64 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/skill/skill-filter/README.md
-README.md: 920c7463a3cdc6e65af1f392c5dd4f814e6652a2
-README.zh.md: 7ebd9f63141a1e38fa0fa6eff2bbd3da722af070
+/:
+  en: 0737ec158b4af313
+  zh: 990af3f0d5e1f867
+/deepseek-ai-dsh-skill-filter:
+  en: 61d045bdbd624809
+  zh: 915bff82bf0797e9
+/deepseek-ai-dsh-skill-filter/summary:
+  en: 97148d3f80fb35e4
+  zh: a6063ea3d6930572
+/deepseek-ai-dsh-skill-filter/table-of-contents:
+  en: b563e4ec4727d0de
+  zh: 96743a2cfcba9955
+/deepseek-ai-dsh-skill-filter/use-this-package:
+  en: 07f8a6625e13b4a6
+  zh: 1b7e917f581c1a4d
+/deepseek-ai-dsh-skill-filter/use-this-package/when-to-choose-it:
+  en: d27b3de2a26ae49f
+  zh: 02619213efb48d5e
+/deepseek-ai-dsh-skill-filter/use-this-package/configuration-files:
+  en: 1ed9f96e1dd5c67c
+  zh: 4443ace356a06f84
+/deepseek-ai-dsh-skill-filter/use-this-package/minimal-composition:
+  en: 9bdd05ad59583c9b
+  zh: 9544d849a32d08e1
+/deepseek-ai-dsh-skill-filter/understand-the-implementation:
+  en: 42b15ac6321706aa
+  zh: 8d8e9843515830f6
+/deepseek-ai-dsh-skill-filter/understand-the-implementation/provider-wrapping:
+  en: c381a57bc3a3efd0
+  zh: 1bd4235fc5ff8686
+/deepseek-ai-dsh-skill-filter/understand-the-implementation/rule-merging:
+  en: 2e44e11c7db4406d
+  zh: 30720e4c29249fc6
+/deepseek-ai-dsh-skill-filter/understand-the-implementation/catalog-invalidation:
+  en: c2a7401736ff3f79
+  zh: 38807847fbbbcd73
+/deepseek-ai-dsh-skill-filter/further-exploration:
+  en: b99daf3fd5a472d4
+  zh: 9172f97e7e8e0a44
+/deepseek-ai-dsh-skill-filter/model-experience:
+  en: 215e7ba838619b7b
+  zh: a311da3843709f90
+/deepseek-ai-dsh-skill-filter/model-experience/filtered-catalog:
+  en: 14310f6a17019192
+  zh: 4994ad287f3a353b
+/deepseek-ai-dsh-skill-filter/model-experience/filtered-catalog/what-the-model-sees:
+  en: e1905be77a92e92f
+  zh: e54e3efc47a43823
+/deepseek-ai-dsh-skill-filter/model-experience/filtered-catalog/token-effect:
+  en: 77ffd9ccdf7b3cdb
+  zh: 1679953500c2fa46
+/deepseek-ai-dsh-skill-filter/model-experience/filtered-catalog/kv-cache-effect:
+  en: d2b93de8b48945d6
+  zh: 42494f6376d6fa89
+/deepseek-ai-dsh-skill-filter/known-limitations-and-deferred-work:
+  en: ad8672675a65df02
+  zh: 487a89e33de61cf1
+/deepseek-ai-dsh-skill-filter/known-limitations-and-deferred-work/dev-note:
+  en: e67f633dc6fe7773
+  zh: b1528e06ef51e446

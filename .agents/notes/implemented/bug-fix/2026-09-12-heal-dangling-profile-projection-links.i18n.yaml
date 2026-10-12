@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-12-heal-dangling-profile-projection-links.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-09-12-heal-dangling-profile-projection-links.md
-2026-09-12-heal-dangling-profile-projection-links.md: 082fac9f2b3ddcc0896f89c3f4179577a94037ea
-2026-09-12-heal-dangling-profile-projection-links.zh.md: e8c3901d7ea434f81c9fff145a5f48f63ce7ba2d
+/agent-note-heal-dangling-profile-module-fallback-projections:
+  en: e013e6ead841ad15
+  zh: dd48b8d3320326cb
+/agent-note-heal-dangling-profile-module-fallback-projections/problem:
+  en: f1a4a42da4ede9d2
+  zh: 4ecf72b87d1b79f9
+/agent-note-heal-dangling-profile-module-fallback-projections/decision:
+  en: c968dd13b36b04e0
+  zh: d0dfa6489c871fef
+/agent-note-heal-dangling-profile-module-fallback-projections/alternatives-considered:
+  en: 5408c5fcd51c49c5
+  zh: 9d42baefb4f41a37
+/agent-note-heal-dangling-profile-module-fallback-projections/consequences:
+  en: 3bb9898e29727a7e
+  zh: 786a077b2bee9287
+/agent-note-heal-dangling-profile-module-fallback-projections/testing:
+  en: 53786a198137fed4
+  zh: 32bd5be7d0d549e0

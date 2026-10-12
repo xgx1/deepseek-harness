@@ -1,6 +1,52 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/api/skill-filter-controller/README.md
-README.md: 6bd1677efe963101011ccd9574e6d074409ecfc2
-README.zh.md: 4158cfe9c3448d41c32ad26d062c61f936aa2297
+/:
+  en: f44a446aa2f81b4f
+  zh: 127b53ec83d20f50
+/deepseek-ai-dsh-api-skill-filter-controller:
+  en: 9c3c958be9b1f5a0
+  zh: 1cc9c97fe1642627
+/deepseek-ai-dsh-api-skill-filter-controller/summary:
+  en: 0e6c32c9c12ea1a2
+  zh: 75dfe76e3c71aca4
+/deepseek-ai-dsh-api-skill-filter-controller/table-of-contents:
+  en: b563e4ec4727d0de
+  zh: 96743a2cfcba9955
+/deepseek-ai-dsh-api-skill-filter-controller/use-this-package:
+  en: 0e468cbf03df3674
+  zh: 77ebaa52085611f5
+/deepseek-ai-dsh-api-skill-filter-controller/use-this-package/when-to-choose-it:
+  en: cc41ec5c9439c040
+  zh: a01278bae719fe6b
+/deepseek-ai-dsh-api-skill-filter-controller/use-this-package/remote-surface:
+  en: d47822d62a9a505e
+  zh: 7dc6a604f12792a3
+/deepseek-ai-dsh-api-skill-filter-controller/use-this-package/minimal-composition:
+  en: abed2245c4293b8a
+  zh: 25912baa171296c1
+/deepseek-ai-dsh-api-skill-filter-controller/understand-the-implementation:
+  en: 42b15ac6321706aa
+  zh: 8d8e9843515830f6
+/deepseek-ai-dsh-api-skill-filter-controller/understand-the-implementation/validation-before-the-write:
+  en: 9a088975535cd921
+  zh: 92f0ba2103881ff6
+/deepseek-ai-dsh-api-skill-filter-controller/understand-the-implementation/publication-after-the-write:
+  en: 19996ba6af62b412
+  zh: 7fdbde5ee2c99957
+/deepseek-ai-dsh-api-skill-filter-controller/further-exploration:
+  en: ae696fd27a0598b2
+  zh: 0bfe758a3a03b9b5
+/deepseek-ai-dsh-api-skill-filter-controller/model-experience:
+  en: 90bc4d6a6f5834b6
+  zh: 01645523ffe00f80
+/deepseek-ai-dsh-api-skill-filter-controller/model-experience/kv-cache-effect:
+  en: 9d543283d12d8b6e
+  zh: 85c320c134fc20a6
+/deepseek-ai-dsh-api-skill-filter-controller/known-limitations-and-deferred-work:
+  en: f0bb76966de3c3e7
+  zh: f9cc58597d9aa2eb
+/deepseek-ai-dsh-api-skill-filter-controller/known-limitations-and-deferred-work/dev-note:
+  en: e67f633dc6fe7773
+  zh: f2418ac3fdcf26fa
