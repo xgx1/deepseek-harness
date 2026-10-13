@@ -12,7 +12,7 @@ import type {} from '@deepseek-ai/dsh-client-ui-sidebar-browser/client'
 import type {} from '@deepseek-ai/dsh-client-ui-input-trigger/client'
 // The `file` entry of `SidebarRightResourceParamsMap`, which types `{ params: { line } }` below.
 import type {} from '@deepseek-ai/dsh-client-ui-sidebar-documentpreview/client'
-import { fileAddressFor } from '@deepseek-ai/dsh-util-workspace-path'
+import { fileAddressFor, resolveWorkspacePath } from '@deepseek-ai/dsh-util-workspace-path'
 // Type-only service and declaration merges used by the apply world.
 import type {} from '@deepseek-ai/dsh-client-locale/client'
 import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
@@ -251,12 +251,20 @@ export function apply(ctx: Context): void {
           // address: the file is one piece of content whether it is opened at
           // its top or at line 400, so the same tab is revealed and told where
           // to land.
+          // A path gesture asks the Host desktop for its default application:
+          // the file belongs to the machine the workspace lives on. The right
+          // Sidebar stays the fallback, for a Host with no desktop or for a
+          // path the Host refuses, and it keeps carrying the line parameter an
+          // external application cannot use.
           openFile: async (path, options) => {
             const cwd = ctx.sessions.list.getSnapshot().byId[sessionId]?.cwd
+            const opened = await ctx.remote.session
+              .openWorkspacePath({ path: resolveWorkspacePath(cwd, path) })
+              .catch(() => undefined)
+            if (opened?.ok === true) return
             const url = fileAddressFor(sessionId, cwd, path)
             if (options?.line === undefined) ctx.sidebarRight.openResource(url)
             else ctx.sidebarRight.openResource(url, { params: { line: options.line } })
-            await Promise.resolve()
           },
           openSkill: (name) => {
             const scope = ctx.sessions.scope(sessionId)

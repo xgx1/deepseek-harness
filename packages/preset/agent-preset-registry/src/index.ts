@@ -102,7 +102,12 @@ export class AgentPresetRegistry extends TypertRemoteService {
 
   private async activate(record: Definition): Promise<void> {
     const key = {}
-    const scope = createScope(this.owner, key)
+    // Own the revision from the ROOT context: a live configuration reload
+    // re-creates this registry's own row, which would otherwise dispose every
+    // mounted scope out from under the Agents still bound to that revision.
+    // Retired revisions are still released by `collect()` once their last
+    // Agent or lease lets go.
+    const scope = createScope(this.owner.root, key)
     try {
       const problem = entryListProblem(record.config.plugins)
       if (problem !== undefined) throw new Error(problem)
