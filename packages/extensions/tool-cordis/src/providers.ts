@@ -1,11 +1,10 @@
 /** First-party Host inspect providers registered by the Cordis tool package. */
 
 import type { Context } from '@deepseek-ai/cordis'
-import { HOST_BUILTIN_INSPECTION } from '@deepseek-ai/dsh-cordis-host-runner'
-import type { CordisInspectProviderManifest, CordisInspectProviderView } from '@deepseek-ai/dsh-cordis-host-runner'
 import type { HostCordisInspectProviderRegistration } from '@deepseek-ai/dsh-cordis-host-runner'
 import type { JsonValue } from '@deepseek-ai/dsh-util-values'
 import { EVENT_API, queryEventApi, queryServiceApi } from './api-catalog.ts'
+import { queryLiveConfig } from './config.ts'
 
 const EMPTY_INPUT = { type: 'object', properties: {}, additionalProperties: false } as const
 const ANY_OUTPUT = { description: 'JSON data owned by this inspect provider.' } as const
@@ -17,11 +16,24 @@ const SERVICE_OUTPUT = {
 const EVENT_OUTPUT = {
   description: 'Compact Event directory, or one exact Event contract with only its referenced type declarations.',
 } as const
+const CONFIG_INPUT: JsonValue = {
+  type: 'object',
+  properties: {
+    entry: { type: 'string', description: 'Exact Loader entry id from the directory; returns that entry\'s projected Config schema.' },
+    name: { type: 'string', description: 'Exact plugin package name; limits the directory to its entries.' },
+    offset: { type: 'number', description: 'Zero-based directory offset; defaults to 0.' },
+    limit: { type: 'number', description: 'Directory page size, from 1 to 100; defaults to 25.' },
+  },
+  additionalProperties: false,
+}
+const CONFIG_OUTPUT = {
+  description: 'One directory page of live entries with patch ids, Config status, total, and nextOffset, or one entry\'s projected JSON Schema with shared definitions, omission acceptance, and projection limitations.',
+} as const
 const HOST_EVENTS = EVENT_API.filter(event => !event.name.startsWith('cordis/'))
 
 /**
  * Construct Host providers over generated Catalogs, evaluator declarations, and live Tool scope.
- * @param ctx - Host context used for Agent-scoped live Tool queries.
+ * @param ctx - Host context used for live Loader Config and Agent-scoped Tool queries.
  * @returns registrations for static catalogs and live Host capabilities.
  */
 export function hostInspectProviders(ctx: Context): HostCordisInspectProviderRegistration[] {
@@ -42,10 +54,14 @@ export function hostInspectProviders(ctx: Context): HostCordisInspectProviderReg
       EVENT_INPUT,
       EVENT_OUTPUT,
     ),
-    registration('Builtin', 'Plain-JavaScript symbols available to a dynamic Host half.', 'listBuiltins', () => ({
-      builtins: HOST_BUILTIN_INSPECTION,
-      referencedTypes: [],
-    } as unknown as JsonValue)),
+    registration(
+      'Config',
+      'Progressive live plugin Config discovery: paged entry directory with schema status, then one entry\'s exact JSON Schema.',
+      'listConfigs',
+      input => queryLiveConfig(ctx, input),
+      CONFIG_INPUT,
+      CONFIG_OUTPUT,
+    ),
     {
       manifest: {
         id: 'Tool',
@@ -99,51 +115,4 @@ function readExact(input: JsonValue | undefined, field: string): string | undefi
   if (input === undefined || input === null || Array.isArray(input) || typeof input !== 'object') return undefined
   const value = input[field]
   return typeof value === 'string' ? value : undefined
-}
-
-/**
- * Register one first-party Host inspect provider, sharing an identical live
- * registration instead of failing on the duplicate id.
- *
- * Standing preset mounts live for the whole process, so two presets carrying
- * this package — the shipped `cordis` preset beside any locally authored copy
- * of it — both run their registration effects against the ONE process-global
- * `cordisInspect` instance. The four providers are share-safe: Service, Event,
- * and Builtin answer from static catalogs, and Tool resolves every query from
- * the requesting Agent rather than from the mounting scope. A registration
- * whose manifest is structurally equal to the live one therefore returns a
- * no-op disposer; any other collision still fails loud through `register`.
- * @param ctx - Host context whose `cordisInspect` registry owns the providers.
- * @param provider - one provider constructed by {@link hostInspectProviders}.
- * @returns the owning disposer, or a no-op when an equal provider is shared.
- */
-export function shareInspectProvider(ctx: Context, provider: HostCordisInspectProviderRegistration): () => void {
-  try {
-    return ctx.cordisInspect.register(provider)
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error)
-    if (message !== `Host Cordis inspect provider "${provider.manifest.id}" is already registered`) throw error
-    const registered = ctx.cordisInspect.list().find(
-      candidate => candidate.platform === 'host' && candidate.id === provider.manifest.id,
-    )
-    if (registered === undefined || !sameManifest(registered, provider.manifest)) throw error
-    return () => {}
-  }
-}
-
-/** Structural manifest equality over ids, descriptions, and declared schemas. */
-function sameManifest(left: CordisInspectProviderView, right: CordisInspectProviderManifest): boolean {
-  return left.id === right.id
-    && left.description === right.description
-    && left.methods.length === right.methods.length
-    && left.methods.every((method, index) => {
-      // Lengths are equal above, so the index is in-bounds; the guard narrows
-      // `noUncheckedIndexedAccess` without claiming more than the check.
-      const other = right.methods[index]
-      return other !== undefined
-        && method.name === other.name
-        && method.description === other.description
-        && JSON.stringify(method.inputSchema) === JSON.stringify(other.inputSchema)
-        && JSON.stringify(method.outputSchema) === JSON.stringify(other.outputSchema)
-    })
 }

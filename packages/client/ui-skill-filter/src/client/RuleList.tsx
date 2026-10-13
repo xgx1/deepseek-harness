@@ -3,7 +3,7 @@
  * remove controls. The list is a draft the caller owns; this component reports
  * every edit back and keeps no copy of its own.
  */
-import { Button, IconCloseOutline16, IconPlusOutline16 } from '@deepseek-ai/dsh-client-ui-primitives'
+import { Button, IconCloseOutlineRegular, IconPlusOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
 import type {} from './locales.ts'
 import css from './skill-filter.module.css'
@@ -46,7 +46,7 @@ export function RuleList({ t, heading, hint, patterns, onChange }: RuleListProps
             />
             <Button
               size="sm"
-              icon={<IconCloseOutline16 size={14} />}
+              icon={<IconCloseOutlineRegular size={14} />}
               aria-label={t('action.clear')}
               onClick={() => { onChange(patterns.filter((_value, position) => position !== index)) }}
             />
@@ -55,7 +55,7 @@ export function RuleList({ t, heading, hint, patterns, onChange }: RuleListProps
       </ul>
       <Button
         size="sm"
-        icon={<IconPlusOutline16 size={14} />}
+        icon={<IconPlusOutlineRegular size={14} />}
         onClick={() => { onChange([...patterns, '']) }}
       >
         {t('action.addPattern')}
