@@ -102,6 +102,16 @@ async function warm(ctx: Context, agent: Agent, signal = new AbortController().s
   return ctx.systemPrompt.assemble({ agent, scope: agent, signal })
 }
 
+/**
+ * Wake one turn so the Session's own first step waits for browser discovery to
+ * settle, and let that turn finish before the caller inspects the tools it
+ * produced. The turn reaches its model whenever the fixture has a route.
+ */
+async function gate(_ctx: Context, agent: Agent): Promise<void> {
+  agent.followup(createUserMessage({ content: [], source: { kind: 'user' } }))
+  await agent.whenIdle()
+}
+
 function execute(ctx: Context, agent: Agent, name = TOOL) {
   return ctx.tools.execute({ agent, name, arguments: name === TOOL ? { label: 'direct' } : {}, callId: ToolCallId('direct'), signal: new AbortController().signal })
 }
@@ -168,7 +178,7 @@ it('waits for SystemPrompt and ToolRuntime before reserving the provider', async
 
 describe('Session MCP Loader composition', () => {
   it('discovers schemas before the first model request and retains distinct state across turns', async () => {
-    const { ctx, root, model, browser } = await load(false, undefined, 5000, [TOOL, '<unlisted-tools>'])
+    const { ctx, root, model, browser } = await load(false, undefined, 5000)
     const first = await ctx.agents.create({ sessionId: SessionId('first'), meta: { cwd: root }, agentOptions: { provider: 'fixture', model: 'fixture' } })
     const second = await ctx.agents.create({ sessionId: SessionId('second') })
     expect(ctx.tools.schemas()).toEqual([])
@@ -182,8 +192,10 @@ describe('Session MCP Loader composition', () => {
     await first.agent.whenIdle()
     expect(model.requests).toHaveLength(4)
     expect(JSON.stringify(first.agent.session.snapshotEvents())).toContain('Visit 3: fixture')
+    await gate(ctx, second.agent)
     await warm(ctx, second.agent)
     expect((await execute(ctx, second.agent)).content).toEqual([{ type: 'text', text: 'Visit 1: direct' }])
+    await gate(ctx, first.agent)
     expect(ctx.tools.schemas()).toEqual([])
     expect(ctx.tools.schemas(first.agent)).toHaveLength(2)
     const initial = await events(root)
@@ -193,6 +205,7 @@ describe('Session MCP Loader composition', () => {
     await first.dispose()
     expect(ctx.tools.schemas(first.agent)).toEqual([])
     const resumed = await ctx.agents.create({ sessionId: SessionId('first') })
+    await gate(ctx, resumed.agent)
     await warm(ctx, resumed.agent)
     expect((await execute(ctx, resumed.agent)).content).toEqual([{ type: 'text', text: 'Visit 1: direct' }])
     await browser.dispose()
@@ -212,6 +225,7 @@ describe('Session MCP Loader composition', () => {
       sessionId: SessionId('child'), parentAgent: first.agent, agentOptions: { provider: 'fixture', model: 'fixture' },
       setup: (_inner, agent) => { bindScopeParent(agent, first.agent) },
     })
+    await gate(ctx, first.agent)
     await warm(ctx, first.agent)
     expect(ctx.tools.schemas(child.agent).some(tool => tool.name === TOOL)).toBe(false)
     for (const { agent } of [second, child]) {
@@ -224,6 +238,7 @@ describe('Session MCP Loader composition', () => {
       expect(ctx.tools.schemas(agent).map(tool => tool.name)).toEqual(['unrelated'])
       expect((await execute(ctx, agent)).isError).toBe(true)
       expect((await execute(ctx, agent, 'unrelated')).isError).toBe(false)
+      await gate(ctx, agent)
       expect((await warm(ctx, agent)).tools.map(tool => tool.name)).toEqual(['unrelated'])
     }
     first.agent.ctx.tools.register({
@@ -232,29 +247,36 @@ describe('Session MCP Loader composition', () => {
       execute: async () => true,
     })
     expect(ctx.tools.schemas(child.agent).filter(tool => tool.name.startsWith('mcp__browser-fixture__'))).toEqual([])
+    await gate(ctx, child.agent)
     expect((await warm(ctx, child.agent)).tools.map(tool => tool.name)).toEqual(['unrelated'])
     expect((await execute(ctx, child.agent, 'mcp__browser-fixture__late')).isError).toBe(true)
     expect((await events(root)).filter(event => event.event === 'initialize')).toHaveLength(1)
     expect((await events(root)).filter(event => event.event === 'call')).toEqual([])
+    await gate(ctx, first.agent)
     expect((await execute(ctx, first.agent)).isError).toBe(false)
     await first.dispose()
+    await gate(ctx, child.agent)
     expect((await warm(ctx, child.agent)).tools.some(tool => tool.name === TOOL)).toBe(false)
     expect((await execute(ctx, child.agent)).isError).toBe(true)
+    await gate(ctx, second.agent)
     expect((await warm(ctx, second.agent)).tools.map(tool => tool.name)).toEqual(['unrelated'])
     const successor = await ctx.agents.create({ sessionId: SessionId('successor') })
+    await gate(ctx, successor.agent)
     expect((await warm(ctx, successor.agent)).tools.some(tool => tool.name === TOOL)).toBe(true)
     expect((await execute(ctx, successor.agent)).isError).toBe(false)
     await successor.dispose()
     await second.dispose()
     const resumed = await ctx.agents.create({ sessionId: SessionId('second') })
+    await gate(ctx, resumed.agent)
     expect((await warm(ctx, resumed.agent)).tools.some(tool => tool.name === TOOL)).toBe(true)
     expect((await execute(ctx, resumed.agent)).isError).toBe(false)
   })
 
-  it('allows another Session to answer while attached-browser discovery is pending', async () => {
+  it('keeps creation immediate and fails the first step while discovery is pending', async () => {
     const { ctx, root, model, browser } = await load(true, 'hold')
-    const first = ctx.agents.create({ sessionId: SessionId('first') })
-    const rejected = expect(first).rejects.toThrow()
+    const first = await ctx.agents.create({ sessionId: SessionId('first') })
+    first.agent.followup(createUserMessage({ content: [{ type: 'text', text: 'Visit the fixture.' }], source: { kind: 'user' } }))
+    const turn = first.agent.whenIdle()
     await vi.waitFor(async () => { expect((await events(root)).some(event => event.event === 'probe')).toBe(true) })
     const second = await ctx.agents.create({ sessionId: SessionId('second'), agentOptions: { provider: 'fixture', model: 'fixture' } })
     second.agent.followup(createUserMessage({ content: [{ type: 'text', text: 'Answer without using the browser.' }], source: { kind: 'user' } }))
@@ -263,40 +285,34 @@ describe('Session MCP Loader composition', () => {
     expect(model.requests[0]?.tools ?? []).toEqual([])
     expect((await events(root)).filter(event => event.event === 'start')).toHaveLength(1)
     await browser.dispose()
-    await rejected
-    expect(ctx.agents.get(SessionId('first'))).toBeUndefined()
-    expect(ctx.sessions.get(SessionId('first'))).toBeUndefined()
+    await turn
+    expect(model.requests).toHaveLength(1)
+    expect(first.agent).toBe(ctx.agents.get(SessionId('first')))
   })
 
-  it('rolls back failed discovery and stops a child when unload interrupts discovery', async () => {
-    const failed = await load(false, 'fail', undefined, [TOOL, '<unlisted-tools>'])
-    let failedAgent!: Agent
-    const laterListener = vi.fn()
-    await expect(failed.ctx.agents.create({
+  it('fails the first step and rolls back the process when discovery fails', async () => {
+    const failed = await load(false, 'fail')
+    const { agent } = await failed.ctx.agents.create({
       sessionId: SessionId('failure'), agentOptions: { provider: 'fixture', model: 'fixture' },
-      setup: (inner, agent) => {
-        failedAgent = agent
-        inner.on('agent/created', () => { agent.followup(createUserMessage({ content: [{ type: 'text', text: 'Visit the fixture.' }], source: { kind: 'user' } })) }, { prepend: true })
-        inner.on('agent/created', laterListener)
-      },
-    })).rejects.toThrow('initial connection')
+    })
+    agent.followup(createUserMessage({ content: [{ type: 'text', text: 'Visit the fixture.' }], source: { kind: 'user' } }))
+    await agent.whenIdle()
     expect(failed.model.requests).toEqual([])
-    expect(laterListener).not.toHaveBeenCalled()
-    expect(failed.ctx.agents.get(failedAgent.id)).toBeUndefined()
-    expect(failed.ctx.sessions.get(failedAgent.id)).toBeUndefined()
-    expect(failed.ctx.tools.schemas(failedAgent)).toEqual([])
+    expect(failed.ctx.agents.get(agent.id)).toBe(agent)
+    expect(failed.ctx.tools.schemas(agent)).toEqual([])
     const failedEvents = await events(failed.root)
     expect(failedEvents.filter(event => event.event === 'initialize')).toHaveLength(1)
     for (const { pid } of failedEvents.filter(event => event.event === 'start')) {
       expect(() => process.kill(pid, 0)).toThrow(expect.objectContaining({ code: 'ESRCH' }))
     }
     const held = await load(false, 'hold')
-    const pendingOwner = held.ctx.agents.create({ sessionId: SessionId('pending') })
-    const interrupted = expect(pendingOwner).rejects.toThrow()
+    const pendingOwner = await held.ctx.agents.create({ sessionId: SessionId('pending') })
+    pendingOwner.agent.followup(createUserMessage({ content: [{ type: 'text', text: 'Visit the fixture.' }], source: { kind: 'user' } }))
+    const interrupted = pendingOwner.agent.whenIdle()
     await vi.waitFor(async () => { expect((await events(held.root)).some(event => event.event === 'probe')).toBe(true) })
     await held.browser.dispose()
     await interrupted
-    expect(held.ctx.agents.get(SessionId('pending'))).toBeUndefined()
+    expect(held.model.requests).toEqual([])
     for (const { pid } of (await events(held.root)).filter(event => event.event === 'start')) {
       expect(() => process.kill(pid, 0)).toThrow(expect.objectContaining({ code: 'ESRCH' }))
     }
@@ -305,10 +321,12 @@ describe('Session MCP Loader composition', () => {
   it('does not reconnect and silently replace browser state after a process exits', async () => {
     const { ctx, root } = await load()
     const owner = await ctx.agents.create({ sessionId: SessionId('disconnect') })
+    await gate(ctx, owner.agent)
     await warm(ctx, owner.agent)
     const servingPid = (await events(root)).find(event => event.event === 'initialize')!.pid
     await execute(ctx, owner.agent, 'mcp__browser-fixture__disconnect')
     await vi.waitFor(() => { expect(() => process.kill(servingPid, 0)).toThrow(expect.objectContaining({ code: 'ESRCH' })) })
+    await gate(ctx, owner.agent)
     await warm(ctx, owner.agent)
     expect((await events(root)).filter(event => event.event === 'initialize')).toHaveLength(1)
     expect((await execute(ctx, owner.agent)).isError).toBe(true)
@@ -322,9 +340,11 @@ describe('Session MCP Loader composition', () => {
       sessionId: SessionId('child'), parentAgent: owner.agent,
       setup: (_inner, agent) => { bindScopeParent(agent, owner.agent) },
     })
+    await gate(ctx, owner.agent)
     await warm(ctx, owner.agent)
     registerIndependentTool(ctx)
     expect((await execute(ctx, owner.agent, 'unrelated')).content).toEqual([{ type: 'text', text: 'Independent.' }])
+    await gate(ctx, child.agent)
     await warm(ctx, child.agent)
     expect((await execute(ctx, child.agent)).content).toEqual([{ type: 'text', text: 'Visit 1: direct' }])
   })
@@ -338,7 +358,9 @@ describe('Session MCP Loader composition', () => {
       sessionId: SessionId('resource-child'), parentAgent: parent.agent,
       setup: (_inner, agent) => { bindScopeParent(agent, parent.agent) },
     })
+    await gate(ctx, parent.agent)
     expect(renderPrompt(await warm(ctx, parent.agent))).toContain('BROWSER_FIXTURE_INSTRUCTION')
+    await gate(ctx, child.agent)
     const blocked = await warm(ctx, child.agent)
     expect(blocked.tools.some(tool => tool.name === TOOL)).toBe(false)
     expect(renderPrompt(blocked)).not.toContain('BROWSER_FIXTURE_INSTRUCTION')
@@ -355,9 +377,11 @@ describe('Session MCP Loader composition', () => {
     }
     expect(browserState(await resource(ctx, parent.agent)).counter).toBe(0)
     await parent.dispose()
+    await gate(ctx, child.agent)
     expect(renderPrompt(await warm(ctx, child.agent))).not.toContain('BROWSER_FIXTURE_INSTRUCTION')
     expect((await resource(ctx, child.agent)).isError).toBe(true)
     const successor = await ctx.agents.create({ sessionId: SessionId('resource-successor') })
+    await gate(ctx, successor.agent)
     expect(renderPrompt(await warm(ctx, successor.agent))).toContain('BROWSER_FIXTURE_INSTRUCTION')
     expect(browserState(await resource(ctx, successor.agent)).counter).toBe(0)
   })
@@ -370,8 +394,10 @@ describe('Session MCP Loader composition', () => {
       sessionId: SessionId('child'), parentAgent: parent.agent,
       setup: (_inner, agent) => { bindScopeParent(agent, parent.agent) },
     })
+    await gate(ctx, parent.agent)
     await warm(ctx, parent.agent)
     await execute(ctx, parent.agent)
+    await gate(ctx, child.agent)
     await warm(ctx, child.agent)
     const parentOnly = vi.fn(async () => true)
     parent.agent.ctx.tools.register({
@@ -417,10 +443,10 @@ describe('Session MCP Loader composition', () => {
 
   it('holds an immediate PTC turn until the first SDK includes browser tools', async () => {
     const { ctx, root, model } = await load(false, 'gate', undefined, ['run_code', '<unlisted-tools>'])
+    await writeFile(join(root, 'release'), '')
     await ctx.plugin(PresentationRuntime)
-    let created = false
     let initializing!: Agent
-    const creation = ctx.agents.create({
+    const created = ctx.agents.create({
       sessionId: SessionId('ptc-first-request'), agentOptions: { provider: 'fixture', model: 'fixture' },
       setup: (inner, agent) => {
         initializing = agent
@@ -429,65 +455,28 @@ describe('Session MCP Loader composition', () => {
           agent.followup(createUserMessage({ content: [{ type: 'text', text: 'Describe the available browser tools.' }], source: { kind: 'user' } }))
         }, { prepend: true })
       },
-    }).then((handle) => {
-      created = true
-      return handle
     })
     await vi.waitFor(async () => { expect((await events(root)).some(event => event.event === 'probe')).toBe(true) })
-    expect(created).toBe(false)
+    const owner = await created
+    await rm(join(root, 'release'))
     expect(model.requests).toEqual([])
     expect((await execute(ctx, initializing)).isError).toBe(true)
     await writeFile(join(root, 'release'), '')
-    const owner = await creation
+    await vi.waitFor(() => { expect(ctx.tools.schemas(initializing).some(tool => tool.name === TOOL)).toBe(true) })
     await owner.agent.whenIdle()
     expect(model.requests).toHaveLength(1)
     expect(model.requests[0]?.tools?.map(tool => tool.name)).toEqual(['run_code'])
     expect(JSON.stringify(model.requests[0]?.messages)).toContain(TOOL)
   })
 
-  it('cancels creation during discovery, closes its process, and releases the attachment', async () => {
-    const { ctx, root, model } = await load(true, 'gate')
-    const controller = new AbortController()
-    let initializing!: Agent
-    const creation = ctx.agents.create({
-      sessionId: SessionId('canceled-startup'), signal: controller.signal,
-      agentOptions: { provider: 'fixture', model: 'fixture' },
-      setup: (inner, agent) => {
-        initializing = agent
-        inner.on('agent/created', () => {
-          agent.followup(createUserMessage({ content: [{ type: 'text', text: 'Visit the fixture.' }], source: { kind: 'user' } }))
-        }, { prepend: true })
-      },
-    })
-    const rejected = expect(creation).rejects.toThrow('cancel browser startup')
-    await vi.waitFor(async () => { expect((await events(root)).some(event => event.event === 'probe')).toBe(true) })
-    controller.abort(new Error('cancel browser startup'))
-    await rejected
-    expect(model.requests).toEqual([])
-    expect(ctx.agents.get(initializing.id)).toBeUndefined()
-    expect(ctx.sessions.get(initializing.id)).toBeUndefined()
-    expect(ctx.tools.schemas(initializing)).toEqual([])
-    expect((await execute(ctx, initializing)).isError).toBe(true)
-    for (const { pid } of (await events(root)).filter(event => event.event === 'start')) {
-      expect(() => process.kill(pid, 0)).toThrow(expect.objectContaining({ code: 'ESRCH' }))
-    }
-    await writeFile(join(root, 'release'), '')
-    const successor = await ctx.agents.create({ sessionId: initializing.id })
-    expect((await execute(ctx, successor.agent)).isError).toBe(false)
-  })
-
-  it('closes the discovered client when a later creation listener rejects', async () => {
-    const { ctx, root, model } = await load(false, undefined, undefined, [TOOL, '<unlisted-tools>'])
+  it('closes the starting client when a later creation listener rejects', async () => {
+    const { ctx, root, model } = await load(false, undefined, undefined)
     let initializing!: Agent
     await expect(ctx.agents.create({
       sessionId: SessionId('later-listener-failure'), agentOptions: { provider: 'fixture', model: 'fixture' },
       setup: (inner, agent) => {
         initializing = agent
-        inner.on('agent/created', () => {
-          expect(ctx.tools.schemas(agent).some(tool => tool.name === TOOL)).toBe(true)
-          agent.followup(createUserMessage({ content: [{ type: 'text', text: 'Visit the fixture.' }], source: { kind: 'user' } }))
-          throw new Error('later initialization failed')
-        })
+        inner.on('agent/created', () => { throw new Error('later initialization failed') })
       },
     })).rejects.toThrow('later initialization failed')
     expect(model.requests).toEqual([])
@@ -495,24 +484,7 @@ describe('Session MCP Loader composition', () => {
     expect(ctx.sessions.get(initializing.id)).toBeUndefined()
     expect(ctx.tools.schemas(initializing)).toEqual([])
     expect((await execute(ctx, initializing)).isError).toBe(true)
-    for (const { pid } of (await events(root)).filter(event => event.event === 'start')) {
-      expect(() => process.kill(pid, 0)).toThrow(expect.objectContaining({ code: 'ESRCH' }))
-    }
-  })
-
-  it('cancels before browser discovery without starting a process', async () => {
-    const { ctx, root, model } = await load(false, 'gate')
-    const controller = new AbortController()
-    await expect(ctx.agents.create({
-      sessionId: SessionId('canceled-at-creation'), signal: controller.signal,
-      agentOptions: { provider: 'fixture', model: 'fixture' },
-      setup: (inner) => {
-        inner.on('agent/created', () => { controller.abort(new Error('cancel before discovery')) }, { prepend: true })
-      },
-    })).rejects.toThrow('cancel before discovery')
-    expect(model.requests).toEqual([])
-    expect(ctx.agents.get(SessionId('canceled-at-creation'))).toBeUndefined()
-    await expect(readFile(join(root, 'events.ndjson'))).rejects.toMatchObject({ code: 'ENOENT' })
+    await expect(events(root)).rejects.toMatchObject({ code: 'ENOENT' })
   })
 
   it('retains a live server directory and starts the resumed server in the current Session directory', async () => {
@@ -547,7 +519,7 @@ describe('Session MCP Loader composition', () => {
     await resumed.dispose()
   })
 
-  it('awaits discovery on persisted resume and releases a canceled resume before retry', async () => {
+  it('finishes a persisted resume before discovery and holds only its first step', async () => {
     const { ctx, root, model } = await load(true, 'gate')
     await ctx.plugin(JsonlSessionPersistence, { root: join(root, 'sessions') })
     await writeFile(join(root, 'release'), '')
@@ -565,20 +537,19 @@ describe('Session MCP Loader composition', () => {
       agentOptions: { provider: 'fixture', model: 'fixture' },
       setup: (inner, agent) => {
         inner.on('agent/created', () => {
-          agent.followup(createUserMessage({ content: [{ type: 'text', text: 'Visit again.' }], source: { kind: 'user' } }))
+          agent.followup(createUserMessage({ content: [], source: { kind: 'user' } }))
         }, { prepend: true })
       },
     })
-    const rejected = expect(canceledResume).rejects.toThrow('cancel browser resume')
     await vi.waitFor(async () => { expect((await events(root)).filter(event => event.event === 'probe')).toHaveLength(2) })
-    expect(model.requests).toHaveLength(2)
     controller.abort(new Error('cancel browser resume'))
-    await rejected
-    expect(ctx.agents.get(sessionId)).toBeUndefined()
-    expect(ctx.sessions.get(sessionId)).toBeUndefined()
-    for (const { pid } of (await events(root)).filter(event => event.event === 'start')) {
-      expect(() => process.kill(pid, 0)).toThrow(expect.objectContaining({ code: 'ESRCH' }))
-    }
+    const interrupted = await canceledResume
+    await interrupted.agent.whenIdle()
+    expect(model.requests).toHaveLength(2)
+    expect(ctx.agents.get(sessionId)).toBe(interrupted.agent)
+    // The aborted discovery left that Session without browser tools.
+    expect(ctx.tools.schemas(interrupted.agent).some(tool => tool.name === TOOL)).toBe(false)
+    await interrupted.dispose()
 
     let resumed = false
     const resuming = ctx.agents.resume({ resumeSessionId: sessionId }).then((handle) => {
@@ -586,10 +557,11 @@ describe('Session MCP Loader composition', () => {
       return handle
     })
     await vi.waitFor(async () => { expect((await events(root)).filter(event => event.event === 'probe')).toHaveLength(3) })
-    expect(resumed).toBe(false)
+    expect(resumed).toBe(true)
     expect(model.requests).toHaveLength(2)
     await writeFile(join(root, 'release'), '')
     const owner = await resuming
+    await gate(ctx, owner.agent)
     expect(ctx.tools.schemas(owner.agent).some(tool => tool.name === TOOL)).toBe(true)
     expect((await execute(ctx, owner.agent)).content).toEqual([{ type: 'text', text: 'Visit 1: direct' }])
     await owner.dispose()
@@ -607,6 +579,7 @@ describe('Session MCP Loader composition', () => {
     })
     expect((await warm(ctx, existing.agent)).tools).toEqual([])
     const future = await ctx.agents.create({ sessionId: SessionId('future') })
+    await gate(ctx, future.agent)
     expect((await warm(ctx, future.agent)).tools.some(tool => tool.name === TOOL)).toBe(true)
     expect((await execute(ctx, existing.agent)).isError).toBe(true)
     expect((await execute(ctx, future.agent)).isError).toBe(false)

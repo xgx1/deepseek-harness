@@ -98,6 +98,6 @@ it('keeps every Agent browser tool in that Agent scope under the shipped layout'
   const second = await ctx.agents.create({ sessionId: SessionId('second'), meta: { cwd: root } })
   expect(toolNames(ctx)).toEqual([])
   for (const agent of [first.agent, second.agent]) {
-    expect(toolNames(ctx, agent)).toContain(TOOL)
+    await vi.waitFor(() => { expect(toolNames(ctx, agent)).toContain(TOOL) })
   }
 })

@@ -94,13 +94,18 @@ export interface SessionMcpOptions {
 
 interface ClientState {
   status: 'ready' | 'blocked'
+  /** Start the Session's server; resolves its failure so the first step reports it. */
+  activation: Promise<Error | undefined>
   mask?: Scope
 }
 
 /**
- * Await one MCP client during each future Agent's creation.
- * A busy attachment leaves that activation without browser tools; its other turns continue.
- * Calls are serialized per Session; unload closes every server before releasing registration.
+ * Start one MCP client during each future Agent's creation and hold that
+ * Session's first step until discovery settles. A busy attachment leaves that
+ * activation without browser tools; its other turns continue. An activation
+ * that fails to initialize fails the first step rather than the creation.
+ * Calls are serialized per Session; unload closes every server before
+ * releasing registration.
  * @param ctx - provider context supplying browser use, Agents, tools, prompt assembly, and working directories.
  * @param options - provider identity, attachment exclusivity, and executable configuration.
  * @throws when the working-directory provider is absent, before browser resources are registered.
@@ -184,8 +189,8 @@ export function mountSessionMcp(ctx: Context, options: SessionMcpOptions): void 
       clients.clear()
     }
   }, `${options.name}.sessions`)
-  ctx.on('agent/created', async ({ agent, signal }) => {
-    const state: ClientState = { status: resources.available(agent) ? 'ready' : 'blocked' }
+  ctx.on('agent/created', ({ agent, signal }) => {
+    const state: ClientState = { status: resources.available(agent) ? 'ready' : 'blocked', activation: Promise.resolve(undefined) }
     agent.ctx.effect(() => async () => {
       clients.delete(agent)
       await state.mask?.dispose()
@@ -195,9 +200,24 @@ export function mountSessionMcp(ctx: Context, options: SessionMcpOptions): void 
       refreshBlockedMasks()
       return
     }
-    await resources.get(agent, signal)
+    state.activation = Promise.resolve().then(() => resources.get(agent, signal)).then((): undefined => undefined, (error: unknown) => {
+      ctx.logger.warn(`${options.name}: browser MCP activation failed for this Session: ${String(error)}`)
+      return error instanceof Error ? error : new Error(String(error), { cause: error })
+    })
     clients.set(agent, state)
   }, { prepend: true })
+  ctx.on('agent/pre-step', async ({ agent, signal }, next) => {
+    const state = clients.get(agent)
+    if (state?.status !== 'ready') return next()
+    const failure = await state.activation
+    if (failure !== undefined) {
+      // The model's first request must see the promised browser tools; running it
+      // without them would silently drop a configured capability.
+      throw new Error(`${options.name}: browser MCP server did not initialize, so this step has no browser tools`, { cause: failure })
+    }
+    signal.throwIfAborted()
+    return next()
+  })
   ctx.on('tools/change', refreshBlockedMasks)
   ctx.on('tools/execute', async (exec, next) => {
     const ownResource = resourceTools.has(exec.name)
