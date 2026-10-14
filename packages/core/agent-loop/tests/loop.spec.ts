@@ -807,7 +807,7 @@ describe('agent loop', () => {
     }
   })
 
-  it('replaces a stale owned snapshot at its accepted position and admits it once', async () => {
+  it('replaces a stale owned snapshot at the position its listener accepts it and admits it once', async () => {
     const adapter = new MockAdapter([textResponse('done')])
     const ctx = await harness(adapter)
     try {
@@ -818,8 +818,13 @@ describe('agent loop', () => {
         const decision = await next()
         current = 'after'
         if (decision.kind === 'reject') return decision
-        const context = decision.messages.find(message => message.source.kind === 'runtime-context')!
-        return { ...decision, messages: [context, ...decision.messages.filter(message => message !== context), context] }
+        // The loop projects this step's snapshot after the waterfall, so a
+        // listener that owns its position places its own placeholder.
+        const stale = createUserMessage({
+          content: [{ type: 'text', text: 'stale' }],
+          source: { kind: 'runtime-context' },
+        })
+        return { ...decision, messages: [stale, ...decision.messages] }
       })
       send(agent, 'accepted user')
       await agent.whenIdle()

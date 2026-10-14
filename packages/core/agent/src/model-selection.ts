@@ -69,10 +69,11 @@ function modelSwitchNotice(previous: ModelSelection, selected: ModelSelection) {
  * the selected model's provider/default behavior.
  *
  * A provider/model change appends a durable user-role notice to the next
- * admitted request. It compares the assembled selection with the latest
- * request header; effort-only changes and empty no-request decisions add no
- * notice. Failure before header persistence repeats the notice on the next
- * request.
+ * admitted request. The step's pre-step runs before the assembly that
+ * snapshots it, so the notice compares the current selection — the one the
+ * following assembly takes — with the latest request header; effort-only
+ * changes and empty no-request decisions add no notice. Failure before header
+ * persistence repeats the notice on the next request.
  *
  * @param agentCtx - The selected Agent's scoped context.
  * @param selection - Mutable selection owned by the calling entry point.
@@ -117,7 +118,7 @@ export function installModelSelection(agentCtx: Context, selection: ModelSelecti
       if (decision.kind === 'reject' || signal.aborted) return decision
       // The loop skips an empty first step and an emptied offered continuation.
       if (decision.messages.length === 0 && (step === 1 || messages.length > 0)) return decision
-      const selected = selection.assembled
+      const selected = selection.current
       const previous = agent.session.requestHeader()?.config
       if (selected === undefined || previous === undefined || sameRoute(selected, previous)) return decision
       return { ...decision, messages: [...decision.messages, modelSwitchNotice(previous, selected)] }

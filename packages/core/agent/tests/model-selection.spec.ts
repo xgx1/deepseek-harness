@@ -121,7 +121,7 @@ describe('installModelSelection()', () => {
     await ctx.fiber.dispose()
   })
 
-  it('announces same-provider and cross-provider route changes from the assembled selection', async () => {
+  it('announces same-provider and cross-provider route changes from the selection the step assembles', async () => {
     const { agent, ctx, dispose, selection } = await switchHarness(
       { provider: 'alpha', model: 'a1' },
       { provider: 'alpha', model: 'a0' },
@@ -130,12 +130,15 @@ describe('installModelSelection()', () => {
       messages: [INPUT, expectedNotice('a0', 'a1')],
     })
 
+    // Pre-step precedes the assembly that snapshots the route: the notice
+    // names the current selection, and the assembly that follows takes it.
     selection.current = { provider: 'beta', model: 'b1' }
-    await ctx.systemPrompt.assemble()
-    selection.current = { provider: 'alpha', model: 'a2' }
     await expect(preStep(ctx, agent)).resolves.toMatchObject({
       messages: [INPUT, expectedNotice('alpha/a0', 'beta/b1')],
     })
+    expect((await ctx.systemPrompt.assemble()).variables).toMatchObject({ provider: 'beta', model: 'b1' })
+
+    selection.current = { provider: 'alpha', model: 'a2' }
     await ctx.systemPrompt.assemble()
     await expect(preStep(ctx, agent)).resolves.toMatchObject({
       messages: [INPUT, expectedNotice('a0', 'a2')],
