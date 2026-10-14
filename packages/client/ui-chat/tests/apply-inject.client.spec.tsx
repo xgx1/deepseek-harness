@@ -237,24 +237,26 @@ describe('Chat inject API', () => {
     await b.runtime.dispose()
   })
 
-  it('addresses file paths under the Session\'s scope and opens them in the right Sidebar', async () => {
+  it('hands file paths to the Host desktop, and keeps the right Sidebar for a refused path', async () => {
     const b = await bench()
     const { injected } = b.chatViewApi(b.rootReference)
     await injected.openFile('src/a.ts')
-    // Files stay in the product: a relative path is handed to the Sidebar as an
-    // address under this session's scope, not to a desktop opener.
-    expect(b.sidebarRight.openResource).toHaveBeenCalledWith('dsh-resource://file/session/root-1/src/a.ts')
-    expect(b.openWorkspacePath).not.toHaveBeenCalled()
+    // The path gesture asks the desktop first: the file belongs to the machine
+    // the workspace lives on, so the Session's directory resolves it.
+    expect(b.openWorkspacePath).toHaveBeenCalledWith({ path: '/proj/src/a.ts' })
+    expect(b.sidebarRight.openResource).not.toHaveBeenCalled()
 
-    // An absolute path inside the session's workspace is the same session-relative address.
+    // An absolute path inside the session's workspace is the same Host path.
     await injected.openFile('/proj/src/a.ts')
-    expect(b.sidebarRight.openResource).toHaveBeenLastCalledWith('dsh-resource://file/session/root-1/src/a.ts')
+    expect(b.openWorkspacePath).toHaveBeenLastCalledWith({ path: '/proj/src/a.ts' })
 
     // A name a URL would otherwise mangle survives the round trip.
     await injected.openFile('src/a b#c.ts')
-    expect(b.sidebarRight.openResource).toHaveBeenLastCalledWith('dsh-resource://file/session/root-1/src/a%20b%23c.ts')
+    expect(b.openWorkspacePath).toHaveBeenLastCalledWith({ path: '/proj/src/a b#c.ts' })
 
-    // A line travels as the `file` type's navigation parameter, not in the address.
+    // A Host without a desktop or a refused path stays in the product, and a
+    // line still travels as the `file` type's navigation parameter.
+    b.openWorkspacePath.mockResolvedValue({ ok: false } as never)
     await injected.openFile('src/a.ts', { line: 7 })
     expect(b.sidebarRight.openResource).toHaveBeenLastCalledWith('dsh-resource://file/session/root-1/src/a.ts', { params: { line: 7 } })
     await b.runtime.dispose()
@@ -403,7 +405,7 @@ describe('Chat inject API', () => {
     await b.runtime.dispose()
   })
 
-  it('keeps a relative path under the Session without a cwd, and addresses a path outside the workspace absolutely', async () => {
+  it('leaves a path the Client cannot resolve to the Host, which owns the Session root', async () => {
     const b = await bench()
     const NO_CWD = 'root-2' as SessionId
     await b.runtime.sessions.add({
@@ -413,13 +415,14 @@ describe('Chat inject API', () => {
     })
     using reference = b.runtime.sessions.retain(NO_CWD)
     const { injected } = b.chatViewApi(reference)
-    // The Host resolves the relative path against the root it holds for the
-    // Session; the Client need not know it.
+    // Without a cwd the Client has nothing to resolve against and hands the
+    // path over unchanged; the Host resolves it against the Session root it holds.
     await injected.openFile('src/a.ts')
-    expect(b.sidebarRight.openResource).toHaveBeenCalledWith('dsh-resource://file/session/root-2/src/a.ts')
-    // An absolute path outside every known root still names its Session.
+    expect(b.openWorkspacePath).toHaveBeenCalledWith({ path: 'src/a.ts' })
+    // An absolute path outside every known root is still the Host's to place.
     await injected.openFile('/abs/a.ts')
-    expect(b.sidebarRight.openResource).toHaveBeenLastCalledWith('dsh-resource://file/session/root-2//abs/a.ts')
+    expect(b.openWorkspacePath).toHaveBeenLastCalledWith({ path: '/abs/a.ts' })
+    expect(b.sidebarRight.openResource).not.toHaveBeenCalled()
     await b.runtime.dispose()
   })
 
