@@ -647,6 +647,26 @@ export interface Config {
 ```
 <!-- END GENERATED config-catalog:@deepseek-ai/dsh-client-ui-sidebar-documentpreview -->
 
+<!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-client-ui-sidebar-right -->
+<a id="deepseek-aidsh-client-ui-sidebar-right"></a>
+
+## `@deepseek-ai/dsh-client-ui-sidebar-right`
+
+- `source`: [`packages/client/ui-sidebar-right/src/config.ts:5`](../packages/client/ui-sidebar-right/src/config.ts)
+
+```ts config-catalog
+/** Right-Sidebar deployment settings. */
+export interface Config {
+  /**
+   * Mount the panel and its header expand button. `false` leaves the
+   * `sidebarRight` service and the `sidebarRightTabs` registry intact for every
+   * consumer and draws no part of the surface.
+   */
+  panel: boolean
+}
+```
+<!-- END GENERATED config-catalog:@deepseek-ai/dsh-client-ui-sidebar-right -->
+
 <!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-client-ui-theme -->
 <a id="deepseek-aidsh-client-ui-theme"></a>
 
@@ -925,6 +945,8 @@ export interface Config {
   extensionId?: string
   /** Installed Chrome/Chromium executable used in launch mode. */
   executablePath?: string
+  /** Whether another live Session must wait for the attached browser to be released; defaults to true. */
+  exclusive?: boolean
   /** Hide an owned browser's window. */
   headless?: boolean
   /** Deadline for Chromium startup and Stagehand navigation/action operations. */
@@ -3049,6 +3071,27 @@ export interface Config {
 ```
 <!-- END GENERATED config-catalog:@deepseek-ai/dsh-skill-filesystem -->
 
+<!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-skill-filter -->
+<a id="deepseek-aidsh-skill-filter"></a>
+
+## `@deepseek-ai/dsh-skill-filter`
+
+- `inject`: `skills`
+- `source`: [`packages/skill/skill-filter/src/index.ts:35`](../packages/skill/skill-filter/src/index.ts)
+
+```ts config-catalog
+/** Skill filter plugin configuration. */
+export interface Config {
+  /** Provider name registered in `ctx.skills`. Defaults to `skill-filter`. */
+  readonly providerName?: string
+  /** Additional custom skill directories (forwarded to the internal FileSystemSkillProvider). */
+  readonly customSkillDirs?: string[]
+  /** Whether host-local skill roots are watched for catalog changes. */
+  readonly watch?: boolean
+}
+```
+<!-- END GENERATED config-catalog:@deepseek-ai/dsh-skill-filter -->
+
 <!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-skill-office -->
 <a id="deepseek-aidsh-skill-office"></a>
 
@@ -4501,6 +4544,7 @@ These load from a `cordis.yml` entry with no `config:` block; they declare no co
 | `@deepseek-ai/dsh-agent` | — | [`packages/core/agent/src/index.ts`](../packages/core/agent/src/index.ts) |
 | `@deepseek-ai/dsh-api-account-controller` | `deepseekAccount` · `agents` | [`packages/api/account-controller/src/index.ts`](../packages/api/account-controller/src/index.ts) |
 | `@deepseek-ai/dsh-api-remotes` | `typertGateway` | [`packages/api/remotes/src/index.ts`](../packages/api/remotes/src/index.ts) |
+| `@deepseek-ai/dsh-api-skill-filter-controller` | `typert` | [`packages/api/skill-filter-controller/src/index.ts`](../packages/api/skill-filter-controller/src/index.ts) |
 | `@deepseek-ai/dsh-authorization` | `credentials` | [`packages/credentials/authorization/src/index.ts`](../packages/credentials/authorization/src/index.ts) |
 | `@deepseek-ai/dsh-browser-use` | — | [`packages/browser-use/browser-use/src/index.ts`](../packages/browser-use/browser-use/src/index.ts) |
 | `@deepseek-ai/dsh-client-file-upload` | `agents` · `attachments` · `commands` · `connection` | [`packages/client/file-upload/src/index.ts`](../packages/client/file-upload/src/index.ts) |
@@ -4544,9 +4588,9 @@ These load from a `cordis.yml` entry with no `config:` block; they declare no co
 | `@deepseek-ai/dsh-client-ui-sidebar` | — | [`packages/client/ui-sidebar/src/index.ts`](../packages/client/ui-sidebar/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-sidebar-browser` | — | [`packages/client/ui-sidebar-browser/src/index.ts`](../packages/client/ui-sidebar-browser/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-sidebar-files` | — | [`packages/client/ui-sidebar-files/src/index.ts`](../packages/client/ui-sidebar-files/src/index.ts) |
-| `@deepseek-ai/dsh-client-ui-sidebar-right` | — | [`packages/client/ui-sidebar-right/src/index.ts`](../packages/client/ui-sidebar-right/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-sidebar-terminal` | — | [`packages/client/ui-sidebar-terminal/src/index.ts`](../packages/client/ui-sidebar-terminal/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-skill` | — | [`packages/client/ui-skill/src/index.ts`](../packages/client/ui-skill/src/index.ts) |
+| `@deepseek-ai/dsh-client-ui-skill-filter` | — | [`packages/client/ui-skill-filter/src/index.ts`](../packages/client/ui-skill-filter/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-subagent` | — | [`packages/client/ui-subagent/src/index.ts`](../packages/client/ui-subagent/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-tool` | — | [`packages/client/ui-tool/src/index.ts`](../packages/client/ui-tool/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-trajectory` | — | [`packages/client/ui-trajectory/src/index.ts`](../packages/client/ui-trajectory/src/index.ts) |

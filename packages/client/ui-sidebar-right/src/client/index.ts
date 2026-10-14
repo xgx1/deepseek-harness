@@ -47,6 +47,7 @@ import { GUIDE_ID, guideDefinition } from './tabs/guide/definition.ts'
 import { guideTabInfoFactory, tabInfoFactory } from './tab-info.ts'
 import type { TabId } from '@deepseek-ai/dsh-client-ui-dockkit'
 import { defaultSeed } from './contract/seed.ts'
+import { Config } from '../config.ts'
 
 export type { SidebarRightTarget } from './focus.ts'
 export type { RightbarSeatProps, SidebarRightInjected, SidebarRightPresentation } from './shell/SidebarRight.tsx'
@@ -93,12 +94,16 @@ declare module '@deepseek-ai/cordis' {
 
 /**
  * Client plugin body: provide the registry and the navigation face, register the
- * panel seat and the rail seat over one store with their extension children, and
- * register the guide type through the same public two-stage path any other type
- * uses.
+ * panel seat and the rail seat over one store with their extension children when
+ * the deployment mounts the surface, and register the guide type through the same
+ * public two-stage path any other type uses.
  * @param ctx - client root context carrying the slot registry, the frame's face, and copy.
  */
 export function apply(ctx: ClientContext): void {
+  // The Host embeds the validated deployment settings in the page; the plugin's
+  // own module namespace carries none, because nothing in the browser roster
+  // passes entry config.
+  const config = Config((globalThis as { __DSH_SIDEBAR_RIGHT_CONFIG__?: unknown }).__DSH_SIDEBAR_RIGHT_CONFIG__ ?? {})
   // The registry and the face it backs are built here, at apply's top level,
   // and never inside an effect. A registry other packages register into cannot
   // have an effect-internal scope as its host: `register()` adds an effect to
@@ -201,7 +206,10 @@ export function apply(ctx: ClientContext): void {
     }
 
     const disposeTypes = [tabs.register(guideDefinition(t))]
-    const disposeSeat = ctx.slots.inject('rightbar', function* () {
+    // `panel: false` suppresses the mounted surface only: the registry, the
+    // navigation face, the store, and the dictionaries above stay live, so the
+    // plugins that inject `sidebarRight` keep activating.
+    const disposeSeat = config.panel ? ctx.slots.inject('rightbar', function* () {
       yield ctx.slots.register({
         name: 'rightbar',
         children: { 'rightbar.session': { kind: 'single', scope: 'session' } },
@@ -230,17 +238,17 @@ export function apply(ctx: ClientContext): void {
           occurrence: tab => controller.tabDomain.occurrence(sessionId, tab),
         }),
       }, RightbarSeat)
-    })
+    }) : undefined
     // The expand button shares the panel's store: it only needs to know whether
     // the panel is expanded, and to ask for it to be. The header's corner seat
     // is its own place, past the utilities, so showing and hiding it moves
     // nothing else in the row.
-    const disposeExpand = ctx.slots.inject('conversation.session.header.corner', () => ctx.slots.register({
+    const disposeExpand = config.panel ? ctx.slots.inject('conversation.session.header.corner', () => ctx.slots.register({
       name: 'conversation.session.header.corner',
       locale: NS,
       store,
       inject: () => ({ hooks: { shortcuts: ctx.shortcuts.catalog } }),
-    }, ExpandButton))
+    }, ExpandButton)) : undefined
     // Stage two for the guide: it declares the chain child it hosts and reads
     // the registry's entry boxes, which an ordinary type has no reason to do.
     const guideInjected: GuideInjected = {
@@ -269,8 +277,8 @@ export function apply(ctx: ClientContext): void {
     return () => {
       disposeGuideTitle()
       disposeGuide()
-      disposeExpand()
-      disposeSeat()
+      disposeExpand?.()
+      disposeSeat?.()
       for (const dispose of disposeTypes.reverse()) dispose()
       for (const release of adoptions.values()) release()
       adoptions.clear()

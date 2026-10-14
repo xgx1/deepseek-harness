@@ -49,6 +49,8 @@ The seat reports presentation through `ctx.layout.openRightbar(track, fullscreen
 
 The panel has no header row. Its two controls — the presentation switch and the collapse button — ride the kit's chrome seat at the far end of the top-right pane's tab strip, so the strip is the panel's whole top edge. Each strip reads, left to right: the tab capsules with close controls where allowed, the add control (drawn only while that pane holds no guide tab; it opens the guide there through `ctx.sidebarRight.openTab`), the pane's split control, and in the top-right pane the two panel controls. Only the chips give way in a narrow pane; the controls after them never shrink or clip.
 
+Mounting the surface is a deployment choice: the `panel` field of the `ui-sidebar-right` entry defaults to `true`. With `panel: false` neither the panel nor the header expand button registers, so no part of the surface renders, while `ctx.sidebarRight`, `ctx.sidebarRightTabs`, the store, and the copy stay exactly as they are and every consumer keeps activating. The Host embeds the validated value in each served page, so a composition change applies at the next page load.
+
 <a id="the-expand-button"></a>
 ## The expand button
 

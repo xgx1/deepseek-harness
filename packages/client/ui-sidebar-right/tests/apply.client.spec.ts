@@ -12,11 +12,12 @@ import { describe, expect, it, onTestFinished, vi } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
 import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
 import type { SlotRegistry } from '@deepseek-ai/dsh-client-ui-renderer/client'
+import type { IndexInjection } from '@deepseek-ai/dsh-host-webserver'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { Shortcuts, ShortcutCommand } from '@deepseek-ai/dsh-client-shortcuts/client'
 import { apply, inject } from '../src/client/index.ts'
 import type { GuideInjected, SidebarRightInjected } from '../src/client/index.ts'
-import { apply as hostApply } from '../src/index.ts'
+import { Config as HostConfig, apply as hostApply } from '../src/index.ts'
 import { SidebarRightController } from '../src/client/service.ts'
 import { SidebarRightTabRegistry } from '../src/client/tab-registry.ts'
 import type { createSidebarRightStore } from '../src/client/stores.ts'
@@ -92,8 +93,32 @@ async function boot(shortcuts: Partial<Shortcuts> = {}) {
 }
 
 describe('ui-sidebar-right apply', () => {
-  it('keeps the host Loader entry inert', () => {
-    expect(hostApply).not.toThrow()
+  it('validates the surface switch and embeds it in the served page', async () => {
+    expect(HostConfig({}).panel).toBe(true)
+    expect(HostConfig({ panel: false }).panel).toBe(false)
+    const ctx = new Context()
+    try {
+      hostApply(ctx, HostConfig({ panel: false }))
+      const table: IndexInjection[] = []
+      await ctx.parallel('webserver/index-inject', table)
+      expect(table).toEqual([{ kind: 'global', name: '__DSH_SIDEBAR_RIGHT_CONFIG__', value: { panel: false } }])
+    } finally { await ctx.fiber.dispose() }
+  })
+
+  it('mounts neither the panel nor the expand button when the switch is off, keeping both faces and the guide type', async () => {
+    vi.stubGlobal('__DSH_SIDEBAR_RIGHT_CONFIG__', { panel: false })
+    onTestFinished(() => { vi.unstubAllGlobals() })
+    const { ctx, registered, dictionaries } = await boot()
+    expect(ctx.sidebarRight).toBeInstanceOf(SidebarRightController)
+    expect(ctx.sidebarRightTabs).toBeInstanceOf(SidebarRightTabRegistry)
+    expect(ctx.sidebarRightTabs.get('guide')?.id).toBe(GUIDE_ID)
+    expect(dictionaries.get('sidebarRight')).toEqual({ zh, en })
+    // Only the guide's own registrations remain: nothing draws a surface, and
+    // the seats that declare the extension holes never exist.
+    expect(registered.map(entry => [entry.name, entry.key])).toEqual([
+      ['sidebar.right.pane.tab', GUIDE_ID],
+      ['sidebar.right.pane.tab.title', GUIDE_ID],
+    ])
   })
 
   it('routes native close through the shortcut service and contains bridge rejections', async () => {

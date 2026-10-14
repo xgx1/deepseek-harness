@@ -49,6 +49,8 @@ kind: "package-reference"
 
 面板没有标题行。它的两个控件——形态切换与折叠按钮——搭在套件 chrome 席位上，位于右上格 tab 条的最末端，因此 tab 条就是面板的整条上边。每条 tab 条从左到右读作：在允许时带关闭按钮的 tab 胶囊，添加控件（只在该格没有引导 tab 时绘制；它通过 `ctx.sidebarRight.openTab` 在该格打开引导页），该格的分栏控件，以及右上格里的两个面板控件。窄格里只有 chip 让位；其后的控件从不收缩或被裁切。
 
+是否挂载停靠面是部署选择：`ui-sidebar-right` 条目的 `panel` 字段默认为 `true`。设为 `panel: false` 时面板与会话 header 展开按钮都不注册，停靠面的任何部分都不渲染；而 `ctx.sidebarRight`、`ctx.sidebarRightTabs`、存储与文案原样保留，所有消费方照常激活。宿主把校验后的值嵌进每个服务的页面，因此改组成在下次页面加载时生效。
+
 <a id="the-expand-button"></a>
 ## 展开按钮
 
