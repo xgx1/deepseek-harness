@@ -129,15 +129,16 @@ export class SessionCommandController {
       this.rejectCreation(sessionId, error)
     }
     if (workspace !== undefined) {
-      try {
-        await workspace.attachSession(sessionId)
-      } catch (error) {
-        throw new RemoteError(
-          'session/workspace-attach-failed',
-          `session "${sessionId}" was created but could not attach to workspace "${workspace.id}": ${String(error)}`,
-          { sessionId, workspaceId: workspace.id },
+      // The Session opens as soon as its Agent exists: the workspace attach
+      // rewrites the durable registry through two fsyncs, which costs about a
+      // second on a busy disk, and no part of opening the Session waits for that
+      // membership. A failed attach is reported instead of rejecting a Session
+      // the caller can already use.
+      void workspace.attachSession(sessionId).catch((error: unknown) => {
+        this.ctx.logger.warn(
+          `session-controller: session "${sessionId}" was created but did not attach to workspace "${workspace.id}": ${String(error)}`,
         )
-      }
+      })
     }
     const agentPreset = this.agents.presetForSession(adopted.session)
     return { sessionId, ...(agentPreset === undefined ? {} : { agentPreset }) }

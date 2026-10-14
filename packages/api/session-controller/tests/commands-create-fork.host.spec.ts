@@ -81,6 +81,8 @@ describe('Session creation failures', () => {
     await missing.fiber.dispose()
 
     const failed = await baseContext()
+    const warnings: string[] = []
+    failed.logger.warn = (message: string) => { warnings.push(message) }
     const workspace = {
       id: 'workspace-1' as WorkspaceId,
       path: '/workspace',
@@ -90,15 +92,24 @@ describe('Session creation failures', () => {
       get: () => workspace,
       list: () => [workspace],
     } as never)
-    const failedController = new SessionCommandController(
+    const attachEnsureSession = vi.fn((sessionId: SessionId, cwd: string) => {
+      const session = failed.sessions.create(sessionId, { meta: { cwd } })
+      return Promise.resolve({ id: sessionId, session } as Agent)
+    })
+    const attached = await new SessionCommandController(
       failed,
-      controllerAgents(),
-      '/default',
-    )
-    await expectFailure(failedController.create({
+      controllerAgents({ ensureSession: attachEnsureSession }),
+      '/default-workspace',
+    ).create({
       sessionId: SessionId('workspace-session'),
       workspaceId: workspace.id,
-    }), 'session/workspace-attach-failed')
+    })
+    // The Session opens before its workspace membership is durable, so a failed
+    // attach is reported instead of rejecting a Session the caller can already use.
+    expect(attached.sessionId).toBe('workspace-session')
+    await vi.waitFor(() => {
+      expect(warnings.some(line => line.includes('did not attach to workspace'))).toBe(true)
+    })
     await failed.fiber.dispose()
   })
 
