@@ -107,6 +107,8 @@ export class SessionManager {
   private listInflight: Promise<void> | null = null
   /** Active list request's mutation log; its identity also fences completion after reconnect. */
   private listMutations: SessionListMutation[] | null = null
+  /** Whether the page-boot pull has been spent; only that pull yields to the first paint. */
+  private bootListScheduled = false
   private readonly addresses = new Map<SessionId, SubagentAddress>()
   private readonly projectionLoads = new Map<SessionId, ProjectionLoad>()
   private readonly projectionInflight = new Map<SessionId, ProjectionInflight>()
@@ -758,7 +760,7 @@ export class SessionManager {
     for (const store of this.projectionStores.values()) store.clear()
     this.listMutations = null
     this.listInflight = null
-    void this.refreshList()
+    this.scheduleListRefresh()
     const parents = new Set(this.projectionLoads.keys())
     for (const id of this.sessions.keys()) {
       const address = this.addresses.get(id)
@@ -768,6 +770,29 @@ export class SessionManager {
     this.projectionInflight.clear()
     this.projectionLoads.clear()
     for (const parentSessionId of parents) void this.refreshProjections(parentSessionId)
+  }
+
+  /**
+   * Pull the list, letting the page-boot pull wait for the first paint. The
+   * listing is a large response nothing on the first frame reads (the sidebar
+   * paints its shell, and optimistic create placeholders are recorded into
+   * `summaries` without it), so blocking the critical path on it costs the
+   * boot's own first render. Every later pull — reconnect, explicit refresh —
+   * stays immediate so callers keep observing the same ordering.
+   */
+  private scheduleListRefresh(): void {
+    if (this.bootListScheduled) {
+      void this.refreshList()
+      return
+    }
+    this.bootListScheduled = true
+    const pull = (): void => {
+      // A pull that already landed, or one still in flight, answers the boot
+      // fetch too; only a first listing that never started is deferred into here.
+      if (!this.disposed && this.listPhase === 'pending') void this.refreshList()
+    }
+    if (typeof requestIdleCallback === 'function') requestIdleCallback(pull, { timeout: 500 })
+    else setTimeout(pull, 0)
   }
 
   private buildListSnapshot(): SessionListSnapshot {

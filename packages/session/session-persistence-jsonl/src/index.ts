@@ -106,6 +106,46 @@ interface GenerationHeader {
   readonly formatStatus: NonNullable<SessionPersistenceSnapshot['formatStatus']>
 }
 
+/**
+ * Cap on the listing-header memo below. A stored generation keeps one entry per
+ * path, so the map only ever holds as many entries as paths the process has
+ * listed; the cap bounds a long-lived process that ranges over many roots.
+ */
+const HEADER_MEMO_MAX_ENTRIES = 4000
+
+/**
+ * Parsed listing headers by source path, each valid only while the file's stat
+ * identity is unchanged: a session log is rewritten in place (which changes
+ * dev/ino/size/mtimeNs/ctimeNs) or replaced by a differently named generation,
+ * never edited under a stable identity. Only successful listing reads are
+ * recorded — a miss, a malformed header, or a read failure is never memoized —
+ * and an identity mismatch or a vanished path drops the entry.
+ *
+ * ponytail: process-wide FIFO of the last 4000 paths, no pressure-based
+ * eviction and no cross-process invalidation. It is correct only because the
+ * identity check is re-stat'd on every hit. If a deployment ever lists tens of
+ * thousands of generations, key the map by the stat identity and delete from
+ * `listArtifacts` when the identity changes, instead of raising the cap.
+ */
+const headerMemo = new Map<string, { readonly identity: PersistenceRevision; readonly header: GenerationHeader }>()
+
+/**
+ * Record one parsed listing header, evicting the oldest path at the cap.
+ * @param path - absolute generation path that was read.
+ * @param identity - the path's stat identity at or before the read.
+ * @param header - the header parsed from that path.
+ */
+function rememberHeader(path: string, identity: PersistenceRevision, header: GenerationHeader): void {
+  // Re-inserting moves the path to the newest position so eviction stays FIFO.
+  headerMemo.delete(path)
+  /* v8 ignore next 4 -- reaching the cap takes 4000 distinct listed generations, far past any test store. */
+  if (headerMemo.size >= HEADER_MEMO_MAX_ENTRIES) {
+    const oldest = headerMemo.keys().next().value
+    if (oldest !== undefined) headerMemo.delete(oldest)
+  }
+  headerMemo.set(path, { identity, header })
+}
+
 /** One stored event graph whose producer has established immutable sharing. */
 interface FrozenStoredEvents extends SessionHandleReadResult {
   readonly eventState: 'shared-frozen'
@@ -1090,20 +1130,36 @@ class JsonlSessionPersistence extends SessionPersistence {
     return artifacts
   }
 
-  /** Read and translate one selected generation header without inspecting its body. */
+  /**
+   * Read and translate one selected generation header without inspecting its
+   * body. A listing read (no expected id) reuses the memoized parse of the same
+   * unchanged file; an addressed read always re-reads.
+   */
   private async readGenerationHeader(
     selected: ResolvedJsonlGeneration,
     expectedId?: SessionId,
     signal?: AbortSignal,
   ): Promise<GenerationHeader | undefined> {
+    // Only the listing read (no expected id) memoizes: an addressed read may be
+    // asserting the header against the id it asked for, so it always re-reads.
+    let identity: PersistenceRevision | undefined
     let first: string | undefined
     try {
+      if (expectedId === undefined) {
+        identity = fileRevision(await stat(selected.sourcePath, { bigint: true }))
+        const memoized = headerMemo.get(selected.sourcePath)
+        if (memoized?.identity === identity) return memoized.header
+      }
       first = this.compression === 'zstd'
         ? await this.readFirstZstdLine(selected.sourcePath, signal)
         : await this.readFirstLine(selected.sourcePath, signal)
     } catch (error: unknown) {
       signal?.throwIfAborted()
-      if (isENOENT(error)) return undefined
+      if (isENOENT(error)) {
+        // A path the source no longer holds can never serve its parsed header again.
+        headerMemo.delete(selected.sourcePath)
+        return undefined
+      }
       throw error
     }
     signal?.throwIfAborted()
@@ -1143,10 +1199,14 @@ class JsonlSessionPersistence extends SessionPersistence {
       expectedId,
       signal,
     )
-    return {
+    const parsed: GenerationHeader = {
       header,
       formatStatus: result.status,
     }
+    // The probed identity predates this read, so a file rewritten during it
+    // fails the next hit's identity check instead of serving this header.
+    if (identity !== undefined) rememberHeader(selected.sourcePath, identity, parsed)
+    return parsed
   }
 
   /** Convert format-catalog string identities to current branded Session metadata. */

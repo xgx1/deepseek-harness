@@ -313,6 +313,18 @@ export class ApiSessionList {
 }
 
 /**
+ * Projection keys a Session-list row never carries. `inbox` and `turnOutline`
+ * are conversation-sized payloads — together about half of a several-hundred-row
+ * listing — and their readers are all bound to one opened Session, which
+ * receives them from its own follow baseline, from the control stream's
+ * baseline and frames, or from `session.projections`. A listed row therefore
+ * leaves both keys unknown, and a view that needs one fills it from the
+ * connected Session (see the client projection store's "missing key is
+ * unknown" merge rule).
+ */
+const UNLISTED_PROJECTION_KEYS: ReadonlySet<string> = new Set(['inbox', 'turnOutline'])
+
+/**
  * Wrap one projection block as Session-list hints of the named sequence space.
  * @param kind - which sequence space the block's watermark belongs to.
  * @param block - the block, or `undefined` when no source served one.
@@ -322,10 +334,16 @@ function hintsOf(
   kind: SessionProjectionHints['kind'],
   block: ProjectionSnapshot | undefined,
 ): SessionProjectionHints | undefined {
-  if (block === undefined || Object.keys(block.values).length === 0) return undefined
-  // Listing hints contain every wire value the source currently holds but
-  // remain partial: missing cells and cache rows are never materialized here.
-  return { kind, asOfSeq: block.asOfSeq, values: block.values as SessionProjectionValues }
+  if (block === undefined) return undefined
+  const values: Record<string, unknown> = {}
+  for (const [key, value] of Object.entries(block.values)) {
+    if (UNLISTED_PROJECTION_KEYS.has(key)) continue
+    values[key] = value
+  }
+  // Listing hints remain partial: unlisted keys, missing cells, and cache rows
+  // are never materialized here.
+  if (Object.keys(values).length === 0) return undefined
+  return { kind, asOfSeq: block.asOfSeq, values: values as SessionProjectionValues }
 }
 
 function normalizeSearchQuery(query: string): string {

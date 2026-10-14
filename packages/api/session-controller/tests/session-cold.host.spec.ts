@@ -240,6 +240,48 @@ describe('sessions.list cold merge', () => {
     expect(inspect).not.toHaveBeenCalled()
   })
 
+  it('omits conversation-sized projection keys from every list row', async () => {
+    const ctx = new Context()
+    await ctx.plugin(SessionStore)
+    const metas: SessionHeader[] = [header('with-inbox', 100), header('inbox-only', 200)]
+    providePersistence(ctx, { list: () => Promise.resolve(metas) })
+    ctx.provide('sessionProjectionCache', {
+      cachedSnapshot: (meta: SessionHeader) => (meta.id === sid('with-inbox')
+        ? {
+          asOfSeq: 4,
+          values: {
+            title: 'Queued work',
+            inbox: { 'next-turn': [], 'next-step': [] },
+            turnOutline: [{ turn: 1, title: 'first' }],
+            sessionListMetadata: { blank: false, lastPromptAt: 900 },
+          },
+        }
+        : { asOfSeq: 1, values: { inbox: { 'next-turn': [], 'next-step': [] } } }),
+      cachedPredecessorTitle: () => undefined,
+    } as never)
+    const remote = createSessionTestRemote(ctx, {
+      defaultModelSelection: () => ({ provider: 'p', model: 'm' }),
+      cwd: '/tmp',
+    })
+
+    const response = await remote.list(request({}))
+
+    expect(response.ok).toBe(true)
+    if (!response.ok) throw new Error('unreachable')
+    const byId = Object.fromEntries(response.value.items.map(item => [item.sessionId, item]))
+    // Only an opened Session reads these keys, from its own baseline or frames.
+    expect(byId['with-inbox']?.projections).toEqual({
+      kind: 'cached',
+      asOfSeq: 4,
+      values: {
+        title: 'Queued work',
+        sessionListMetadata: { blank: false, lastPromptAt: 900 },
+      },
+    })
+    // A block that held nothing else leaves the row with no block at all.
+    expect(byId['inbox-only']).not.toHaveProperty('projections')
+  })
+
 })
 
 describe('attached updatedAt tracks human prompts', () => {

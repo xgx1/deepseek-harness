@@ -1388,6 +1388,23 @@ describe('remaining branches', () => {
 })
 
 describe('connected generation', () => {
+  it('holds the page-boot listing until the first idle slice and pulls later generations at once', async ({ mock, remote }) => {
+    const manager = makeManager(mock, remote)
+    remote.session.list.mockResolvedValue(ok({ items: [] }))
+    try {
+      manager.handleConnected()
+      expect(remote.session.list).not.toHaveBeenCalled()
+
+      await new Promise((resolve) => { setTimeout(resolve, 0) })
+      expect(remote.session.list).toHaveBeenCalledTimes(1)
+
+      manager.handleConnected()
+      expect(remote.session.list).toHaveBeenCalledTimes(2)
+    } finally {
+      await manager.dispose()
+    }
+  })
+
   it('does not prune running observations from a superseded empty list response', async ({ mock, remote }) => {
     const manager = makeManager(mock, remote)
     onTestFinished(() => manager.dispose())

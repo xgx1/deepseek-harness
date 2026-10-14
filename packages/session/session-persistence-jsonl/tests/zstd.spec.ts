@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
-import { appendFile, mkdir, mkdtemp, open, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises'
+import { appendFile, mkdir, mkdtemp, open, readFile, readdir, rm, stat, utimes, writeFile } from 'node:fs/promises'
 import type { FileHandle } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -572,6 +572,9 @@ describe('JsonlSessionPersistence: default Zstandard encoding', () => {
       await writeLog(ctx.sessionPersistence, header, oneTurnLog())
       await ctx.sessionPersistence.list()
       const path = logPath(root, header.cwd, header.id, compression)
+      // The listing reuses a parsed header while the file identity holds, so
+      // this read must be forced by the file itself changing.
+      await utimes(path, new Date(), new Date())
       const probe = await open(path, 'r')
       const prototype = Object.getPrototypeOf(probe) as { read: HeaderRead }
       const originalRead = prototype.read
@@ -594,6 +597,32 @@ describe('JsonlSessionPersistence: default Zstandard encoding', () => {
       expect(read).toHaveBeenCalledTimes(1)
     },
   )
+
+  it('reuses a parsed header across listings until the file identity changes', async () => {
+    const root = await freshRoot()
+    const ctx = await mount(root)
+    const header = meta('listing-header-reuse', '/work')
+    await writeLog(ctx.sessionPersistence, header, oneTurnLog())
+    const path = logPath(root, header.cwd, header.id, 'zstd')
+    const probe = await open(path, 'r')
+    const prototype = Object.getPrototypeOf(probe) as { read: HeaderRead }
+    const read = vi.spyOn(prototype, 'read')
+    await probe.close()
+
+    const first = await ctx.sessionPersistence.list()
+    expect(first).toHaveLength(1)
+    expect(read).toHaveBeenCalled()
+
+    read.mockClear()
+    expect(await ctx.sessionPersistence.list()).toEqual(first)
+    expect(read).not.toHaveBeenCalled()
+
+    // A rewrite changes the identity the listing validated the header against.
+    await utimes(path, new Date(), new Date())
+    const rewritten = await ctx.sessionPersistence.list()
+    expect(read).toHaveBeenCalledTimes(1)
+    expect(rewritten[0]?.header).toEqual(first[0]?.header)
+  })
 
   it('recovers complete records from a torn final frame and rewrites them on the next append', async () => {
     const root = await freshRoot()
