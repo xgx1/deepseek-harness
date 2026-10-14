@@ -102,12 +102,16 @@ export class AgentPresetRegistry extends TypertRemoteService {
 
   private async activate(record: Definition): Promise<void> {
     const key = {}
-    // Own the revision from the ROOT context: a live configuration reload
-    // re-creates this registry's own row, which would otherwise dispose every
-    // mounted scope out from under the Agents still bound to that revision.
-    // Retired revisions are still released by `collect()` once their last
-    // Agent or lease lets go.
-    const scope = createScope(this.owner.root, key)
+    // Own the revision from this registry's own context. Minting it on
+    // `this.owner.root` looks sturdier across a live configuration reload, but
+    // a scope under the root context loses its mounting tree immediately: the
+    // root fiber disposes the child the mount lives in, so every preset mounts
+    // EMPTY — no tools, no commands, no persona, and no diagnostic, because an
+    // empty tree audits clean. 2026-10-14: that shipped and killed the whole
+    // preset plane for every session until it was reverted. The reload case
+    // this once covered is the rarer failure, and it cures with a service
+    // restart; an empty mount does not.
+    const scope = createScope(this.owner, key)
     try {
       const problem = entryListProblem(record.config.plugins)
       if (problem !== undefined) throw new Error(problem)
