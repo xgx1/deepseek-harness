@@ -1,6 +1,13 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 0001-whitelist-skill-filter.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/adr/0001-whitelist-skill-filter.md
-0001-whitelist-skill-filter.md: c2f69961bfd820b2dd3cf13e8ed507d1554538cb
-0001-whitelist-skill-filter.zh.md: d97174430baa18c4fab193f727ee51d9b9b3ebbc
+/whitelist-skill-filtering-model:
+  en: 51fe374f3c40ca04
+  zh: 4a8a35838006de64
+/whitelist-skill-filtering-model/considered-options:
+  en: 627bf1a7cb51ea26
+  zh: caa890c6b34be7ed
+/whitelist-skill-filtering-model/consequences:
+  en: b908b619514e808e
+  zh: 1ca624e18de52e46

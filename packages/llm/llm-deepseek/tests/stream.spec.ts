@@ -125,7 +125,7 @@ describe('SSE framing and provider failures', () => {
     [401, {}, 'AUTH'], [403, {}, 'AUTH'], [402, {}, 'QUOTA'], [429, {}, 'RATE_LIMIT'],
     [400, {}, 'INVALID_REQUEST'], [413, {}, 'INVALID_REQUEST'], [503, {}, 'SERVER'], [404, {}, 'HTTP_404'],
     [408, {}, 'TIMEOUT'], [425, {}, 'SERVER'],
-    [429, { message: 'account credits exhausted' }, 'RATE_LIMIT'],
+    [429, { message: 'account credits exhausted' }, 'QUOTA'],
     [undefined, { message: '429: insufficient_quota' }, 'RATE_LIMIT'],
     [undefined, { message: 'rate limit reached' }, 'RATE_LIMIT'],
     [undefined, { type: 'authentication_error' }, 'AUTH'], [undefined, { type: 'rate_limit_error' }, 'RATE_LIMIT'],

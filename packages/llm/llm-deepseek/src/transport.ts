@@ -41,10 +41,12 @@ export function providerError(raw: unknown, status: number | undefined, headers?
   // classify further stays retryable as SERVER.
   if (status === undefined) code = inBandProviderErrorCode({ ...providerCode === undefined ? {} : { code: providerCode }, type, message })
   else if (status === 401 || status === 403 || ['authentication_error', 'permission_error'].includes(type)) code = 'AUTH'
-  // HTTP 429 is a rate-limit instruction even when the body names quota or
-  // billing conditions, so the status wins over the body wording.
-  else if (status === 429 || type === 'rate_limit_error') code = 'RATE_LIMIT'
+  // Body wording that names terminal quota exhaustion outranks the bare 429:
+  // DeepSeek delivers `insufficient_quota` together with a 429, and only the
+  // wording separates that terminal state from transient throttling. A 429 with
+  // nothing further to say, or an explicit rate-limit type, stays RATE_LIMIT.
   else if (isQuotaExceededError(detail) || status === 402) code = QUOTA_EXCEEDED_CODE
+  else if (status === 429 || type === 'rate_limit_error') code = 'RATE_LIMIT'
   else if (isContextWindowExceededError(detail)) code = CONTEXT_WINDOW_EXCEEDED_CODE
   else if (status === 400 || status === 413 || type === 'invalid_request_error') code = 'INVALID_REQUEST'
   else if (['api_error', 'overloaded_error'].includes(type)) code = 'SERVER'
