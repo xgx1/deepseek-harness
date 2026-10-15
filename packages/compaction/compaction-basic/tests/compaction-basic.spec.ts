@@ -2125,7 +2125,7 @@ describe('automatic listener and loader composition', () => {
     expect(session.snapshotEvents().filter(event => event.type === 'compaction/summary')).toHaveLength(summaries)
   })
 
-  it('auto:false installs neither automatic listener', async () => {
+  it('auto:false drops step pressure but keeps provider-confirmed overflow recovery', async () => {
     const ctx = createContext()
     void new TestCompactionEngine(ctx, {
       headroomTokens: 0,
@@ -2134,10 +2134,13 @@ describe('automatic listener and loader composition', () => {
       thresholdRatio: 0.5,
       retainTokens: 180,
     })
-    const session = conversation(4)
-    await preStep(ctx, agent(session, MODEL))
-    expect(session.snapshotEvents().some(event => event.type === 'compaction/start')).toBe(false)
-    expect(await recover(ctx, agent(session, MODEL), overflow())).toBe(false)
+    const pressured = conversation(4)
+    await preStep(ctx, agent(pressured, MODEL))
+    expect(pressured.snapshotEvents().some(event => event.type === 'compaction/start')).toBe(false)
+
+    const overflowing = conversation(4)
+    expect(await recover(ctx, agent(overflowing, MODEL), overflow())).toBe(true)
+    expect(overflowing.snapshotEvents().some(event => event.type === 'compaction/summary')).toBe(true)
   })
 
   it('loads and disposes the real zero-config service stack', async () => {

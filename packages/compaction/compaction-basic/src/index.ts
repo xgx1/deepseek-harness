@@ -137,24 +137,31 @@ export class BasicCompactionEngine extends CompactionEngine {
   constructor(ctx: Context, config: BasicCompactionConfig = {}) {
     super(ctx)
     this.config = resolveConfig(config)
-    if (this.config.auto) this._registerAutomaticCompaction()
+    // Overflow recovery is always installed: a provider-confirmed over-window
+    // request is otherwise fatal, and the per-target `maxOverflowRetries: 0`
+    // is the opt-out. Pressure compaction stays behind `auto`, so a deployment
+    // that hands between-step compression to another backend keeps this
+    // last-line net without acquiring a second compressor.
+    this._registerOverflowRecovery()
+    if (this.config.auto) this._registerPressureCompaction()
+  }
+
+  /** Log one landed compaction against the trigger that produced it. */
+  private logCompaction(result: CompactionResult, trigger: string): void {
+    this.ctx.logger.info(
+      `compaction (${trigger}): shadowed ${result.shadowedSeqs.length} surface nodes `
+      + `(seqs ${result.shadowedRange.start}-${result.shadowedRange.end}, `
+      + `~${result.shadowedTokenCount} tokens)`,
+    )
   }
 
   /**
-   * Register automatic between-step pressure and model-request overflow
-   * recovery. `compactIfNeeded` stays dynamically dispatched so subclass
-   * overrides are honored at event time.
+   * Register automatic between-step pressure compaction. `compactIfNeeded`
+   * stays dynamically dispatched so subclass overrides are honored at event
+   * time.
    */
-  private _registerAutomaticCompaction(): void {
+  private _registerPressureCompaction(): void {
     const { ctx } = this
-    const logResult = (result: CompactionResult, trigger: string): void => {
-      ctx.logger.info(
-        `compaction (${trigger}): shadowed ${result.shadowedSeqs.length} surface nodes `
-        + `(seqs ${result.shadowedRange.start}-${result.shadowedRange.end}, `
-        + `~${result.shadowedTokenCount} tokens)`,
-      )
-    }
-
     ctx.on('agent/pre-step', async (
       { agent, signal },
       next,
@@ -162,7 +169,7 @@ export class BasicCompactionEngine extends CompactionEngine {
       if (!signal.aborted) {
         try {
           const result = await this.compactIfNeeded(agent, 'pressure', signal)
-          if (result !== null) logResult(result, 'step pressure')
+          if (result !== null) this.logCompaction(result, 'step pressure')
         } catch (error: unknown) {
           if (error instanceof TargetPressureConfigError) {
             if (this.warnedPressureConfigTargets.has(error.targetKey)) return next()
@@ -174,6 +181,14 @@ export class BasicCompactionEngine extends CompactionEngine {
       }
       return next()
     })
+  }
+
+  /**
+   * Register model-request context-overflow recovery. `compactIfNeeded` stays
+   * dynamically dispatched so subclass overrides are honored at event time.
+   */
+  private _registerOverflowRecovery(): void {
+    const { ctx } = this
 
     ctx.on('agent/status', ({ agent, status }) => {
       if (status === 'idle') this.overflowRetries.delete(agent)
@@ -228,7 +243,7 @@ export class BasicCompactionEngine extends CompactionEngine {
       // oxlint-disable-next-line typescript/no-unnecessary-condition -- the signal can abort while compaction is awaited.
       if (signal.aborted
         || agent.session.surface.replaceGeneration <= generation) return next()
-      if (result !== null) logResult(result, 'context overflow recovery')
+      if (result !== null) this.logCompaction(result, 'context overflow recovery')
       this.overflowRetries.set(agent, retries + 1)
       return { kind: 'retry' }
     })

@@ -491,4 +491,42 @@ describe('context-overflow recovery across the real loop and compaction-basic', 
       await ctx.fiber.dispose()
     }
   })
+
+  it('recovers a provider-confirmed overflow through the real loop with automatic pressure off', async () => {
+    const ctx = new Context()
+    const adapter = new OverflowRecoveryAdapter('in-band')
+    await mountAgentLoopTestDependencies(ctx)
+    await ctx.plugin(AgentLoop, { agents: [] })
+    await ctx.plugin(TokenMeter)
+    ctx.llm.registerAdapter(['mock'], adapter)
+    await ctx.plugin(BasicCompactionEngine, {
+      auto: false,
+      headroomTokens: 0,
+      thresholdRatio: 1,
+      retainTokens: 100,
+      maxTokens: 64,
+      compactionRetries: 0,
+      maxOverflowRetries: 1,
+    })
+
+    try {
+      const { agent } = await ctx.agentLoop.createAgent(ctx, {
+        sessionId: SessionId('overflow-recovery-pressure-off'),
+        seed: overflowHistorySeed(),
+        agentOptions: { provider: 'mock', model: 'mock' },
+      })
+      agent.followup(createUserMessage({ content: [{ type: 'text', text: 'continue from history' }], source: { kind: 'user' } }))
+      await agent.whenIdle()
+
+      expect(adapter.conversationRequests).toHaveLength(2)
+      expect(adapter.summaryRequests).toHaveLength(1)
+      expect(agent.session.snapshotEvents().some(event => event.type === 'compaction/summary')).toBe(true)
+      expect(agent.session.snapshotEvents().at(-1)).toMatchObject({
+        type: 'turn/end',
+        data: { reason: { kind: 'completed' } },
+      })
+    } finally {
+      await ctx.fiber.dispose()
+    }
+  })
 })
