@@ -6,10 +6,12 @@
 
 import type { Context } from '@deepseek-ai/cordis'
 import { contentHasImage, BlockAssembler, LlmError } from '@deepseek-ai/dsh-llm'
+import { estimateRequest } from '@deepseek-ai/dsh-token-meter'
 import { deepFreeze } from '@deepseek-ai/dsh-util-values'
 import type {
   ContentBlock, FinishReason, GenerateOptions, Message, RequestMessage, TokenUsage, ToolSchema,
 } from '@deepseek-ai/dsh-llm'
+import type { EpochHeader } from '@deepseek-ai/dsh-session'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 
 interface SummaryConfig {
@@ -149,13 +151,16 @@ export async function summarizeWithLlm(
       content: [{ type: 'text', text: COMPACTION_INSTRUCTION }],
     }),
   ]
+  const maxTokens = await summaryMaxTokens(
+    ctx, config.maxTokens, agent.session.requestHeader(), messages, target, signal,
+  )
   const options: GenerateOptions = {
     provider: target.provider,
     model: target.model,
     messages,
     toolHistory: agent.session.toolHistory(),
     ...input.tools === undefined ? {} : { tools: [...input.tools] },
-    maxTokens: config.maxTokens,
+    maxTokens,
     sessionId: agent.session.id,
     purpose: 'compaction',
     ...signal === undefined ? {} : { signal },
@@ -175,9 +180,43 @@ export async function summarizeWithLlm(
     llmStreamCall: true,
     provider: options.provider,
     model: options.model,
-    maxTokens: config.maxTokens,
+    maxTokens,
     ...(assembler.usage === undefined ? {} : { usage: assembler.usage }),
   }
+}
+
+/**
+ * Price the exact prompt this call will send against the routed model's
+ * capacity so the auxiliary call cannot ask for the configured output cap on
+ * top of a prompt that already fills the window. The summary may use exactly
+ * the capacity the prompt does not, so the configured cap wins whenever it
+ * fits - which is every ordinary compaction. Only a request that starts out
+ * over the window shrinks the summary's own output budget.
+ * @param ctx - context providing the LLM service.
+ * @param configured - configured summarization output cap.
+ * @param header - canonical envelope whose tools this call replays.
+ * @param messages - exact prompt this call will carry.
+ * @param target - resolved summarization provider and model.
+ * @param signal - optional cancellation forwarded to the adapter.
+ * @returns the output cap to request for this summarization call.
+ */
+async function summaryMaxTokens(
+  ctx: Context,
+  configured: number,
+  header: EpochHeader | undefined,
+  messages: readonly RequestMessage[],
+  target: { provider: string; model: string },
+  signal?: AbortSignal,
+): Promise<number> {
+  let contextWindow: number | undefined
+  try {
+    contextWindow = (await ctx.llm.resolveModelInfo(target.provider, target.model, signal)).context?.contextWindow
+  } catch {
+    /* An unresolvable capacity keeps the configured cap; the provider still owns the final verdict. */
+    return configured
+  }
+  if (contextWindow === undefined) return configured
+  return Math.max(1, Math.min(configured, contextWindow - estimateRequest(header, messages)))
 }
 
 /**

@@ -20,7 +20,7 @@ export interface CompactionPolicyConfig {
   summarizationProvider?: string
   /** Summary model; set together with `summarizationProvider`, or inherit the conversation target. */
   summarizationModel?: string
-  /** Provider generation cap for summarization. Defaults to the resolved `headroomTokens`; an explicit cap must be positive. */
+  /** Summarization cap: defaults to `headroomTokens`, must be positive, and each call clamps it to the routed model's residual capacity. */
   maxTokens?: number
   /** Extra attempts after the first compaction when pressure remains above threshold. Defaults to `1`. */
   compactionRetries?: number

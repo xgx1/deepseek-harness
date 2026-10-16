@@ -9,7 +9,7 @@ import type { Agent } from '@deepseek-ai/dsh-agent'
 import AgentLoop from '@deepseek-ai/dsh-agent-loop'
 import { mountAgentLoopTestDependencies } from '@deepseek-ai/dsh-agent-loop-testkit'
 import { BasicCompactionEngine } from '@deepseek-ai/dsh-compaction-basic'
-import TokenMeter from '@deepseek-ai/dsh-token-meter'
+import TokenMeter, { estimateRequest } from '@deepseek-ai/dsh-token-meter'
 import * as LlmRetry from '@deepseek-ai/dsh-llm-retry'
 import { Session, SessionId, type SessionEvent, type SurfaceEvent } from '@deepseek-ai/dsh-session'
 
@@ -69,6 +69,10 @@ class StepwiseToolAdapter extends LlmAdapter {
 class OverflowRecoveryAdapter extends LlmAdapter {
   readonly conversationRequests: GenerateOptions[] = []
   readonly summaryRequests: GenerateOptions[] = []
+  /** Session measurement observed when the summarization call was issued. */
+  measuredAtSummary: number | undefined
+  /** Late-bound session probe, set by tests that assert the capacity clamp. */
+  measure: (() => number) | undefined
   private readonly retryPolicy = resolveRetryPolicy({
     mode: 'normal',
     maxRetries: 1,
@@ -78,6 +82,7 @@ class OverflowRecoveryAdapter extends LlmAdapter {
   constructor(
     private readonly delivery: 'thrown' | 'in-band',
     private readonly transientAfterOverflow = false,
+    private readonly contextWindow = 128,
   ) {
     super()
   }
@@ -87,7 +92,7 @@ class OverflowRecoveryAdapter extends LlmAdapter {
       provider,
       id: model,
       name: model,
-      context: { contextWindow: 128 },
+      context: { contextWindow: this.contextWindow },
     })
   }
 
@@ -102,6 +107,7 @@ class OverflowRecoveryAdapter extends LlmAdapter {
       .map(block => (block.type === 'text' ? block.text : ''))
       .join('') ?? ''
     if (trailing.includes('acting as a compaction engine')) {
+      this.measuredAtSummary = this.measure?.()
       this.summaryRequests.push(options)
       yield { type: 'block-start', index: 0, blockType: 'text' }
       yield { type: 'block-end', index: 0, block: { type: 'text', text: 'RECOVERY CHECKPOINT' } }
@@ -525,6 +531,48 @@ describe('context-overflow recovery across the real loop and compaction-basic', 
         type: 'turn/end',
         data: { reason: { kind: 'completed' } },
       })
+    } finally {
+      await ctx.fiber.dispose()
+    }
+  })
+
+  it('clamps the overflow summary cap to the routed model capacity, not the configured reserve', async () => {
+    const ctx = new Context()
+    // A 3,000-token model whose replayed prefix already fills most of it: the
+    // configured 8,192-token output reserve no longer fits, and asking for it
+    // anyway is what re-overflows the auxiliary call.
+    const adapter = new OverflowRecoveryAdapter('in-band', false, 3_000)
+    await mountAgentLoopTestDependencies(ctx)
+    await ctx.plugin(AgentLoop, { agents: [] })
+    await ctx.plugin(TokenMeter)
+    ctx.llm.registerAdapter(['mock'], adapter)
+    await ctx.plugin(BasicCompactionEngine, {
+      auto: false,
+      headroomTokens: 0,
+      thresholdRatio: 1,
+      retainTokens: 100,
+      maxTokens: 8192,
+      compactionRetries: 0,
+      maxOverflowRetries: 1,
+    })
+
+    try {
+      const { agent } = await ctx.agentLoop.createAgent(ctx, {
+        sessionId: SessionId('overflow-recovery-capacity-clamp'),
+        seed: overflowHistorySeed(),
+        agentOptions: { provider: 'mock', model: 'mock' },
+      })
+      adapter.measure = () => ctx.tokenMeter.measure(agent.session).totalTokens
+      agent.followup(createUserMessage({ content: [{ type: 'text', text: 'continue from history' }], source: { kind: 'user' } }))
+      await agent.whenIdle()
+
+      const summary = adapter.summaryRequests[0]!
+      expect(adapter.measuredAtSummary).toBeGreaterThan(0)
+      // The cap is exactly what the replayed prompt leaves of the 3,000-token
+      // window, not the configured 8,192-token reserve that cannot fit.
+      expect(summary.maxTokens).toBe(3_000 - estimateRequest(undefined, summary.messages))
+      expect(summary.maxTokens).toBeLessThan(8192)
+      expect(summary.maxTokens).toBeGreaterThan(0)
     } finally {
       await ctx.fiber.dispose()
     }
