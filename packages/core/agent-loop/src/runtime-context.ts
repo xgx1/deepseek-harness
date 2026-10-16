@@ -144,6 +144,16 @@ export class RuntimeContextProjection {
   }
 
   /**
+   * Create the positional marker the loop projects the live snapshot at. It
+   * never reaches the surface itself: the step loop skips owned messages and
+   * appends the snapshot the marker stands for.
+   * @returns an empty content marker owned by this projection.
+   */
+  marker(): UserMessage {
+    return createUserMessage({ content: [], source: { kind: SOURCE } })
+  }
+
+  /**
    * Create an uncommitted snapshot only when the retained value differs.
    * @param current - fully rendered dynamic context.
    * @param sections - named contributions that formed the current snapshot.

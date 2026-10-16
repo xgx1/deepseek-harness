@@ -273,22 +273,21 @@ export class ReactLoopAgent implements Agent {
     // its request, so a listener may contribute the tools that request carries.
     const decision = await this.dispatch.waterfall(
       'agent/pre-step', { messages: claimed, ...position, signal },
-      (): Promise<PreStepDecision> => Promise.resolve<PreStepDecision>({ kind: 'enter', messages: claimed }),
+      (): Promise<PreStepDecision> => Promise.resolve<PreStepDecision>({
+        kind: 'enter',
+        // A claimed message is followed by a positional marker: the loop
+        // projects the live snapshot where the marker sits, after this step's
+        // assembly is known, so a contributed catalog or skill invocation still
+        // reads as the newest instruction. An unclaimed step stays empty and
+        // keeps owning its request-free turn boundary.
+        messages: claimed.length === 0 ? claimed : [...claimed, this.runtimeContext.marker()],
+      }),
     )
     signal.throwIfAborted()
     if (decision.kind === 'reject') return decision
     const assembly = await this.loopCtx.systemPrompt.assemble(assembleContextFor(this, signal))
     signal.throwIfAborted()
-    // An empty decision owns a turn boundary without a request; a context
-    // message would turn it into one.
-    if (decision.messages.length === 0) return { ...decision, assembly }
-    const sections = renderContextSections(assembly)
-    const context = this.runtimeContext.project(joinContextSections(sections), sections)
-    return {
-      ...decision,
-      messages: context === undefined ? decision.messages : [...decision.messages, context],
-      assembly,
-    }
+    return { ...decision, assembly }
   }
 
   /** Whether the assembled tool schemas differ from the logged request header's. */

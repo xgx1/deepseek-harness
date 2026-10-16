@@ -838,6 +838,34 @@ describe('agent loop', () => {
     }
   })
 
+  it('projects the snapshot after the claimed messages and before a contributed one', async () => {
+    const adapter = new MockAdapter([textResponse('done')])
+    const ctx = await harness(adapter)
+    try {
+      ctx.systemPrompt.context({ name: 'policy', order: 0, text: 'Mode: read-only.' })
+      const agent = await ctx.agentLoop.create(SessionId('context-position-default'), { provider: 'mock', model: 'mock' })
+      ctx.on('agent/pre-step', async (_payload, next) => {
+        const decision = await next()
+        if (decision.kind === 'reject') return decision
+        // A catalog-style contribution appends after the loop's own marker, so
+        // the snapshot keeps the position between the claim and the addition.
+        return {
+          ...decision,
+          messages: [...decision.messages, createUserMessage({
+            content: [{ type: 'text', text: 'catalog' }],
+            source: { kind: 'test-context' },
+          })],
+        }
+      })
+      send(agent, 'claimed user')
+      await agent.whenIdle()
+      const users = adapter.requests[0]?.messages.filter(message => message.role === 'user') ?? []
+      expect(users.map(message => message.source?.kind)).toEqual(['user', 'runtime-context', 'test-context'])
+    } finally {
+      await ctx.fiber.dispose()
+    }
+  })
+
   it('drops an uncommitted optional snapshot suppressed after the pre-step fallback', async () => {
     const adapter = new MockAdapter([textResponse('done')])
     const ctx = await harness(adapter)
