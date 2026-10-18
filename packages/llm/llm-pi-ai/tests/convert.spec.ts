@@ -1002,19 +1002,15 @@ describe('mapStopReason / mapUsage', () => {
     }))).toMatchObject({ kind: 'error', failure: { code: 'RATE_LIMIT' } })
   })
 
-  it('uses the resolved context window for silent and length-stop overflows', () => {
-    // Non-empty content keeps the no-window branch on the successful stop path
-    // (an empty stop is EMPTY_RESPONSE, covered above); overflow wins over both.
-    const silent = assistant({ stopReason: 'stop', usage: usage(101, 0), content: [{ type: 'text', text: 'x' }] })
-    expect(mapStopReason(silent)).toEqual({ kind: 'stop' })
-    expect(mapStopReason(silent, 100)).toEqual({
-      kind: 'error',
-      failure: {
-        message: 'pi-ai detected context overflow for model "deepseek-v4-flash"',
-        code: CONTEXT_WINDOW_EXCEEDED_CODE,
-      },
-    })
+  it('keeps a completed response successful above the resolved context window', () => {
+    // The provider accepted the prompt and returned content, so reported usage
+    // above the catalog capacity is stale capacity metadata, not a failure.
+    const completed = assistant({ stopReason: 'stop', usage: usage(101, 0), content: [{ type: 'text', text: 'x' }] })
+    expect(mapStopReason(completed)).toEqual({ kind: 'stop' })
+    expect(mapStopReason(completed, 100)).toEqual({ kind: 'stop' })
+  })
 
+  it('uses the resolved context window for zero-output length-stop overflow', () => {
     const truncated = assistant({ stopReason: 'length', usage: usage(80, 0, 19) })
     expect(mapStopReason(truncated)).toEqual({ kind: 'max-tokens' })
     expect(mapStopReason(truncated, 100)).toMatchObject({

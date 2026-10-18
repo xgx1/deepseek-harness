@@ -389,14 +389,38 @@ describe('PiAiAdapter provider routing', () => {
     expect(server.paths).toEqual(['/chat/completions'])
   })
 
-  it('uses the resolved catalog context window for usage-based overflow detection', async () => {
+  it('keeps a completed response whose reported usage exceeds the resolved catalog context window', async () => {
+    // Regression: providers whose catalog window is stale (pricing-tier values,
+    // endpoints that serve past their advertised limit) completed normally while
+    // reporting more prompt tokens than that window. The adapter failed the turn
+    // and discarded the answer instead of accepting the completed response.
+    const model = getBuiltinModels('deepseek').find(candidate => candidate.id === 'deepseek-flash')
+    if (model === undefined) throw new Error('deepseek-flash missing from pi-ai test catalog')
+    const events = [
+      '{"choices":[{"delta":{"role":"assistant","content":"hello"},"index":0,"finish_reason":null}]}',
+      JSON.stringify({
+        choices: [{ delta: {}, index: 0, finish_reason: 'stop' }],
+        usage: { prompt_tokens: model.contextWindow + 1, completion_tokens: 1 },
+      }),
+      '[DONE]',
+    ]
+    const server = await mockServer([{ events }])
+    const ctx = await harness(server.url)
+
+    const result = await assemble(ctx, { model: model.id, messages: [] })
+
+    expect(result.finish).toEqual({ kind: 'stop' })
+    expect(result.message.content).toEqual([{ type: 'text', text: 'hello' }])
+  })
+
+  it('uses the resolved catalog context window for zero-output length-stop overflow', async () => {
     const model = getBuiltinModels('deepseek').find(candidate => candidate.id === 'deepseek-flash')
     if (model === undefined) throw new Error('deepseek-flash missing from pi-ai test catalog')
     const events = [
       '{"choices":[{"delta":{"role":"assistant","content":""},"index":0,"finish_reason":null}]}',
       JSON.stringify({
-        choices: [{ delta: {}, index: 0, finish_reason: 'stop' }],
-        usage: { prompt_tokens: model.contextWindow + 1, completion_tokens: 0 },
+        choices: [{ delta: {}, index: 0, finish_reason: 'length' }],
+        usage: { prompt_tokens: model.contextWindow, completion_tokens: 0 },
       }),
       '[DONE]',
     ]
