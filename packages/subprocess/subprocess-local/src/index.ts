@@ -44,6 +44,7 @@ import { launchWindowsJob, probeWindowsJob } from './windows-job.ts'
 import { targetEnvironment } from './runner-launch.ts'
 import { createProcessInspector } from './process-inspector.ts'
 import type { ProcessInspector } from './process-inspector.ts'
+import type { BoundProcessOwner } from './managed-owner.ts'
 import { LocalTerminalHandle } from './terminal.ts'
 import { prepareShellActivity } from './shell-activity.ts'
 
@@ -94,6 +95,11 @@ export class LocalSubprocessRuntime extends SubprocessRuntime {
 
   /** Spill failures reach the plugin logger; the log line is the only trace of why a result has no spill path. */
   private readonly reportSpillFailure = logSpillFailure(this.ctx.logger, 'subprocess-local')
+
+  /** One log line per reaped scope; a `kept` verdict stays silent by design. */
+  private reportReapedRange(outcome: string): void {
+    this.ctx.logger.warn(`subprocess-local: ${outcome}`)
+  }
 
   private terminateForHostExit(): void {
     for (const handle of this.live) {
@@ -192,6 +198,7 @@ export class LocalSubprocessRuntime extends SubprocessRuntime {
     const env = targetEnvironment(spec)
     const containmentMode = this.selectContainmentMode('ordinary')
     let handle: LocalSubprocessHandle
+    let owner: BoundProcessOwner | undefined
     const internals: SpawnInternals = { ...this.internals, onSpillFailure: this.reportSpillFailure }
     if (containmentMode === 'fallback') {
       handle = spawnSubprocess(spec, internals)
@@ -200,6 +207,7 @@ export class LocalSubprocessRuntime extends SubprocessRuntime {
       const launch = containmentMode === 'linux-scope'
         ? launchLinuxScope(spec, env)
         : launchWindowsJob(spec, env)
+      owner = launch.owner
       handle = bindManagedProcess(spec, launch, binding)
     }
     this.live.add(handle)
@@ -215,6 +223,21 @@ export class LocalSubprocessRuntime extends SubprocessRuntime {
     const release = (): Promise<void> =>
       handle.waitForExit().then(() => { this.live.delete(handle) })
     void handle.done.then(release, release).catch(() => {})
+    // A scope unit lives as long as its cgroup holds any process, so a payload
+    // that exits while an inherited straggler runs (MSBuild `/nodeReuse:true`, a
+    // leaked worker) leaves `dsh-subprocess-<host>-<id>.scope` behind for hours —
+    // 2026-10-23 had five of them, one for 16h. The owner reaps those and keeps
+    // only deliberately detached survivors.
+    const reap = owner?.reapOrphans
+    if (reap !== undefined && owner !== undefined) {
+      const scopeOwner = owner
+      void handle.done
+        .then(() => scopeOwner.reapOrphans?.())
+        .then((outcome) => {
+          if (outcome !== undefined && outcome.startsWith('reaped')) this.reportReapedRange(outcome)
+        })
+        .catch(() => {})
+    }
     return handle
   }
 
