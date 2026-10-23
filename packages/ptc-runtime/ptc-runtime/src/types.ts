@@ -134,6 +134,13 @@ export interface PtcRunFailure {
   kind: 'exception' | 'timeout' | 'abort' | 'worker-exit' | 'invalid-output' | 'output-limit' | 'protocol' | 'sandbox-unavailable'
   /** Human-readable detail, suitable for feeding back to a model to self-correct. */
   message: string
+  /**
+   * Operator-facing fingerprint of the underlying system failure (`code`/`errno`/
+   * `syscall`), set when the runtime has one. Kept out of {@link message} so the
+   * model-facing text stays stable across runtimes while the host can still log —
+   * and the tool layer can surface — why a worker never started.
+   */
+  diagnostic?: string
 }
 
 /**

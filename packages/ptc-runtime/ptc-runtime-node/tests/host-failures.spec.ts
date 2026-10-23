@@ -189,7 +189,7 @@ describe('Node runtime host failures', () => {
   it('reports an executable lookup failure without allocating a process', async () => {
     const h = await setup()
     h.resolveExecutable.mockRejectedValue(new Error('Node executable missing'))
-    expect((await h.start()).error).toEqual({ kind: 'worker-exit', message: 'Node executable missing' })
+    expect((await h.start()).error).toMatchObject({ kind: 'worker-exit', message: 'Node executable missing' })
     expect(h.spawn).not.toHaveBeenCalled()
   })
 
@@ -270,7 +270,7 @@ describe('Node runtime host failures', () => {
       })
       return h.handle
     })
-    expect((await h.start(request, NO_INITIAL_FRAME)).error).toEqual({
+    expect((await h.start(request, NO_INITIAL_FRAME)).error).toMatchObject({
       kind: 'worker-exit', message: 'Node process exited before completing (7)',
     })
   })
@@ -284,13 +284,13 @@ describe('Node runtime host failures', () => {
       })
       return h.handle
     })
-    expect((await h.start(request, NO_INITIAL_FRAME)).error).toEqual({ kind: 'worker-exit', message: 'runner connection broken' })
+    expect((await h.start(request, NO_INITIAL_FRAME)).error).toMatchObject({ kind: 'worker-exit', message: 'runner connection broken' })
   })
 
   it('reports control loss after readiness as a substrate failure', async () => {
     const h = await setup()
     h.onBoot(() => { h.control.emit('error', new Error('control transport closed')) })
-    expect((await h.start()).error).toEqual({ kind: 'worker-exit', message: 'control transport closed' })
+    expect((await h.start()).error).toMatchObject({ kind: 'worker-exit', message: 'control transport closed' })
   })
 
   it('classifies invalid UTF-8 on the live control stream as a protocol failure', async () => {
@@ -379,7 +379,7 @@ describe('Node runtime host failures', () => {
     const h = await setup()
     vi.mocked(h.waitForExit).mockRejectedValue(new Error('range cannot be observed'))
     h.onBoot(() => { h.emit({ type: 'done', value: encodePtcJsonWire(42) }) })
-    expect((await h.start()).error).toEqual({ kind: 'worker-exit', message: 'managed process cleanup failed: range cannot be observed' })
+    expect((await h.start()).error).toMatchObject({ kind: 'worker-exit', message: 'managed process cleanup failed: range cannot be observed' })
   })
 
   it('fails when the configured frame budget cannot carry bootstrap data', async () => {
@@ -457,7 +457,26 @@ describe('Node runtime host failures', () => {
   it.each(['stdout', 'stderr'] as const)('reports a broken raw %s pipe', async (name) => {
     const h = await setup()
     h.onBoot(() => { h[name].emit('error', new Error(`${name} closed`)) })
-    expect((await h.start()).error).toEqual({ kind: 'worker-exit', message: `${name} closed` })
+    expect((await h.start()).error).toMatchObject({ kind: 'worker-exit', message: `${name} closed` })
+  })
+
+  // 2026-10-23 事故锁点：那次 run_code 全线失败只留下 `UNKNOWN: unknown error, write`
+  // 一句话——模型不懂、运维也无从下手。worker 起不来的系统指纹（code/errno/syscall）
+  // 必须进 diagnostic 字段与宿主日志，同时 message 保持模型可读。
+  it('carries a system fingerprint for a broken pipe and keeps the message model-facing', async () => {
+    const h = await setup()
+    const warn = vi.spyOn(h.ctx.logger, 'warn').mockImplementation(() => {})
+    h.onBoot(() => {
+      h.stdout.emit('error', Object.assign(new Error('UNKNOWN: unknown error, write'), {
+        code: 'UNKNOWN', errno: -4094, syscall: 'write',
+      }))
+    })
+    const error = (await h.start()).error
+    expect(error?.kind).toBe('worker-exit')
+    expect(error?.diagnostic).toContain('code=UNKNOWN')
+    expect(error?.diagnostic).toContain('syscall=write')
+    expect(error?.message).toBe('UNKNOWN: unknown error, write')
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('worker stdout failed'))
   })
 
   it('retains stderr when a ready process exits without a completion frame', async () => {
@@ -466,7 +485,7 @@ describe('Node runtime host failures', () => {
       h.stderr.write('native fatal detail')
       h.direct.resolve({ exitCode: 9, signal: null })
     })
-    expect((await h.start()).error).toEqual({ kind: 'worker-exit', message: 'Node process exited before completing (9): native fatal detail' })
+    expect((await h.start()).error).toMatchObject({ kind: 'worker-exit', message: 'Node process exited before completing (9): native fatal detail' })
   })
 
   it.each([true, false])('attributes a failed confined spawn only with runner evidence (%s)', async (runnerFailed) => {
@@ -476,7 +495,7 @@ describe('Node runtime host failures', () => {
     h.onBoot(() => {
       h.direct.reject(Object.assign(new Error('spawn rejected'), runnerFailed ? { code: 'ENOENT', path: runner, syscall: `spawn ${runner}` } : {}))
     })
-    expect((await h.start()).error).toEqual({ kind: runnerFailed ? 'sandbox-unavailable' : 'worker-exit', message: 'spawn rejected' })
+    expect((await h.start()).error).toMatchObject({ kind: runnerFailed ? 'sandbox-unavailable' : 'worker-exit', message: 'spawn rejected' })
   })
 
   it('retains distinct native temp paths for the trusted launcher while removing other ambient values', async () => {
