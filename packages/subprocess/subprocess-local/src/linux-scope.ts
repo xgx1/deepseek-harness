@@ -3,7 +3,7 @@
 import { controlPipe } from './control-spawn.ts'
 import { execFile, spawn, spawnSync } from 'node:child_process'
 import { randomBytes } from 'node:crypto'
-import { existsSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { setTimeout as sleepMs } from 'node:timers/promises'
 import type {
   SubprocessOutcome,
@@ -11,6 +11,7 @@ import type {
   SubprocessTerminalSpawnSpec,
 } from '@deepseek-ai/dsh-subprocess'
 import { loadLinuxExecve } from './linux-execve.ts'
+import { ORPHAN_GRACE_MS, classifyLeftovers, parseProcStat, reapDecisionReason, type LeftoverTask } from './orphan-range.ts'
 import type { BoundProcessOwner, ManagedProcessLaunch } from './managed-owner.ts'
 import {
   cleanupLinuxLaunchFiles,
@@ -206,6 +207,59 @@ class SystemdScopeOwner implements BoundProcessOwner {
     if (result.error !== undefined || result.status !== 0 || typeof result.stdout !== 'string') return undefined
     const state = this.parseUnitState(result.stdout)
     return state.loadState === 'loaded' && state.activeState === 'active' ? state.tasksCurrent : undefined
+  }
+
+  /**
+   * Stop the scope when — and only when — a finished payload left orphaned tasks
+   * inside it, so the transient unit cannot outlive every process it ever owned.
+   *
+   * Reads the unit's cgroup, classifies each remaining task (see
+   * {@link classifyLeftovers}), and on `reap` stops the unit, which kills the
+   * stragglers and lets systemd collect the scope. A detached survivor keeps the
+   * scope alive on purpose.
+   * @param options - Grace period plus reader seams (tests inject them).
+   * @returns A one-line outcome for the caller's log, or `undefined` when nothing ran.
+   */
+  /** {@link BoundProcessOwner.reapOrphans}: default grace and host readers. */
+  reapOrphans(): Promise<string | undefined> {
+    return this.reapOrphanedRange()
+  }
+
+  async reapOrphanedRange(options: {
+    graceMs?: number
+    sleep?: (delayMs: number, signal?: AbortSignal) => Promise<void>
+    readFile?: (path: string) => string | undefined
+  } = {}): Promise<string | undefined> {
+    if (this.stopped || this.terminationRequested) return undefined
+    const sleep = options.sleep ?? this.sleep
+    const readFile = options.readFile ?? ((path: string): string | undefined => {
+      try { return readFileSync(path, 'utf8') } catch { return undefined }
+    })
+    try {
+      await sleep(options.graceMs ?? ORPHAN_GRACE_MS)
+    } catch {
+      return undefined
+    }
+    if (this.stopped || this.terminationRequested) return undefined
+    const cgroup = this.runSync(this.systemctl, [
+      '--user', 'show', '--property=ControlGroup', '--value', this.unit,
+    ], { encoding: 'utf8', env: managerEnvironment(), timeout: SYSTEMCTL_TIMEOUT_MS })
+    const relative = typeof cgroup.stdout === 'string' ? cgroup.stdout.trim() : ''
+    if (cgroup.error !== undefined || cgroup.status !== 0 || relative.length === 0) return undefined
+    const procs = readFile(`/sys/fs/cgroup${relative}/cgroup.procs`)
+    if (procs === undefined) return undefined
+    const tasks: LeftoverTask[] = []
+    for (const line of procs.split('\n')) {
+      const pid = Number(line.trim())
+      if (!Number.isSafeInteger(pid) || pid <= 0) continue
+      const task = parseProcStat(readFile(`/proc/${String(pid)}/stat`))
+      if (task !== undefined) tasks.push(task)
+    }
+    if (classifyLeftovers(tasks) !== 'reap') return reapDecisionReason(tasks)
+    this.runSync(this.systemctl, ['--user', 'stop', this.unit], {
+      env: managerEnvironment(), stdio: 'ignore', timeout: SYSTEMCTL_TIMEOUT_MS,
+    })
+    return reapDecisionReason(tasks)
   }
 
   signal(signal: 'SIGTERM' | 'SIGKILL'): void {

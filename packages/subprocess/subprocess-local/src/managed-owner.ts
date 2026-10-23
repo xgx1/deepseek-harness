@@ -14,6 +14,16 @@ export interface BoundProcessOwner {
    * @returns the current count, or undefined when observation is unavailable.
    */
   inspectTaskCount?(): number | undefined
+  /**
+   * Reap tasks a finished payload left behind inside the managed range, when the
+   * owner can tell an orphan from a deliberately detached survivor.
+   *
+   * Linux scopes implement it (see `SystemdScopeOwner.reapOrphanedRange`); the
+   * POSIX process-group and Windows Job owners do not, because neither can name a
+   * range that outlives its leader.
+   * @returns A one-line outcome for the caller's log, or undefined when unsupported.
+   */
+  reapOrphans?(): Promise<string | undefined>
   /** Synchronously force final termination during JavaScript-observable host exit. */
   terminateForHostExit(): void
   /** Release provider-private protocol artifacts after outcome and range settlement. */
