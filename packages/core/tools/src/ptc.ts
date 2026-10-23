@@ -52,10 +52,10 @@ interface RunCodeFlavor {
  */
 const TYPESCRIPT_FLAVOR: RunCodeFlavor = {
   description:
-    'Execute a TypeScript program against the available tools. Takes two required '
-    + 'arguments: `description`, a short summary of what the program does, and `code`, '
+    'Execute a TypeScript program against the available tools. Takes `code`, '
     + 'the BODY of an async function (erasable syntax only; top-level `await` and '
-    + '`return` work). Call tools as `await tools.name(args)` per the declarations in the system '
+    + '`return` work), and an optional `description`, a short summary of what the program '
+    + 'does. Call tools as `await tools.name(args)` per the declarations in the system '
     + 'prompt. Only what you print or return is program output — curate it. Image-bearing '
     + 'subtool results are attached after the run.',
   codeDescription: 'The program: the body of an async TypeScript function.',
@@ -68,9 +68,9 @@ const TYPESCRIPT_FLAVOR: RunCodeFlavor = {
  */
 const PYTHON_FLAVOR: RunCodeFlavor = {
   description:
-    'Execute a Python program against the available tools. Takes two required '
-    + 'arguments: `description`, a short summary of what the program does, and `code`, '
-    + 'the BODY of an async function (top-level `await` and `return` work). Call tools as '
+    'Execute a Python program against the available tools. Takes `code`, the BODY of an '
+    + 'async function (top-level `await` and `return` work), and an optional `description`, '
+    + 'a short summary of what the program does. Call tools as '
     + '`await tools.name(args)` per the declarations in the system prompt. Use '
     + '`print(...)` and/or `return <value>` for program output — curate it. Image-bearing '
     + 'subtool results are attached after the run.',
@@ -98,13 +98,25 @@ const RUN_CODE_FLAVORS: Record<string, RunCodeFlavor> = {
  * The `description` parameter's model-facing description: language-independent
  * (the UI label contract is the same for every runtime), shared between the
  * static spec and the language-aware `parameters` getter so the two emissions
- * can never drift.
+ * can never drift. Optional by validation: a model that omits it costs a wasted
+ * round trip and nothing else, so the schema never demands it.
  */
 const RUN_CODE_DESCRIPTION_PARAM_DESCRIPTION
-  = 'Clear, concise description of what this program does in active voice, '
-    + '5-10 words (shown in the UI). Provide `description` before `code` in the arguments. '
-    + 'Examples: "Count TODO markers across packages"; '
+  = 'Optional clear, concise description of what this program does in active voice, '
+    + '5-10 words (shown as the call label in the UI; when omitted the label falls back '
+    + 'to the program\'s first line). Examples: "Count TODO markers across packages"; '
     + '"Read failing test and its fixture"; "Rename config key in every cordis.yml".'
+
+/**
+ * First non-empty program line, used as the call label when the model omits
+ * `description`. Kept short so the UI label stays one line.
+ * @param code - The submitted program body.
+ * @returns A trimmed first line, or the empty-string fallback label.
+ */
+function firstProgramLine(code: string): string {
+  const line = code.split('\n').map(part => part.trim()).find(part => part.length > 0) ?? ''
+  return (line.length > 80 ? `${line.slice(0, 77)}…` : line) || '(run_code)'
+}
 
 const RUN_CODE_CONTROLS = {
   timeoutMs: { type: 'number', description: 'Positive elapsed-time budget in milliseconds, capped by the deployment maximum.' },
@@ -323,8 +335,8 @@ export interface RunCodeBridgeOptions {
 }
 
 /**
- * Build the `run_code` {@link ToolDefinition}: required `description` and
- * `code` parameters, executed through the dispatch bridge described
+ * Build the `run_code` {@link ToolDefinition}: the required `code` parameter, an
+ * optional `description`, executed through the dispatch bridge described
  * above. The
  * registry reserves it as presentation infrastructure under non-native modes,
  * outside the filterable global/scoped capability layers.
@@ -347,7 +359,6 @@ export function createRunCodeTool(registry: ToolRuntime, options: RunCodeBridgeO
     parameters: {
       description: {
         type: 'string',
-        required: true,
         description: RUN_CODE_DESCRIPTION_PARAM_DESCRIPTION,
       },
       code: { type: 'string', required: true, description: TYPESCRIPT_FLAVOR.codeDescription },
@@ -380,8 +391,8 @@ export function createRunCodeTool(registry: ToolRuntime, options: RunCodeBridgeO
       },
     },
     async execute(args, exec): Promise<RunCodeOutput> {
-      if (args.description.trim().length === 0) {
-        throw new Error('invalid description: expected a non-empty string')
+      if (args.description !== undefined && args.description.trim().length === 0) {
+        throw new Error('invalid description: expected a non-empty string when present')
       }
       const runtime = requireRuntime()
       validateEscalationArgs(args.sandbox_permissions, args.justification)
@@ -723,7 +734,8 @@ export function createRunCodeTool(registry: ToolRuntime, options: RunCodeBridgeO
           const logsText = result.logs.length > 0 ? `\nCaptured output:\n${result.logs.join('\n')}` : ''
           const sandboxText = result.sandbox === undefined ? ''
             : `\nFile sandbox: ${result.sandbox.mode}${result.sandbox.enforcement === undefined ? '' : `; enforcement: ${result.sandbox.enforcement}`}${result.sandbox.denied ? '; operation denied' : ''}.`
-          throw new CodeRunFailedError(`code run failed (${result.error.kind}): ${result.error.message}${logsText}${sandboxText}${result.sandbox?.denied ? escalationGuidance(runtime) : ''}`)
+          const diagnosticText = result.error.diagnostic === undefined ? '' : `\n[diagnostic] ${result.error.diagnostic}`
+          throw new CodeRunFailedError(`code run failed (${result.error.kind}): ${result.error.message}${logsText}${sandboxText}${diagnosticText}${result.sandbox?.denied ? escalationGuidance(runtime) : ''}`)
         }
         return {
           logs: result.logs,
@@ -736,9 +748,11 @@ export function createRunCodeTool(registry: ToolRuntime, options: RunCodeBridgeO
     },
     // The model-authored description is the call's always-visible UI label
     // (the bash `description` precedent); the program itself rides rawInput.
+    // An omitted description degrades to the program's first non-empty line, so
+    // the card still carries a stable label.
     presentCall: args => ({
       card: 'generic',
-      title: args.description,
+      title: args.description ?? firstProgramLine(args.code),
       kind: 'execute',
       rawInput: args.code,
     }),
@@ -766,7 +780,7 @@ export function createRunCodeTool(registry: ToolRuntime, options: RunCodeBridgeO
     // Recompile through the same spec→schema projection defineTool used, so
     // the emitted schema always matches the validated specification.
     get: () => parameterSchemaSpecToJsonSchema({
-      description: { type: 'string', required: true, description: RUN_CODE_DESCRIPTION_PARAM_DESCRIPTION },
+      description: { type: 'string', description: RUN_CODE_DESCRIPTION_PARAM_DESCRIPTION },
       code: { type: 'string', required: true, description: resolveFlavor(peekRuntime).codeDescription },
       ...controlParameters(peekRuntime()),
     }),

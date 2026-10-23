@@ -23,6 +23,23 @@ import { STARTUP_ENVIRONMENT_NAMES } from './environment.ts'
 import { decodePtcJsonWire, encodePtcJsonWire } from './json-wire.ts'
 import type { ProgramBootData } from './protocol.ts'
 
+/**
+ * Compact libuv/Node failure fingerprint (`code`, `errno`, `syscall`) for logs and
+ * tool diagnostics. A worker that never boots produces no child output, so these
+ * three fields — not the human message — are what identify why a spawn failed
+ * (e.g. `code=UNKNOWN errno=-4094 syscall=write`).
+ * @param error - Whatever a pipe, guard or spawn rejected with.
+ * @returns One `key=value` chain, or the plain message when no system fields exist.
+ */
+function errorFingerprint(error: unknown): string {
+  const record = typeof error === 'object' && error !== null ? error as { code?: unknown; errno?: unknown; syscall?: unknown; message?: unknown } : {}
+  const parts: string[] = []
+  if (typeof record.code === 'string') parts.push(`code=${record.code}`)
+  if (typeof record.errno === 'number' || typeof record.errno === 'string') parts.push(`errno=${String(record.errno)}`)
+  if (typeof record.syscall === 'string') parts.push(`syscall=${record.syscall}`)
+  return parts.length === 0 ? `message=${String(record.message ?? error)}` : parts.join(' ')
+}
+
 /** Deployment-varying runtime bounds and launch choices. */
 export interface Config {
   /** Worker invocation in the subprocess world; omitted selects the local carrier. */
@@ -95,6 +112,21 @@ export class NodePtcRuntime extends PtcRuntime {
       for (const run of active) run.controller.abort('runtime disposed')
       await Promise.all(active.map(run => run.finished))
     }, 'Node ptc-runtime cleanup')
+  }
+
+  /**
+   * Record one failed worker start on the host log and return the diagnostic the
+   * tool result appends. Without it a broken spawn path reaches the model as a
+   * bare `worker-exit: <message>` and the operator gets nothing to act on.
+   * @param stage - Which step of the launch died (`spawn`, `stdout`, `stderr`, `exit`, `cleanup`).
+   * @param error - The rejected value, when a real error object is available.
+   * @param cwd - Program working directory, the only context a spawn failure has.
+   * @returns Text appended to the tool-visible failure message.
+   */
+  private reportFailure(stage: string, error: unknown, cwd: string): string {
+    const fingerprint = errorFingerprint(error)
+    this.ctx.logger.warn(`ptc-runtime-node: worker ${stage} failed: ${fingerprint} (cwd=${cwd})`)
+    return `worker ${stage} failed: ${fingerprint} (cwd=${cwd}); the dsh host log (journalctl --user -u dsh-web) carries the same fingerprint`
   }
 
   override get sandboxMode(): SandboxMode { return this.ctx.sandboxPolicy.defaultMode }
@@ -184,7 +216,7 @@ export class NodePtcRuntime extends PtcRuntime {
               failure = { kind: 'worker-exit', message: 'Node process output did not close cleanly' }
             }
           } catch (error: unknown) {
-            failure = { kind: 'worker-exit', message: `managed process cleanup failed: ${messageOf(error)}` }
+            failure = { kind: 'worker-exit', message: `managed process cleanup failed: ${messageOf(error)}`, diagnostic: this.reportFailure('cleanup', error, spec.cwd) }
           } finally {
             handle.stdout?.destroy()
             handle.stderr?.destroy()
@@ -260,7 +292,7 @@ export class NodePtcRuntime extends PtcRuntime {
         const text = stdoutDecoder.decode()
         if (text.length > 0) admit(text)
       })
-      handle.stdout?.on('error', (error: Error) => { finish({ kind: 'worker-exit', message: messageOf(error) }) })
+      handle.stdout?.on('error', (error: Error) => { finish({ kind: 'worker-exit', message: messageOf(error), diagnostic: this.reportFailure('stdout', error, spec.cwd) }) })
       handle.stderr?.on('data', (chunk: Buffer) => {
         const text = stderrDecoder.decode(chunk, { stream: true })
         stderr = (stderr + text).slice(-this.config.maxOutputBytes)
@@ -270,7 +302,7 @@ export class NodePtcRuntime extends PtcRuntime {
         const text = stderrDecoder.decode()
         if (text.length > 0) admit(text)
       })
-      handle.stderr?.on('error', (error: Error) => { finish({ kind: 'worker-exit', message: messageOf(error) }) })
+      handle.stderr?.on('error', (error: Error) => { finish({ kind: 'worker-exit', message: messageOf(error), diagnostic: this.reportFailure('stderr', error, spec.cwd) }) })
       let ready = false
       let nextId = 1
       let pending = 0
@@ -280,7 +312,11 @@ export class NodePtcRuntime extends PtcRuntime {
         if (settled) return
         finish((confined !== undefined && classifyRunnerFailure(outcome.exitCode, stderr, confined.runnerFailureRules) !== undefined)
           ? { kind: 'sandbox-unavailable', message: stderr }
-          : { kind: 'worker-exit', message: `Node process exited before completing (${String(outcome.exitCode)})${stderr ? `: ${stderr}` : ''}` })
+          : {
+            kind: 'worker-exit',
+            message: `Node process exited before completing (${String(outcome.exitCode)})${stderr ? `: ${stderr}` : ''}`,
+            diagnostic: this.reportFailure('exit', { code: outcome.exitCode === null ? `SIGNAL_${String(outcome.signal)}` : `EXIT_${String(outcome.exitCode)}` }, spec.cwd),
+          })
       }
       const transport: JsonChannel = new JsonChannel(launched.control, this.config.maxMessageBytes, (raw, bytes) => {
         if (!record(raw)) { protocolFailure('invalid control frame'); return }
@@ -343,16 +379,22 @@ export class NodePtcRuntime extends PtcRuntime {
         }
       }, (error, kind) => {
         if (kind === 'protocol') protocolFailure(messageOf(error))
-        else if (ready) finish({ kind: 'worker-exit', message: messageOf(error) })
-        else void launched.done.then(processFinished, (failure: unknown) => { finish({ kind: 'worker-exit', message: messageOf(failure) }) })
+        else if (ready) finish({ kind: 'worker-exit', message: messageOf(error), diagnostic: this.reportFailure('control', error, spec.cwd) })
+        else void launched.done.then(processFinished, (failure: unknown) => { finish({ kind: 'worker-exit', message: messageOf(failure), diagnostic: this.reportFailure('launch', failure, spec.cwd) }) })
       })
       channel = transport
       void launched.done.then((outcome) => {
         // Allow queued control-frame callbacks to run before classifying a command exit.
         setImmediate(() => { processFinished(outcome) })
-      }, (error: unknown) => { finish({ kind: confined !== undefined && isRunnerSpawnFailure(error, confined.argv[0], spec.cwd) ? 'sandbox-unavailable' : 'worker-exit', message: messageOf(error) }) })
+      }, (error: unknown) => {
+        const kind = confined !== undefined && isRunnerSpawnFailure(error, confined.argv[0], spec.cwd) ? 'sandbox-unavailable' : 'worker-exit'
+        finish({ kind, message: messageOf(error), diagnostic: this.reportFailure('launch', error, spec.cwd) })
+      })
     } catch (error: unknown) {
-      finish({ kind: error instanceof SandboxUnavailableError ? 'sandbox-unavailable' : parsing ? 'exception' : 'worker-exit', message: messageOf(error) })
+      const kind = error instanceof SandboxUnavailableError ? 'sandbox-unavailable' : parsing ? 'exception' : 'worker-exit'
+      finish(kind === 'exception'
+        ? { kind, message: messageOf(error) }
+        : { kind, message: messageOf(error), diagnostic: this.reportFailure('spawn', error, spec.cwd) })
     }
     return await result.promise
   }

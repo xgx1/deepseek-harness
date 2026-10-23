@@ -50,6 +50,14 @@ import { prepareShellActivity } from './shell-activity.ts'
 const requireNodePty = createLazyRequire<typeof NodePty>('node-pty', import.meta.url)
 
 /**
+ * Operator override for managed-range containment; `direct` disables scope/Job launch.
+ * @returns The normalized `DSH_SUBPROCESS_CONTAINMENT` value (empty when unset).
+ */
+function containmentOverride(): string {
+  return (process.env.DSH_SUBPROCESS_CONTAINMENT ?? '').trim().toLowerCase()
+}
+
+/**
  * Local subprocess service: platform-selected managed ranges, Node-shaped stdio
  * dispositions (raw pipes, inherit, bounded tail-keep collection with spill
  * files), credential-scrubbed environment, and provider-owned range signalling.
@@ -215,6 +223,15 @@ export class LocalSubprocessRuntime extends SubprocessRuntime {
   ): 'linux-scope' | 'windows-job' | 'fallback' {
     const platform = this.internals.platform ?? process.platform
     let fallbackReason: string | undefined
+    // Recovery escape hatch: when the user-systemd scope path itself is broken
+    // (a failure mode where every spawn dies with a bare libuv `write` error and
+    // no scope ever appears in the journal), an operator needs one switch that
+    // restores tool execution without a code change. `direct` keeps the direct
+    // process tree and skips scope/Job launch entirely.
+    if (containmentOverride() === 'direct') {
+      this.warnFallback(platform, kind, 'DSH_SUBPROCESS_CONTAINMENT=direct was requested by the operator')
+      return 'fallback'
+    }
     if (platform === 'linux') {
       const available = this.linuxDeepProbePassed
         ? probeLinuxManager()

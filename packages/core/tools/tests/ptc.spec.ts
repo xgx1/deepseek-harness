@@ -464,20 +464,22 @@ describe('mode-aware wire contribution', () => {
       const parameters = ctx.tools.get(RUN_CODE_NAME)!.parameters
       expect(Object.keys(parameters.properties as Record<string, unknown>).slice(0, 2))
         .toEqual(['description', 'code'])
-      expect(parameters).toHaveProperty('required', ['description', 'code'])
+      // 2026-10-23: `description` 改为可选 —— 模型漏传它只该浪费一次调用，不该让整步失败。
+      // `code` 仍是唯一必填参数；顺序保留 description 在前，模型仍会先写摘要。
+      expect(parameters).toHaveProperty('required', ['code'])
       expect(parameters).toHaveProperty('properties.description.description',
-        expect.stringContaining('Provide `description` before `code` in the arguments.'))
+        expect.stringContaining('Optional clear, concise description'))
       const assembly = await systemPrompt.assemble()
       expect(assembly.tools.find(tool => tool.name === RUN_CODE_NAME)?.parameters).toEqual(parameters)
       expect(assembly.tools.find(tool => tool.name === RUN_CODE_NAME)?.description)
-        .toContain('arguments: `description`, a short summary of what the program does, and `code`')
+        .toContain('and an optional `description`, a short summary of what the program')
 
       // defineTool validates its captured static schema, independently of the runtime parameters getter.
       const rejected = await ctx.tools.execute({
         signal: testToolSignal, callId: ToolCallId('argument-order'), name: RUN_CODE_NAME, arguments: {},
       })
       expect(rejected).toHaveProperty('error.message',
-        'invalid arguments: missing required property "description"; missing required property "code"')
+        'invalid arguments: missing required property "code"')
     } finally {
       await ctx.fiber.dispose()
     }
