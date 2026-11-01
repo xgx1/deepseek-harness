@@ -57,9 +57,10 @@ function classifyPiAiError(text: string, message: AssistantMessage): string {
   // throws its own wording when the wire closes mid-response without a terminal
   // event (`… stream ended before message_stop`, `… before a terminal response
   // event`, `… ended without a terminal event`, `Stream ended without
-  // finish_reason`). The connection dropped mid-response, so this is a transport
-  // truncation, not a model-level error.
-  if (/stream ended (?:before|without)\b/i.test(text)) return 'TRANSPORT'
+  // finish_reason`); OpenAI-compatible gateways can also relay a dropped
+  // upstream as the terse `stream interrupted`. The connection dropped
+  // mid-response, so this is a transport truncation, not a model-level error.
+  if (/stream ended (?:before|without)\b|stream interrupted\b/i.test(text)) return 'TRANSPORT'
   if (/\b(?:network|connection|socket|fetch)\b|\bECONN[A-Z]+\b/i.test(text)
     || /\b(?:other side closed|HTTP2 request did not get a response|WebSocket closed unexpectedly)\b/i.test(text)
     || /\bupstream\s+connect\b|reset before headers|getaddrinfo|ENOTFOUND|EAI_AGAIN/i.test(text)
