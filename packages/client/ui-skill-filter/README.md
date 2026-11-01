@@ -1,5 +1,5 @@
 ---
-description: "Skill filter surfaces: the Settings page that owns the personal rule lists and the right-Sidebar tab for the merged rules plus a project override."
+description: "Skill filter surfaces: the Settings page for the personal and project rule lists, and the right-Sidebar tab for the merged rules plus a project override."
 kind: "package-reference"
 ---
 
@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-Browser surfaces for the skill-filter rules: a Settings page for the personal allow and deny lists with the Session's catalog beside them, and a right-Sidebar tab showing the merged rules in force plus the project override lists.
+Browser surfaces for the skill-filter rules: a Settings page for the personal and project allow and deny lists with the Session's catalog beside them, and a right-Sidebar tab showing the merged rules in force plus the project override lists.
 
 ## Table of Contents
 
@@ -25,7 +25,7 @@ Browser surfaces for the skill-filter rules: a Settings page for the personal al
 
 ## Use this package
 
-The shipped Web composition mounts this package. Open **Skills** in Settings for the personal rules, or open **Skills** from the right-Sidebar guide for the merged view and the project override.
+The shipped Web composition mounts this package. Open **Skills** in Settings for the personal and project rules, or open **Skills** from the right-Sidebar guide for the merged view and the same project panel.
 
 ### When to choose it
 
@@ -33,7 +33,7 @@ Choose this package when the question is how a user edits the rules. The rule en
 
 ### What each surface shows
 
-The Settings page lists the personal allow and deny patterns as editable rows, groups the Session's catalog by name prefix so a whole family can be allowed at once, and lists every skill with its current visibility and an allow/deny switch per name. The Sidebar tab shows the merged rules the Host reports for the project, marks which layer exists, and edits the project lists; without a project config the override lists start from the rules in force.
+The Settings page lists the personal allow and deny patterns as editable rows, mounts the same project panel for the Session's working directory, groups the Session's catalog by name prefix so a whole family can be allowed at once, and lists every skill with its current visibility and an allow/deny switch per name. The Sidebar tab shows the merged rules the Host reports for the project, marks which layer exists, and edits the project lists through that same panel; without a project config the project draft starts from the rules in force.
 
 ### Minimal composition
 
@@ -59,7 +59,7 @@ Both surfaces call the same face, bound once to `ctx.remote`. Every call folds a
 
 ### Draft ownership
 
-The rule rows are drafts the surface owns. A save writes the whole layer — the files are not merged field by field — and republishes the accepted copy so the rows show what the Host kept. The Sidebar tab seeds its project draft from the project config when one exists and from the merged config when none does, because the two layers union and the draft edits the project layer.
+The rule rows are drafts the surface owns. A save writes the whole layer — the files are not merged field by field — and republishes the accepted copy so the rows show what the Host kept. The project panel is one component — `useProjectLayer` plus `ProjectRulesPanel` — mounted by both seats, so its draft, its seeding rule and its save path are written once. That draft starts from the project config when one exists and from the merged config when none does, because the two layers union and the draft edits the project layer.
 
 </details>
 
@@ -90,6 +90,7 @@ None; this package neither assembles nor sends a provider request.
 - The layers union, so a project cannot hide a skill the personal config allows; that skill comes off the personal list instead.
 - Neither surface explains a hidden skill beyond its current state: a skill hidden by its own frontmatter and one hidden by the merged rules read the same here.
 - The catalog is the Session's, so a Settings page opened before any Session exists shows no skill list.
+- The project panel addresses itself by the Session's working directory, so the Settings page renders it only once a Session exists.
 
 **Runtime invariant:** No companion is published. Both surfaces read and write through the `skillFilter` Remote namespace, and the apply and component suites cover registration, disposal, and each surface's behavior.
 

@@ -1,17 +1,19 @@
 /**
- * The skill-filter settings page: the personal rule lists, the suggested prefix
- * groups, and the session's skill catalog with one allow/deny switch per skill.
+ * The skill-filter settings page: the personal rule lists, the project layer for
+ * the current session's working directory, the suggested prefix groups, and the
+ * session's skill catalog with one allow/deny switch per skill.
  *
  * The page reads the personal layer on mount and the catalog once the session
  * list reports a Session. Both live in component state; a save writes the
  * personal layer and republishes the loaded copy so the rows reflect what the
- * Host accepted.
+ * Host accepted. The project panel owns its own draft through `useProjectLayer`.
  */
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Button } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { SkillFilterFace, SkillFilterSkillEntry } from './face.ts'
 import { prefixOf, toggleName } from './face.ts'
 import type {} from './locales.ts'
+import { ProjectRulesPanel, useProjectLayer } from './ProjectRules.tsx'
 import { RuleList } from './RuleList.tsx'
 import { SkillCatalog } from './SkillCatalog.tsx'
 import type {
@@ -50,7 +52,9 @@ const EMPTY_CONFIG: SkillFilterConfigView = { allow: [] }
  * @returns the section element tree.
  */
 export function SkillFilterSettingsSection(props: SkillFilterSettingsSectionProps) {
-  const { t, loadPersonal, savePersonal, listSkills, useSessions } = props
+  const {
+    t, loadPersonal, savePersonal, loadProject, saveProject, loadEffective, listSkills, useSessions,
+  } = props
   const [personal, setPersonal] = useState<PersonalState>({ status: 'loading' })
   const [allow, setAllow] = useState<readonly string[]>([])
   const [deny, setDeny] = useState<readonly string[]>([])
@@ -65,6 +69,13 @@ export function SkillFilterSettingsSection(props: SkillFilterSettingsSectionProp
   })
   const sessionId = target?.id
   const cwd = target?.cwd
+  const project = useProjectLayer({
+    cwd,
+    loadProject,
+    saveProject,
+    loadEffective,
+    onSaved: () => { setReload(value => value + 1) },
+  })
 
   useEffect(() => {
     let live = true
@@ -167,6 +178,8 @@ export function SkillFilterSettingsSection(props: SkillFilterSettingsSectionProp
           {save === 'failed' && <span className={css.error}>{t('action.saveFailed')}</span>}
         </div>
       </div>
+
+      {cwd !== undefined && <ProjectRulesPanel t={t} layer={project} />}
 
       <div className={css.panel}>
         <h3 className={css.heading}>{t('prefixes')}</h3>

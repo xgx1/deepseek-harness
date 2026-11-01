@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 /**
- * The settings page's behavior: the loaded personal rules become editable rows,
- * a catalog row switches one skill between allowed and denied, and a save
- * writes the personal layer and reports the outcome.
+ * The settings page's behavior: the loaded personal and project rules become
+ * editable rows, a catalog row switches one skill between allowed and denied,
+ * and each save writes its own layer and reports the outcome.
  */
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
@@ -36,7 +36,10 @@ function props(overrides: Partial<SkillFilterFace> = {}): SkillFilterSettingsSec
       value: { exists: true, config: { allow: ['git-*'], deny: ['git-rebase'] } },
     }),
     savePersonal: config => Promise.resolve({ ok: true, value: { exists: true, config } }),
-    loadProject: () => Promise.resolve({ ok: true, value: { exists: false } }),
+    loadProject: () => Promise.resolve({
+      ok: true,
+      value: { exists: true, config: { allow: ['ue-*'] } },
+    }),
     saveProject: (_cwd, config) => Promise.resolve({ ok: true, value: { exists: true, config } }),
     loadEffective: () => Promise.resolve({
       ok: true,
@@ -106,11 +109,26 @@ describe('the skill-filter settings page', () => {
       value: { exists: true, config },
     }))
     render(<SkillFilterSettingsSection {...props({ savePersonal })} />)
-    fireEvent.click(await screen.findByRole('button', { name: zh['action.save'] }))
+    await screen.findByText(zh['project.present'])
+    fireEvent.click(screen.getAllByRole('button', { name: zh['action.save'] })[0] as HTMLElement)
     await waitFor(() => {
       expect(savePersonal).toHaveBeenCalledWith({ allow: ['git-*'], deny: ['git-rebase'] })
     })
     expect(await screen.findByText(zh['action.saved'])).toBeDefined()
+  })
+
+  it('edits the project layer in its own panel and saves it separately', async () => {
+    const saveProject = vi.fn((_cwd: string, config: { allow: readonly string[] }) => Promise.resolve({
+      ok: true as const,
+      value: { exists: true, config },
+    }))
+    render(<SkillFilterSettingsSection {...props({ saveProject })} />)
+    expect(await screen.findByText(zh['project.present'])).toBeDefined()
+    expect(screen.getByDisplayValue('ue-*')).toBeDefined()
+    fireEvent.click(screen.getAllByRole('button', { name: zh['action.save'] })[1] as HTMLElement)
+    await waitFor(() => {
+      expect(saveProject).toHaveBeenCalledWith('/repo', { allow: ['ue-*'] })
+    })
   })
 
   it('reports a refused save without changing the rows', async () => {
@@ -119,7 +137,8 @@ describe('the skill-filter settings page', () => {
       error: { code: 'skill-filter/rejected' as const, message: 'nope', details: { reason: 'nope' } },
     }) as Promise<RemoteResult<{ exists: boolean; config?: { allow: readonly string[] } }>>)
     render(<SkillFilterSettingsSection {...props({ savePersonal })} />)
-    fireEvent.click(await screen.findByRole('button', { name: zh['action.save'] }))
+    await screen.findByText(zh['project.present'])
+    fireEvent.click(screen.getAllByRole('button', { name: zh['action.save'] })[0] as HTMLElement)
     expect(await screen.findByText(zh['action.saveFailed'])).toBeDefined()
     expect(screen.getByDisplayValue('git-*')).toBeDefined()
   })
