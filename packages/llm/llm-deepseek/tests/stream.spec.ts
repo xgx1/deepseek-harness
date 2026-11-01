@@ -90,7 +90,7 @@ describe('Messages stream', () => {
   it('refuses unsupported response content, empty responses and premature EOF', async () => {
     await expect(chunks(translate(events([start, { type: 'content_block_start', index: 0, content_block: { type: 'redacted_thinking', data: 'x' } }]), MODEL))).rejects.toMatchObject({ code: 'UNSUPPORTED_CONTENT' })
     await expect(chunks(translate(events([start, ...end()]), MODEL))).rejects.toMatchObject({ code: 'EMPTY_RESPONSE' })
-    await expect(chunks(translate(events(textEvents.slice(0, -1)), MODEL))).rejects.toMatchObject({ code: 'TRANSPORT' })
+    await expect(chunks(translate(events(textEvents.slice(0, -1)), MODEL))).rejects.toMatchObject({ code: 'STREAM_CLOSED' })
   })
 })
 
@@ -116,7 +116,7 @@ describe('SSE framing and provider failures', () => {
     await expect(read(text)).rejects.toMatchObject({ code: 'MALFORMED_RESPONSE' })
   })
   it('does not flush an unterminated terminal event', async () => {
-    await expect(read(sse(textEvents).trimEnd())).rejects.toMatchObject({ code: 'TRANSPORT' })
+    await expect(read(sse(textEvents).trimEnd())).rejects.toMatchObject({ code: 'STREAM_CLOSED' })
   })
   it('normalizes in-band overloads', async () => {
     await expect(read(sse([{ type: 'error', error: { type: 'overloaded_error', message: 'busy' } }]))).rejects.toMatchObject({ code: 'SERVER' })

@@ -1,9 +1,11 @@
 /**
  * Glob-based skill filter engine.
  *
- * Merges three rule sources (skill's own frontmatter deny, personal config, project config)
- * and applies precedence: project > personal > skill-own.
- * Within a single config, specific skill names override glob patterns.
+ * Merges three rule sources (skill's own frontmatter deny, personal config, project config).
+ * The personal and project layers union: a skill either layer allows is visible, so a
+ * project adds to the personal allow list instead of replacing it. Within a single config,
+ * specific skill names override glob patterns. The skill's own frontmatter deny is the
+ * weakest source: an allow in either config layer overrides it.
  *
  * A denied skill is NOT removed: its `modelInvocable` flag is cleared so it
  * disappears from the model catalog while remaining user-invocable via `/name`.
@@ -105,13 +107,12 @@ export interface FilterResult {
 }
 
 /**
- * Evaluate whether a skill should be model-visible, merging all rule sources.
+ * Evaluate whether a skill should be model-visible across both config layers.
  *
- * Precedence (highest wins):
- * 1. Project config
- * 2. Personal config
- * 3. Skill's own frontmatter deny
- * 4. Default: deny (whitelist model)
+ * The two layers union: an allow from either layer makes the skill visible, and a
+ * deny in one layer cannot veto an allow in the other. When neither layer allows
+ * the name, the reported reason names the layer that denied it, then the skill's
+ * own frontmatter deny, then the whitelist default.
  *
  * @param name - the skill name.
  * @param projectRules - compiled project config rules, or undefined if no project config.
@@ -133,19 +134,15 @@ export function filterSkill(
       : { visible: true, reason: 'personal-allow' }
   }
 
-  // Project rules first (highest precedence).
-  if (projectRules !== undefined) {
-    const result = evalRuleSet(projectRules, name)
-    if (result === 'allow') return { visible: true, reason: 'project-allow' }
-    if (result === 'deny') return { visible: false, reason: 'project-deny' }
-  }
+  // The layers union: either allow makes the skill visible.
+  const projectVerdict = projectRules === undefined ? 'no-match' : evalRuleSet(projectRules, name)
+  const personalVerdict = personalRules === undefined ? 'no-match' : evalRuleSet(personalRules, name)
+  if (projectVerdict === 'allow') return { visible: true, reason: 'project-allow' }
+  if (personalVerdict === 'allow') return { visible: true, reason: 'personal-allow' }
 
-  // Personal rules.
-  if (personalRules !== undefined) {
-    const result = evalRuleSet(personalRules, name)
-    if (result === 'allow') return { visible: true, reason: 'personal-allow' }
-    if (result === 'deny') return { visible: false, reason: 'personal-deny' }
-  }
+  // Neither layer allows: report the denial for debugging.
+  if (projectVerdict === 'deny') return { visible: false, reason: 'project-deny' }
+  if (personalVerdict === 'deny') return { visible: false, reason: 'personal-deny' }
 
   // Skill's own frontmatter deny.
   if (skillOwnDeny) {

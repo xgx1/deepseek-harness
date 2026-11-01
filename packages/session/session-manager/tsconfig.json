@@ -9,12 +9,14 @@
     { "path": "../../core/agent" },
     { "path": "../../core/session" },
     { "path": "../../core/system-prompt" },
+    { "path": "../../core/tool-executor-native" },
     { "path": "../../core/tools" },
     { "path": "../../preset/agent-preset-registry" },
     { "path": "../../interaction/commands" },
     { "path": "../../interaction/user-questions" },
     { "path": "../../llm/llm" },
     { "path": "../../api/session-controller/tsconfig.host.json" },
+    { "path": "../../session-query/session-query" },
     { "path": "../../storage/storage-domain" },
     { "path": "../../workspace/workspace" }
   ]

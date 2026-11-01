@@ -157,7 +157,5 @@ export async function* translate(events: AsyncIterable<Record<string, unknown>>,
       return
     }
   }
-  // The stream ended before the provider's terminal event: the remote side
-  // truncated the response, which retry policy owns.
-  throw new LlmError('DeepSeek Messages stream ended before message_stop', 'TRANSPORT')
+  throw new LlmError('DeepSeek Messages stream ended before message_stop', 'STREAM_CLOSED')
 }

@@ -3,8 +3,8 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/adr/0002-merge-frontmatter-into-filter.md
 /merge-skill-frontmatter-deny-into-the-filter-engine:
-  en: 2f9a35548d4569d7
-  zh: d3274add905c67c3
+  en: 8f857c78355efba4
+  zh: 123679c2dbec4892
 /merge-skill-frontmatter-deny-into-the-filter-engine/considered-options:
   en: 02470d3f4c8178c2
   zh: 76ec4b295dae206a

@@ -724,7 +724,7 @@ describe('toStreamChunks', () => {
     if (requested === undefined) throw new Error('missing Anthropic catalog model')
     expect(transformMessages(context.messages, requested)[0]).toMatchObject({ content: native.content })
     expect(transformMessages(context.messages, { ...requested, id: 'other-model' })[0]).toMatchObject({
-      content: [{ type: 'text', text: 'reason' }],
+      content: [],
     })
   })
 
@@ -848,7 +848,7 @@ describe('toStreamChunks', () => {
     await expect(collect(toStreamChunks(feed({ type: 'start', partial: assistant() }))))
       .rejects.toThrow(/without done\/error/)
     await expect(collect(toStreamChunks(feed({ type: 'start', partial: assistant() }))))
-      .rejects.toMatchObject({ code: 'TRANSPORT' })
+      .rejects.toMatchObject({ code: 'STREAM_CLOSED' })
   })
 
   it('preserves an unknown SDK iterator Error exactly', async () => {

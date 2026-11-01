@@ -21,8 +21,8 @@
   en: d27b3de2a26ae49f
   zh: 02619213efb48d5e
 /deepseek-ai-dsh-skill-filter/use-this-package/configuration-files:
-  en: 1ed9f96e1dd5c67c
-  zh: 4443ace356a06f84
+  en: cdeb48ec995329b2
+  zh: 5368c943b79b4c9b
 /deepseek-ai-dsh-skill-filter/use-this-package/minimal-composition:
   en: 9bdd05ad59583c9b
   zh: 9544d849a32d08e1
@@ -33,8 +33,8 @@
   en: c381a57bc3a3efd0
   zh: 1bd4235fc5ff8686
 /deepseek-ai-dsh-skill-filter/understand-the-implementation/rule-merging:
-  en: 2e44e11c7db4406d
-  zh: 30720e4c29249fc6
+  en: b3348363ce193da4
+  zh: bfeb9601119df5cd
 /deepseek-ai-dsh-skill-filter/understand-the-implementation/catalog-invalidation:
   en: c2a7401736ff3f79
   zh: 38807847fbbbcd73
@@ -48,8 +48,8 @@
   en: 14310f6a17019192
   zh: 4994ad287f3a353b
 /deepseek-ai-dsh-skill-filter/model-experience/filtered-catalog/what-the-model-sees:
-  en: e1905be77a92e92f
-  zh: e54e3efc47a43823
+  en: 13a325bd7754fab8
+  zh: b8ff88ee20503174
 /deepseek-ai-dsh-skill-filter/model-experience/filtered-catalog/token-effect:
   en: 77ffd9ccdf7b3cdb
   zh: 1679953500c2fa46
@@ -57,8 +57,8 @@
   en: d2b93de8b48945d6
   zh: 42494f6376d6fa89
 /deepseek-ai-dsh-skill-filter/known-limitations-and-deferred-work:
-  en: ad8672675a65df02
-  zh: 487a89e33de61cf1
+  en: 63da00d9e2e34952
+  zh: 75fee79f5150a5e2
 /deepseek-ai-dsh-skill-filter/known-limitations-and-deferred-work/dev-note:
   en: e67f633dc6fe7773
   zh: b1528e06ef51e446

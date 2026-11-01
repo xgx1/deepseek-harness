@@ -50,6 +50,12 @@ function personalConfig(body: string): void {
   writeFileSync(join(home, '.dsh', 'skill-filter.yaml'), body, 'utf-8')
 }
 
+/** Write the project config for one skill root's working directory. */
+function projectConfig(dir: string, body: string): void {
+  mkdirSync(join(dir, '.dsh'), { recursive: true })
+  writeFileSync(join(dir, '.dsh', 'skill-filter.yaml'), body, 'utf-8')
+}
+
 /** Boot the real registry with the plugin mounted, as a preset mounts it. */
 async function boot(skillsDir: string): Promise<Context> {
   vi.resetModules()
@@ -62,8 +68,8 @@ async function boot(skillsDir: string): Promise<Context> {
 }
 
 /** The fixture skills' visibility, as the catalog reports them. */
-async function visibility(ctx: Context): Promise<Map<string, boolean>> {
-  const listed = await ctx.skills.list({})
+async function visibility(ctx: Context, cwd?: string): Promise<Map<string, boolean>> {
+  const listed = await ctx.skills.list(cwd === undefined ? {} : { cwd })
   return new Map(listed.map(skill => [skill.name, skill.invocation.modelInvocable]))
 }
 
@@ -97,6 +103,36 @@ describe('the skill filter in a real composition', () => {
       const byName = await visibility(ctx)
       expect(byName.get('git-rebase')).toBe(false)
       expect(byName.get('git-commit')).toBe(true)
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+
+  it('filters on the project config alone when no personal config exists', async () => {
+    const dir = skillRoot()
+    try {
+      projectConfig(dir, 'allow:\n  - "git-commit"\n')
+      const ctx = await boot(dir)
+      const state = await visibility(ctx, dir)
+      expect(state.get('git-commit')).toBe(true)
+      expect(state.get('git-rebase')).toBe(false)
+      expect(state.get('ue-build')).toBe(false)
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+
+  it('unions the personal and project layers', async () => {
+    const dir = skillRoot()
+    try {
+      personalConfig('allow:\n  - "git-*"\n')
+      projectConfig(dir, 'allow:\n  - "ue-build"\n')
+      const ctx = await boot(dir)
+      const state = await visibility(ctx, dir)
+      expect(state.get('git-commit')).toBe(true)
+      expect(state.get('git-rebase')).toBe(true)
+      // The project allow also overrides the skill's own frontmatter deny.
+      expect(state.get('ue-build')).toBe(true)
     } finally {
       rmSync(dir, { recursive: true, force: true })
     }

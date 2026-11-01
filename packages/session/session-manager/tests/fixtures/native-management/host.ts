@@ -15,7 +15,7 @@ import Commands from '@deepseek-ai/dsh-commands'
 import Credentials from '@deepseek-ai/dsh-credentials-local'
 import { createUserMessage, LlmAdapter, ToolCallId, type GenerateOptions, type StreamChunk } from '@deepseek-ai/dsh-llm'
 import { SessionId } from '@deepseek-ai/dsh-session'
-import Persistence from '@deepseek-ai/dsh-session-persistence-jsonl'
+import * as Persistence from '@deepseek-ai/dsh-session-persistence-jsonl'
 import Query from '@deepseek-ai/dsh-session-query-sqlite'
 import Storage from '@deepseek-ai/dsh-storage'
 import * as StorageJson from '@deepseek-ai/dsh-storage-json'
@@ -87,6 +87,8 @@ export async function bootManagementHost(root: string, own: (ctx: Context) => vo
   Object.assign(ctx.loader.builtins, {
     include: Include, persistence: Persistence, storage: Storage, 'storage-json': StorageJson,
     'storage-domain': StorageDomain, workspace: Workspaces, query: Query, typert: (await import('@deepseek-ai/dsh-typert-registry')).default,
+    'typert-gateway': (await import('@deepseek-ai/dsh-api-gateway')).default,
+    'remote-access': (await import('@deepseek-ai/dsh-api-remote-access')).default,
     'default-model': AgentDefaultModel, credentials: Credentials, connection: Connection,
     attachments: Attachments, commands: Commands, uploads: Uploads, questions: UserQuestions,
     presets: AgentPresets, 'fixture-presets': presetRows, loop: AgentLoop,
@@ -125,7 +127,12 @@ export async function bootManagementHost(root: string, own: (ctx: Context) => vo
     return found
   }
   async function execute(owner: Agent, name: string, args: object = {}, callId = name) {
-    return ctx.tools.execute({ agent: owner, name, arguments: args, callId: ToolCallId(callId), signal: new AbortController().signal })
+    const batch = await ctx.tools.execute({
+      agent: owner,
+      calls: [{ type: 'tool-call', id: ToolCallId(callId), name, arguments: JSON.stringify(args) }],
+      signal: new AbortController().signal,
+    })
+    return batch.results[0]?.result
   }
   async function turn(owner: Agent, text: string, ...responses: StreamChunk[][]): Promise<void> {
     adapter.enqueue(owner, ...responses)

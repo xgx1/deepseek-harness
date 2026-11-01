@@ -2,8 +2,8 @@
  * YAML configuration reader for skill filter rules.
  *
  * Reads personal (`$DSH_HOME/skill-filter.yaml`) and project (`<cwd>/.dsh/skill-filter.yaml`)
- * configs, merges them with project-overrides-personal semantics, and caches the
- * last valid parse to survive transient YAML corruption.
+ * configs, merges them as the union of both layers' allow and deny patterns, and caches
+ * the last valid parse to survive transient YAML corruption.
  *
  * @module @deepseek-ai/dsh-skill-filter/src/config
  */
@@ -27,13 +27,13 @@ export interface ConfigLayer {
   readonly error: Error | undefined
 }
 
-/** Merge result: personal base + project overlay. */
+/** Merge result: the union of both layers. */
 export interface MergedFilterConfig {
   /** Whether the personal config exists. */
   readonly personalExists: boolean
   /** Whether the project config exists. */
   readonly projectExists: boolean
-  /** The merged effective config, or undefined if personal config is missing. */
+  /** The merged effective config, or undefined when neither layer exists. */
   readonly config: SkillFilterConfig | undefined
 }
 
@@ -124,28 +124,31 @@ export async function readProjectConfig(cwd: string | undefined): Promise<Config
 }
 
 /**
- * Merge personal and project configs with project-overrides-personal semantics.
+ * Merge personal and project configs into the effective rule set.
  *
- * Merge rules:
- * - If personal config is missing, no filtering is applied (all skills visible).
- * - If project config exists, its allow/deny rules are used; personal rules are replaced.
- * - If project config is missing, personal rules are used as-is.
+ * The layers union: the effective allow list carries every pattern either layer
+ * allows, and the effective deny list every pattern either layer denies. A
+ * project therefore adds to the personal rules instead of replacing them, and
+ * either layer alone still filters.
  *
  * @param personal - the personal config, or undefined.
  * @param project - the project config, or undefined.
- * @returns the merged effective config and metadata.
+ * @returns the merged effective config and metadata; `config` is undefined only when neither layer exists.
  */
 export function mergeConfigs(
   personal: SkillFilterConfig | undefined,
   project: SkillFilterConfig | undefined,
 ): MergedFilterConfig {
-  if (personal === undefined) {
-    return { personalExists: false, projectExists: project !== undefined, config: undefined }
+  if (personal === undefined && project === undefined) {
+    return { personalExists: false, projectExists: false, config: undefined }
   }
-  if (project !== undefined) {
-    return { personalExists: true, projectExists: true, config: project }
+  const allow = [...new Set([...(personal?.allow ?? []), ...(project?.allow ?? [])])]
+  const deny = [...new Set([...(personal?.deny ?? []), ...(project?.deny ?? [])])]
+  return {
+    personalExists: personal !== undefined,
+    projectExists: project !== undefined,
+    config: { allow, ...deny.length > 0 ? { deny } : {} },
   }
-  return { personalExists: true, projectExists: false, config: personal }
 }
 
 /**
