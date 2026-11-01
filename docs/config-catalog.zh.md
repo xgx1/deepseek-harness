@@ -222,7 +222,7 @@ export interface Config {
 ## `@deepseek-ai/dsh-api-session-controller`
 
 - `inject`: `agentDefaultModel` · `agents` · `attachments` · `fileUploads` · `fs` · `llm` · `sessions` · `sessionProjections` · `sessionQuery` · `typert` · `workspaceRegistry`
-- `source`: [`packages/api/session-controller/src/index.ts:80`](../packages/api/session-controller/src/index.ts)
+- `source`: [`packages/api/session-controller/src/index.ts:89`](../packages/api/session-controller/src/index.ts)
 
 ```ts config-catalog
 /** Session Controller deployment policy. */
@@ -2468,7 +2468,7 @@ export interface Config {
 ## `@deepseek-ai/dsh-ptc-runtime-node`
 
 - `inject`: `fs` · `subprocess` · `sandbox` · `sandboxPolicy`
-- `source`: [`packages/ptc-runtime/ptc-runtime-node/src/index.ts:27`](../packages/ptc-runtime/ptc-runtime-node/src/index.ts)
+- `source`: [`packages/ptc-runtime/ptc-runtime-node/src/index.ts:44`](../packages/ptc-runtime/ptc-runtime-node/src/index.ts)
 
 ```ts config-catalog
 /** Deployment-varying runtime bounds and launch choices. */
@@ -2773,6 +2773,29 @@ export interface Config {
 export type SessionLogCompressionLevel = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9
 ```
 <!-- END GENERATED config-catalog:@deepseek-ai/dsh-session-log-export -->
+
+<!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-session-manager -->
+<a id="deepseek-aidsh-session-manager"></a>
+
+## `@deepseek-ai/dsh-session-manager`
+
+- `inject`: `agents` · `sessions` · `tools` · `systemPrompt` · `sessionController` · `workspaceRegistry` · `storageDomain` · `userQuestions` · `commands` · `agentPresets`
+- `source`: [`packages/session/session-manager/src/index.ts:30`](../packages/session/session-manager/src/index.ts)
+
+```ts config-catalog
+/** Deployment choices for the opt-in management scope. */
+export interface Config {
+  /** Dedicated preset with no worker/persona/skill plugins of its own. */
+  managerPreset: string
+  /** Explicit execution presets that the manager may choose for work. */
+  workerPresets: string[]
+  /** Maximum UTF-8 bytes in one management input or report. */
+  maxMessageBytes?: number
+  /** Native human-question foreground wait, in seconds; waiting then ends the turn. */
+  questionWaitSeconds?: number
+}
+```
+<!-- END GENERATED config-catalog:@deepseek-ai/dsh-session-manager -->
 
 <!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-session-persistence-jsonl -->
 <a id="deepseek-aidsh-session-persistence-jsonl"></a>

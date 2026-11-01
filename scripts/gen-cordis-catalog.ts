@@ -115,6 +115,7 @@ export const SERVICE_PAGE: Record<string, string> = {
   worktrees: 'worktrees.md',
   sessionController: 'session.md',
   sessionSkillCatalog: 'skills.md',
+  skillFilter: 'skills.md',
   sessions: 'session.md',
   settings: 'settings.md',
   sessionTitle: 'session-title.md',
@@ -223,6 +224,7 @@ export const EVENT_SCOPE_PAGE: Record<string, string> = {
   'agent-loop': 'core.md',
   'agent-preset': 'core.md',
   'api-session': 'session.md',
+  'session-controller': 'session.md',
   'approval': 'approval.md',
   'commands': 'commands.md',
   'connection': 'web-server.md',
@@ -960,6 +962,13 @@ export const TYPE_LINK_EXEMPTIONS: Readonly<Record<string, string>> = {
   TerminalFrame: 'Browser terminal stream frames are owned by packages/api/terminal-controller/README.md',
   TerminalRetentionFrame: 'Browser terminal window holds are owned by packages/api/terminal-controller/README.md',
   WebTerminalId: 'Browser terminal identity is owned by packages/api/terminal-controller/README.md',
+  ConfigListener: 'Skill-filter config callback signature is owned by packages/api/skill-filter-controller/src/index.ts',
+  SkillFilterConfigRequest: 'Skill-filter Remote request fields are owned by packages/api/skill-filter-controller/README.md',
+  SkillFilterConfigView: 'Skill-filter Remote view fields are owned by packages/api/skill-filter-controller/README.md',
+  SkillFilterConfigWrite: 'Skill-filter Remote write fields are owned by packages/api/skill-filter-controller/README.md',
+  SkillFilterEffectiveView: 'Skill-filter Remote view fields are owned by packages/api/skill-filter-controller/README.md',
+  SkillFilterPersonalView: 'Skill-filter Remote view fields are owned by packages/api/skill-filter-controller/README.md',
+  SkillFilterProjectView: 'Skill-filter Remote view fields are owned by packages/api/skill-filter-controller/README.md',
 }
 
 /** Repository data policy consumed by the Cordis catalog projector. */

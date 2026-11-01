@@ -1,0 +1,17 @@
+# Example wiring — copy these rows into the Host composition. This file is not
+# auto-loaded: the package is opt-in and never a shipped default capability.
+- insert:
+    - id: session-manager
+      name: '@deepseek-ai/dsh-session-manager'
+      config:
+        managerPreset: management
+        workerPresets: [standard]
+        maxMessageBytes: 16384
+        questionWaitSeconds: 1
+    - id: preset-management
+      name: '@deepseek-ai/dsh-agent-preset'
+      config:
+        id: management
+        name: 管理模式
+        description: 仅管理用户交接或自行创建的普通工作对话，不直接执行任务。
+        plugins: []

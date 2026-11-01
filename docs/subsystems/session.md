@@ -950,11 +950,11 @@ workspaceDesktop(): { name: string; available: boolean; fileManager: 'finder' | 
 @Remote('updateQueue') updateQueue(request: SessionUpdateQueueRequest): Promise<SessionUpdateQueueValue>
 
 /**
- * Cancel one active Agent turn without dropping its pending inbox.
- * @param request - Session whose active Agent turn is cancelled.
- * @returns acknowledgement that cancellation was requested.
+ * Cancel one live ordinary Agent without dropping its pending inbox, and await stop-intent listeners even while idle.
+ * @param request - Session addressed by the explicit stop.
+ * @returns acknowledgement after cancellation and listener persistence; listener failure does not undo cancellation.
  */
-@Remote('cancel') cancel(request: SessionCancelRequest): SessionCancelValue
+@Remote('cancel') cancel(request: SessionCancelRequest): Promise<SessionCancelValue>
 
 /**
  * Read one cold-safe, message-aligned Session history page.
@@ -1334,4 +1334,26 @@ Awaited parallel durability checkpoint: every listener runs and the caller await
 Types: [Scoped](scope.md)
 
 Source: [`packages/core/session/src/index.ts`](../../packages/core/session/src/index.ts)
+
+<a id="session-controller-events"></a>
+
+### `session-controller/*` events
+
+<a id="session-controllercancel-requested--parallel"></a>
+
+#### `session-controller/cancel-requested` — parallel
+
+An explicit human stop after native cancellation, including an already-idle Agent.
+
+```ts cordis-catalog
+/**
+ * An explicit human stop after native cancellation, including an already-idle Agent.
+ * @mode parallel
+ * @param sessionId - Ordinary Session addressed by the stop command.
+ * @returns Settles after listeners persist their cancellation intent; rejection fails the acknowledgement, not native cancellation.
+ */
+'session-controller/cancel-requested'(sessionId: SessionCancelRequest['sessionId']): Promise<void>
+```
+
+Source: [`packages/api/session-controller/src/index.ts`](../../packages/api/session-controller/src/index.ts)
 <!-- END GENERATED cordis-surface -->
