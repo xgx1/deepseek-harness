@@ -59,7 +59,7 @@ Both surfaces call the same face, bound once to `ctx.remote`. Every call folds a
 
 ### Draft ownership
 
-The rule rows are drafts the surface owns. A save writes the whole layer — the files are not merged field by field — and republishes the accepted copy so the rows show what the Host kept. The Sidebar tab seeds its project draft from the project config when one exists and from the merged config when none does, because a project config replaces the personal rules outright.
+The rule rows are drafts the surface owns. A save writes the whole layer — the files are not merged field by field — and republishes the accepted copy so the rows show what the Host kept. The Sidebar tab seeds its project draft from the project config when one exists and from the merged config when none does, because the two layers union and the draft edits the project layer.
 
 </details>
 
@@ -87,7 +87,7 @@ None; this package neither assembles nor sends a provider request.
 
 ## Known Limitations and Deferred Work
 
-- A save replaces the whole layer, so a project that wants one extra skill restates the personal list rather than adding a single pattern over it.
+- The layers union, so a project cannot hide a skill the personal config allows; that skill comes off the personal list instead.
 - Neither surface explains a hidden skill beyond its current state: a skill hidden by its own frontmatter and one hidden by the merged rules read the same here.
 - The catalog is the Session's, so a Settings page opened before any Session exists shows no skill list.
 

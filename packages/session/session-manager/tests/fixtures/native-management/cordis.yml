@@ -22,6 +22,10 @@
     openAt: never
 - id: typert
   name: cordis:typert
+- id: typert-gateway
+  name: cordis:typert-gateway
+- id: remote-access
+  name: cordis:remote-access
 - id: default-model
   name: cordis:default-model
   config:

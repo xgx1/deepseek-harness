@@ -3,10 +3,10 @@
  * project-level override lists, and the session's catalog with each skill's
  * current visibility.
  *
- * The merged view is the Host's own answer — the personal layer, the project
- * layer, and which one wins. The override lists below it are the draft that
- * `saveProject` persists; while no project config exists the tab says so and
- * the personal rules are what the merged panel shows.
+ * The merged view is the Host's own answer — the union of the personal and
+ * project layers. The override lists below it are the draft that `saveProject`
+ * persists; while no project config exists the tab says so and the personal
+ * rules are what the merged panel shows.
  */
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
@@ -84,8 +84,8 @@ export function SkillFilterBody(props: SkillFilterBodyProps) {
       }
       if (effectiveResult.ok) setEffective({ status: 'ready', view: effectiveResult.value })
       else setEffective({ status: 'failed' })
-      // A project config replaces the personal rules outright, so its own lists
-      // are the draft. Without one, the draft starts from what is in force.
+      // The layers union, so the project draft starts from the project's own
+      // lists when it exists, otherwise from the rules in force.
       const seeded = projectResult.ok ? projectResult.value.config : undefined
       const inherited = effectiveResult.ok ? effectiveResult.value.config : undefined
       const base = seeded ?? inherited
@@ -144,11 +144,11 @@ export function SkillFilterBody(props: SkillFilterBodyProps) {
               {merged.projectExists ? t('project.present') : t('project.absent')}
             </p>
             <p className={css.mergedPatterns}>
-              {t('personal.allow')}: {merged.config.allow.join(', ')}
+              {t('effective.allow')}: {merged.config.allow.join(', ')}
             </p>
             {merged.config.deny !== undefined && merged.config.deny.length > 0 && (
               <p className={css.mergedPatterns}>
-                {t('personal.deny')}: {merged.config.deny.join(', ')}
+                {t('effective.deny')}: {merged.config.deny.join(', ')}
               </p>
             )}
           </>
@@ -167,8 +167,8 @@ export function SkillFilterBody(props: SkillFilterBodyProps) {
         {project.status === 'ready' && project.exists && (
           <p className={css.note}>{t('project.present')}</p>
         )}
-        <RuleList t={t} heading={t('personal.allow')} hint={t('personal.allowHint')} patterns={allow} onChange={setAllow} />
-        <RuleList t={t} heading={t('personal.deny')} hint={t('personal.denyHint')} patterns={deny} onChange={setDeny} />
+        <RuleList t={t} heading={t('project.allow')} hint={t('project.allowHint')} patterns={allow} onChange={setAllow} />
+        <RuleList t={t} heading={t('project.deny')} hint={t('project.denyHint')} patterns={deny} onChange={setDeny} />
         <div className={css.actions}>
           <Button variant="primary" disabled={save === 'saving' || cwd === undefined} onClick={onSave}>
             {save === 'saving' ? t('action.saving') : t('action.save')}

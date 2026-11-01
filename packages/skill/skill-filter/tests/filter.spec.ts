@@ -102,12 +102,12 @@ describe('filterSkill', () => {
     expect(result.reason).toBe('project-allow')
   })
 
-  it('project deny overrides personal allow', () => {
+  it('personal allow survives a project deny (the layers union)', () => {
     const personalRules = compileConfig({ allow: ['dotnet-*'] })
     const projectRules = compileConfig({ allow: [], deny: ['dotnet-*'] })
     const result = filterSkill('dotnet-architecture', projectRules, personalRules, false)
-    expect(result.visible).toBe(false)
-    expect(result.reason).toBe('project-deny')
+    expect(result.visible).toBe(true)
+    expect(result.reason).toBe('personal-allow')
   })
 
   it('project allow overrides personal deny', () => {
@@ -126,6 +126,22 @@ describe('filterSkill', () => {
   it('new skill without matching allow glob is hidden', () => {
     const rules = compileConfig({ allow: ['self-*', 'mattpocock-*'] })
     expect(filterSkill('unreal-new-skill', undefined, rules, false).visible).toBe(false)
+  })
+
+  it('filters on the project layer alone when no personal config exists', () => {
+    const projectRules = compileConfig({ allow: ['self-*'] })
+    const visible = filterSkill('self-new-feature', projectRules, undefined, false)
+    expect(visible.visible).toBe(true)
+    expect(visible.reason).toBe('project-allow')
+    expect(filterSkill('dotnet-architecture', projectRules, undefined, false).visible).toBe(false)
+  })
+
+  it('reports the project denial when neither layer allows the name', () => {
+    const personalRules = compileConfig({ allow: ['self-*'], deny: ['dotnet-*'] })
+    const projectRules = compileConfig({ allow: ['git-*'] })
+    const result = filterSkill('dotnet-architecture', projectRules, personalRules, false)
+    expect(result.visible).toBe(false)
+    expect(result.reason).toBe('personal-deny')
   })
 })
 
@@ -187,17 +203,28 @@ describe('readConfigFile', () => {
 })
 
 describe('mergeConfigs', () => {
-  it('no filtering when personal config is missing', () => {
+  it('no filtering when neither config exists', () => {
     const merged = mergeConfigs(undefined, undefined)
     expect(merged.config).toBeUndefined()
     expect(merged.personalExists).toBe(false)
+    expect(merged.projectExists).toBe(false)
   })
 
-  it('project replaces personal when present', () => {
-    const personal: SkillFilterConfig = { allow: ['*'] }
-    const project: SkillFilterConfig = { allow: [], deny: ['dotnet-*'] }
+  it('unions both layers when present', () => {
+    const personal: SkillFilterConfig = { allow: ['self-*'], deny: ['dotnet-*'] }
+    const project: SkillFilterConfig = { allow: ['git-*'] }
     const merged = mergeConfigs(personal, project)
+    expect(merged.config).toEqual({ allow: ['self-*', 'git-*'], deny: ['dotnet-*'] })
+    expect(merged.personalExists).toBe(true)
+    expect(merged.projectExists).toBe(true)
+  })
+
+  it('filters on the project layer alone when personal config is missing', () => {
+    const project: SkillFilterConfig = { allow: ['self-*'] }
+    const merged = mergeConfigs(undefined, project)
     expect(merged.config).toEqual(project)
+    expect(merged.personalExists).toBe(false)
+    expect(merged.projectExists).toBe(true)
   })
 
   it('personal is used when project is missing', () => {

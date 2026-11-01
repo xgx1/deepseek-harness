@@ -9,9 +9,10 @@ import type {} from '@deepseek-ai/dsh-agent-preset-registry'
 import type {} from '@deepseek-ai/dsh-commands'
 import { freezeMessage, type ContentBlock, type MessageId, type ToolCallId, type UserMessage } from '@deepseek-ai/dsh-llm'
 import { z as jsonSchema } from 'zod'
-import type { Session, SessionId } from '@deepseek-ai/dsh-session'
+import type { Session, SessionEvent, SessionHeader, SessionId } from '@deepseek-ai/dsh-session'
 import type { Domain } from '@deepseek-ai/dsh-storage-domain'
 import { defineTool, type ToolDefinition } from '@deepseek-ai/dsh-tools'
+import { NativeToolExecutor } from '@deepseek-ai/dsh-tool-executor-native'
 import type {} from '@deepseek-ai/dsh-user-questions'
 import type { WorkspaceId } from '@deepseek-ai/dsh-workspace'
 import {
@@ -24,7 +25,7 @@ import { ManagerPreferences } from './preferences.ts'
 /** Cordis plugin identity. */
 export const name = 'session-manager'
 /** Services used by the persistent routing owner. */
-export const inject = ['agents', 'sessions', 'tools', 'systemPrompt', 'sessionController', 'workspaceRegistry', 'storageDomain', 'userQuestions', 'commands', 'agentPresets']
+export const inject = ['agents', 'sessions', 'tools', 'systemPrompt', 'sessionController', 'sessionQuery', 'workspaceRegistry', 'storageDomain', 'userQuestions', 'commands', 'agentPresets']
 
 /** Deployment choices for the opt-in management scope. */
 export interface Config {
@@ -196,7 +197,7 @@ class ManagerRuntime {
     const disposers: (() => void)[] = []
     const add = (definition: ToolDefinition): void => { disposers.push(agent.ctx.tools.register(definition)) }
     if (role === 'manager') {
-      disposers.push(agent.ctx.tools.presentAs('native'), agent.ctx.tools.restrict({ allow: [] }))
+      disposers.push(agent.ctx.tools.setExecutor(new NativeToolExecutor(agent.ctx)), agent.ctx.tools.restrict({ allow: [] }))
       disposers.push(agent.ctx.tools.guard(exec => MANAGER_TOOLS.has(exec.name) ? undefined : 'Manager execution capability denied'))
       disposers.push(agent.ctx.systemPrompt.suppressRuntimeContext())
       disposers.push(agent.ctx.systemPrompt.section({ name: 'manager:system', order: 0, complete: true, interpolate: false, text: managerPrompt }))
@@ -574,12 +575,18 @@ class ManagerRuntime {
     })
   }
 
+  /** Read one Session's durable header and events without opening or resuming it. */
+  private async inspect(sessionId: SessionId): Promise<{ readonly meta: SessionHeader; readonly events: readonly SessionEvent[] }> {
+    using observation = await this.ctx.sessionQuery.observeSession(sessionId, { projectionMode: 'none' })
+    return { meta: observation.header, events: [...observation.events] }
+  }
+
   private async humanReply(session: Session, message: UserMessage): Promise<void> {
     if (message.source.kind !== 'user-question-reply') return
     const agent = this.ctx.agents.get(session.id)
     if (agent === undefined || !this.isManager(agent)) return
     if (!(await this.ctx.sessions.flush(session))) throw new Error('Human answers require durable Session persistence')
-    const snapshot = await this.ctx.sessionController.inspect(session.id)
+    const snapshot = await this.inspect(session.id)
     const source = message.source
     const call = snapshot.events.find(event => event.type === 'tool/call' && event.data.callId === source.callId && event.data.name === 'ask_user_question')
     if (call?.type !== 'tool/call') return
@@ -661,7 +668,7 @@ class ManagerRuntime {
   }
 
   private async attachments(sessionId: SessionId, seq: number): Promise<ContentBlock[]> {
-    const snapshot = await this.ctx.sessionController.inspect(sessionId)
+    const snapshot = await this.inspect(sessionId)
     const event = snapshot.events[seq]
     if (event?.type !== 'user/message' || event.data.source.kind !== 'user') throw new Error('Attachments must come from an actual user message in this manager conversation')
     return event.data.content.filter(block => block.type === 'image' || block.type === 'file')
@@ -680,7 +687,7 @@ class ManagerRuntime {
         const agent = resolved.agent
         if (delivery.targetId === current.managerId && !this.isManager(agent)) throw new Error('Owner no longer uses the manager preset')
         if (!(await this.ctx.sessions.flush(agent.session))) throw new Error('Durable Session persistence is required before delivery')
-        const snapshot = await this.ctx.sessionController.inspect(agent.id)
+        const snapshot = await this.inspect(agent.id)
         const known = snapshot.events.some(event => (event.type === 'user/message' && event.data.id === delivery.id)
           || (event.type === 'agent/inbox/spliced' && event.data.inserted.some(message => message.id === delivery.id)))
         if (!known) {
@@ -705,7 +712,7 @@ class ManagerRuntime {
   private async scan(sessionId: SessionId): Promise<void> {
     const live = this.ctx.sessions.get(sessionId)
     if (live !== undefined && !(await this.ctx.sessions.flush(live))) throw new Error('Reports require durable Session persistence')
-    const snapshot = await this.ctx.sessionController.inspect(sessionId)
+    const snapshot = await this.inspect(sessionId)
     for (const event of snapshot.events) {
       const link = this.state.links[sessionId]
       if (link === undefined || link.detached || event.seq <= link.seenSeq || event.type !== 'turn/end') continue
@@ -743,7 +750,7 @@ class ManagerRuntime {
       } else if (action === 'adopt') {
         const old = this.state.links[targetId]
         if (old !== undefined && !old.detached && old.managerId !== agent.id) throw new Error('Conversation already belongs to another manager')
-        const snapshot = await this.ctx.sessionController.inspect(targetId)
+        const snapshot = await this.inspect(targetId)
         const resolved = await this.ctx.sessionController.resolveAgent(targetId)
         if ('error' in resolved) throw resolved.error
         if (snapshot.meta.origin === 'subagent' || this.isManager(resolved.agent) || this.ctx.workspaceRegistry.archivedSessionIds.includes(targetId)) throw new Error('Adopt an unarchived ordinary work conversation, not a manager or subagent')
@@ -786,7 +793,7 @@ class ManagerRuntime {
         const resolved = await this.ctx.sessionController.resolveAgent(id)
         if ('error' in resolved) throw resolved.error
         if (!this.isManager(resolved.agent)) continue
-        const snapshot = await this.ctx.sessionController.inspect(id)
+        const snapshot = await this.inspect(id)
         for (const event of snapshot.events) {
           if (event.type === 'user/message') await this.humanReply(resolved.agent.session, event.data)
         }

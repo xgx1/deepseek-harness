@@ -40,11 +40,11 @@ export interface SkillFilterProjectView {
 
 /** The merged, effective config for one project cwd. */
 export interface SkillFilterEffectiveView {
-  /** Whether the personal config exists (absence disables filtering). */
+  /** Whether the personal config exists. */
   readonly personalExists: boolean
   /** Whether the project config exists. */
   readonly projectExists: boolean
-  /** The merged effective config; absent when no personal config exists. */
+  /** The merged effective config; absent when neither layer exists. */
   readonly config?: SkillFilterConfigView
 }
 

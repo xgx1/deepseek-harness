@@ -86,8 +86,8 @@ async function world() {
 
 async function evidence(host: ManagementHost, owner: Agent, text: string) {
   await host.turn(owner, text)
-  const snapshot = await host.ctx.sessionController.inspect(owner.id)
-  const event = snapshot.events.findLast(event => event.type === 'user/message' && event.data.source.kind === 'user')
+  const events = owner.session.snapshotEvents()
+  const event = events.findLast(event => event.type === 'user/message' && event.data.source.kind === 'user')
   if (event === undefined) throw new Error('Direct human evidence was not logged')
   return event.seq
 }

@@ -9,6 +9,7 @@ import type { Session } from '@deepseek-ai/dsh-session'
 import { afterEach, describe, expect, it } from 'vitest'
 import { z } from 'zod'
 import { toolCallResponse } from '../../../core/agent-loop/tests/mock-adapter.ts'
+import type { UserQuestionProjectionState } from '@deepseek-ai/dsh-user-questions/src/projection.ts'
 import { deliveryId } from '../src/state.ts'
 import { bootManagementHost, type ManagementHost } from './fixtures/native-management/host.ts'
 
@@ -44,10 +45,16 @@ function requests(host: ManagementHost, agent: Agent) {
   return host.adapter.requests.filter(request => request.sessionId === agent.id)
 }
 
+/** The userQuestions projection fold for one Agent, read from the persisted checkpoint cache. */
+function activeQuestions(ctx: Context, agent: Agent) {
+  return ctx.sessionProjections.checkpoint(agent.session).userQuestions?.val as UserQuestionProjectionState | undefined
+}
+
 async function createWorker(host: ManagementHost, manager: Agent, workspaceId: string, key: string) {
   const result = await host.execute(manager, 'manager_create', {
     workspaceId, agentPreset: 'independent', message: 'Implement the selected task.', idempotencyKey: key,
   })
+  if (result === undefined) throw new Error('manager_create produced no result')
   expect(result.isError).toBe(false)
   if (result.isError) throw new Error(JSON.stringify(result.content))
   return host.agent(z.object({ workerSessionId: z.string() }).parse(result.value).workerSessionId)
@@ -105,10 +112,13 @@ describe('native management composition', () => {
     if (managerEntry?.fiber === undefined) throw new Error('Manager Loader row is missing')
     await managerEntry.fiber.dispose()
     expect(ctx.tools.get('manager_create', manager)).toBeUndefined()
-    expect(await host.execute(manager, 'bash')).toMatchObject({ isError: false, value: 'bash' })
+    // 上游契约：scoped executor 卸载后该 scope 的选择保持 unavailable，绝不回落到另一个 executor。
+    await expect(host.execute(manager, 'bash')).rejects.toThrow(/tool executor is unavailable/i)
+    expect(await host.execute(ordinary, 'bash')).toMatchObject({ isError: false, value: 'bash' })
     expect(ctx.tools.schemas(ordinary).map(tool => tool.name)).toEqual(before)
-    await host.turn(manager, 'Use the surviving ordinary prompt after extension unload.')
-    expect(JSON.stringify(requests(host, manager).at(-1)?.messages[0])).toContain('ORDINARY PERSONA')
+    // 管理器 scope 的 executor 已随之卸载，该 Agent 再也走不到模型；普通 Agent 的提示词与能力原样存活。
+    await host.turn(ordinary, 'Use the surviving ordinary prompt after extension unload.')
+    expect(JSON.stringify(requests(host, ordinary).at(-1)?.messages[0])).toContain('ORDINARY PERSONA')
   })
 
   it('creates an independent cross-workspace root and routes a durable question until all answers arrive once', async () => {
@@ -135,7 +145,7 @@ describe('native management composition', () => {
     host.adapter.enqueue(manager, toolCallResponse('manager-human', 'ask_user_question', { questionId, questions, timeout: 1 }))
     await host.turn(worker, 'Ask for the two business decisions.', toolCallResponse('worker-business', 'ask_user_question', { questions }))
     await expect.poll(() => state().questions[questionId]?.status).toBe('pending')
-    await expect.poll(() => ctx.sessionProjections.stateOf(manager.session, 'userQuestions')?.questions.active).toMatchObject([
+    await expect.poll(() => activeQuestions(ctx, manager)?.questions.active).toMatchObject([
       { callId: 'manager-human', state: 'continued', questions: [{ id: 'color' }, { id: 'size' }] },
     ])
     await manager.whenIdle()
@@ -178,7 +188,7 @@ describe('native management composition', () => {
     const coldManager = resolved.agent
     expect(cold.state().questions[questionId]).toMatchObject({ status: 'pending', answers: [{ id: 'color', selected: ['Blue'] }] })
     expect(cold.ctx.agents.get(worker.id)).toBeUndefined()
-    expect(cold.ctx.sessionProjections.stateOf(coldManager.session, 'userQuestions')?.questions.active).toMatchObject([
+    expect(activeQuestions(cold.ctx, coldManager)?.questions.active).toMatchObject([
       { callId: 'manager-human', state: 'continued' },
     ])
     expect(cold.ctx.userQuestions.answer(coldManager, ToolCallId('manager-human'), { answers: [

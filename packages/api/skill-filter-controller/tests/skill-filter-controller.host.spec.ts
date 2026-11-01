@@ -67,7 +67,8 @@ describe('the skillFilter Remote namespace', () => {
 
   it('refuses a config whose allow list is missing or empty', async () => {
     const { controller } = await boot()
-    const refused = [{ deny: ['x'] }, { allow: [] }] as unknown as SkillFilterConfigView[]
+    // 解码后的原始 JSON 携带类型之外的非法的值：缺少 allow 与空 allow 都必须被校验拒绝。
+    const refused = [JSON.parse('{"deny":["x"]}') as SkillFilterConfigView, { allow: [] }]
     for (const config of refused) {
       const failure = await Promise.resolve()
         .then(() => controller.setPersonal(config))
@@ -82,7 +83,7 @@ describe('the skillFilter Remote namespace', () => {
   it('refuses a deny entry that is not a string', async () => {
     const { controller } = await boot()
     const failure = await Promise.resolve()
-      .then(() => controller.setPersonal({ allow: ['*'], deny: [1] as unknown as string[] }))
+      .then(() => controller.setPersonal(JSON.parse('{"allow":["*"],"deny":[1]}') as SkillFilterConfigView))
       .catch((error: unknown) => error)
     expect(remoteErrorOf(failure)).toMatchObject({
       code: 'skill-filter/rejected',
@@ -136,7 +137,7 @@ describe('the skillFilter Remote namespace', () => {
     expect(failure).toBeInstanceOf(RemoteError)
   })
 
-  it('merges personal and project configs with the project winning', async () => {
+  it('unions the personal and project configs', async () => {
     const { controller } = await boot()
     expect(await controller.getEffective({ cwd })).toEqual({
       personalExists: false, projectExists: false,
@@ -147,7 +148,7 @@ describe('the skillFilter Remote namespace', () => {
     expect(await controller.getEffective({ cwd })).toEqual({
       personalExists: true,
       projectExists: true,
-      config: { allow: ['git-*'] },
+      config: { allow: ['*', 'git-*'], deny: ['ue-*'] },
     })
 
     await rm(join(cwd, '.dsh'), { recursive: true, force: true })

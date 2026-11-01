@@ -2,7 +2,7 @@
 
 English | [中文](0002-merge-frontmatter-into-filter.zh.md)
 
-A skill's `disable-model-invocation: true` frontmatter is treated as an implicit deny rule from the skill itself. The filter engine merges it with personal and project config. Precedence: project config > personal config > skill's own frontmatter deny.
+A skill's `disable-model-invocation: true` frontmatter is treated as an implicit deny rule from the skill itself. The filter engine merges it with personal and project config. The personal and project layers union — a skill either layer allows is visible — and the skill's own frontmatter deny is the weakest rule.
 
 ## Considered Options
 

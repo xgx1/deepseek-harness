@@ -32,6 +32,7 @@ it('keeps idle managed work stopped across cold recovery without adopting unrela
   const creation = await host.execute(manager, 'manager_create', {
     workspaceId: work.id, agentPreset: 'independent', message: 'Perform the assigned work.', idempotencyKey: 'idle-stop',
   })
+  if (creation === undefined) throw new Error('manager_create produced no result')
   expect(creation.isError).toBe(false)
   const worker = host.agent(z.object({ workerSessionId: z.string() }).parse(creation.value).workerSessionId)
   await worker.whenIdle()

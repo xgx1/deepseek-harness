@@ -13,7 +13,7 @@
 
 import type { Context } from '@deepseek-ai/cordis'
 import {
-  readPersonalConfig, readProjectConfig, writePersonalConfig, writeProjectConfig,
+  readPersonalConfig, readProjectConfig, writePersonalConfig, writeProjectConfig, mergeConfigs,
 } from '@deepseek-ai/dsh-skill-filter/config'
 import type { SkillFilterConfig } from '@deepseek-ai/dsh-skill-filter/config'
 import { Remote, RemoteError, TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol'
@@ -114,7 +114,7 @@ export class SkillFilterRemote extends TypertRemoteService {
   /**
    * Read the merged effective config for one working directory.
    * @param request - the project working directory.
-   * @returns which layers exist and the merged config; `config` is undefined only when no personal config exists.
+   * @returns which layers exist and the union of both layers' rules; `config` is undefined only when neither layer exists.
    */
   @Remote
   async getEffective(request: SkillFilterConfigRequest): Promise<SkillFilterEffectiveView> {
@@ -122,11 +122,8 @@ export class SkillFilterRemote extends TypertRemoteService {
       readPersonalConfig(),
       readProjectConfig(request.cwd),
     ])
-    return effectiveView(
-      personal.config !== undefined,
-      project.config !== undefined,
-      project.config ?? personal.config,
-    )
+    const merged = mergeConfigs(personal.config, project.config)
+    return effectiveView(merged.personalExists, merged.projectExists, merged.config)
   }
 
   /**

@@ -27,7 +27,7 @@ import { SKILL_FILTER_ID, skillFilterDefinition } from './definition.tsx'
 import { SkillFilterSettingsSection } from './SettingsSection.tsx'
 import { SkillFilterBody } from './SkillFilterBody.tsx'
 import { SkillFilterTitle } from './SkillFilterTitle.tsx'
-import { en, zh, type SkillFilterKey } from './locales.ts'
+import { de, en, es, fr, ja, pt, ru, zh, type SkillFilterKey } from './locales.ts'
 
 export type { SkillFilterFace, SkillFilterSkillEntry } from './face.ts'
 export type { SkillFilterBodyProps } from './SkillFilterBody.tsx'
@@ -55,7 +55,7 @@ export const inject = ['slots', 'locale', 'sidebarRightTabs', 'remote', 'remote.
  */
 export function apply(ctx: Context): void {
   const t = ctx.locale.bind(NS)
-  ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'ui-skill-filter: dictionaries')
+  ctx.effect(() => ctx.locale.register(NS, { zh, en, ja, es, fr, de, ru, pt }), 'ui-skill-filter: dictionaries')
 
   const face = createSkillFilterFace(ctx.remote)
 

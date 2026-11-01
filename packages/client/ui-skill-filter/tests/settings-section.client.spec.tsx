@@ -56,7 +56,7 @@ function props(overrides: Partial<SkillFilterFace> = {}): SkillFilterSettingsSec
     t,
     useSessions,
     ...face,
-  } as unknown as SkillFilterSettingsSectionProps
+  } as SkillFilterSettingsSectionProps
 }
 
 afterEach(cleanup)

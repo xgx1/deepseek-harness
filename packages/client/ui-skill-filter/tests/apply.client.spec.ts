@@ -12,7 +12,7 @@ import { SKILL_FILTER_ID, SKILL_FILTER_KIND } from '../src/client/definition.tsx
 import { SkillFilterBody } from '../src/client/SkillFilterBody.tsx'
 import { SkillFilterSettingsSection } from '../src/client/SettingsSection.tsx'
 import { SkillFilterTitle } from '../src/client/SkillFilterTitle.tsx'
-import { en, zh } from '../src/client/locales.ts'
+import { de, en, es, fr, ja, pt, ru, zh } from '../src/client/locales.ts'
 import { apply as hostApply } from '../src/index.ts'
 
 interface Recorded {
@@ -68,7 +68,7 @@ describe('ui-skill-filter apply', () => {
     const definition = tabs.get(SKILL_FILTER_KIND)
     expect(definition).toMatchObject({ id: SKILL_FILTER_ID, kind: SKILL_FILTER_KIND, multiple: false })
     expect(definition?.title('skill-filter://x')).toBe('type.label')
-    expect(dictionaries.get('skillFilter')).toEqual({ zh, en })
+    expect(dictionaries.get('skillFilter')).toEqual({ zh, en, ja, es, fr, de, ru, pt })
     expect(registered.map(entry => [entry.name, entry.key, entry.id, entry.component])).toEqual([
       ['sidebar.right.pane.tab', SKILL_FILTER_ID, undefined, SkillFilterBody],
       ['sidebar.right.pane.tab.title', SKILL_FILTER_ID, undefined, SkillFilterTitle],

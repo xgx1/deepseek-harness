@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-10-11-messages-unusable-tool-arguments.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-10-11-messages-unusable-tool-arguments.md
-2026-10-11-messages-unusable-tool-arguments.md: 93de4869fb66322d4c290cbdcd8467fd9f6b81a9
-2026-10-11-messages-unusable-tool-arguments.zh.md: 2748f991cfef4e3987d6c4a75ff104c5c98172d5
+/agent-note-retain-unusable-messages-tool-arguments-for-the-tool-runtime:
+  en: 0442377d6dec0a97
+  zh: 69819d234231760b
+/agent-note-retain-unusable-messages-tool-arguments-for-the-tool-runtime/problem:
+  en: 6807b37aaeb1f749
+  zh: f90388cececb3d35
+/agent-note-retain-unusable-messages-tool-arguments-for-the-tool-runtime/decision:
+  en: 00930765b2852b21
+  zh: b0e455dc240fa1f1
+/agent-note-retain-unusable-messages-tool-arguments-for-the-tool-runtime/alternatives-considered:
+  en: d9c4b390cb1bf068
+  zh: ca7323594963d1a3
+/agent-note-retain-unusable-messages-tool-arguments-for-the-tool-runtime/consequences:
+  en: 23aa996f84f1f290
+  zh: a5e34e8d3a7ac37e

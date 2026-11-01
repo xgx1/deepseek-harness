@@ -26,7 +26,7 @@ import type {
   SkillProviderObservation,
 } from '@deepseek-ai/dsh-skill'
 import { compileConfig, filterSkill, type RuleSet } from './filter.js'
-import { readPersonalConfig, readProjectConfig, mergeConfigs } from './config.js'
+import { readPersonalConfig, readProjectConfig } from './config.js'
 
 export const name = 'skill-filter'
 export const inject = ['skills']
@@ -133,14 +133,15 @@ export class FilteredSkillProvider implements SkillProvider {
         !
         candidate.invocation.modelInvocable,
       )
-      // Denied: keep the candidate (so /name still works) but hide from the model catalog.
-      if (!verdict.visible) {
-        return this.own({
-          ...candidate,
-          invocation: { ...candidate.invocation, modelInvocable: false },
-        })
-      }
-      return this.own(candidate)
+      // The verdict publishes the flag: a denied skill stays registered (so
+      // /name still works) with the flag cleared, and an allowed skill's flag
+      // is restored, so a config allow overrides the skill's own frontmatter
+      // deny (ADR-0002).
+      if (candidate.invocation.modelInvocable === verdict.visible) return this.own(candidate)
+      return this.own({
+        ...candidate,
+        invocation: { ...candidate.invocation, modelInvocable: verdict.visible },
+      })
     })
 
     return filtered
@@ -168,22 +169,19 @@ export class FilteredSkillProvider implements SkillProvider {
     return candidate.provider === this.name ? candidate : { ...candidate, provider: this.name }
   }
 
-  /** Load and compile the merged filter rules for the current context. */
+  /** Load and compile the filter rules for the current context. */
   private async loadRules(cwd: string | undefined): Promise<{
     personalRules: RuleSet | undefined
     projectRules: RuleSet | undefined
   } | undefined> {
     const personal = await readPersonalConfig()
-    if (personal.config === undefined) return undefined
-
     const project = await readProjectConfig(cwd)
-    const merged = mergeConfigs(personal.config, project.config)
-    if (merged.config === undefined) return undefined
-
-    return {
-      personalRules: compileConfig(personal.config),
-      projectRules: project.config !== undefined ? compileConfig(project.config) : undefined,
-    }
+    const personalRules = personal.config === undefined ? undefined : compileConfig(personal.config)
+    const projectRules = project.config === undefined ? undefined : compileConfig(project.config)
+    // No config layer at all: no filtering, and every skill keeps the visibility
+    // its own frontmatter declares.
+    if (personalRules === undefined && projectRules === undefined) return undefined
+    return { personalRules, projectRules }
   }
 }
 

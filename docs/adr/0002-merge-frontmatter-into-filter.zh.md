@@ -2,7 +2,7 @@
 
 [English](0002-merge-frontmatter-into-filter.md) | 中文
 
-技能自身的 `disable-model-invocation: true` frontmatter 被视为来自该技能的隐式拒绝规则。过滤引擎把它与个人配置、项目配置合并。优先级：项目配置 > 个人配置 > 技能自身 frontmatter 拒绝。
+技能自身的 `disable-model-invocation: true` frontmatter 被视为来自该技能的隐式拒绝规则。过滤引擎把它与个人配置、项目配置合并。个人层与项目层取并集——任一层允许的技能即可见——技能自身 frontmatter 拒绝是最弱规则。
 
 ## 考虑过的方案
 

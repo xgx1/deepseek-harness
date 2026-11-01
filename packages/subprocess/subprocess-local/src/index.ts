@@ -34,17 +34,21 @@ import {
 import { logSpillFailure, prepareManagedProcessBinding } from './output.ts'
 import type { LocalSubprocessHandle, SpawnInternals } from './spawn.ts'
 import {
+  confirmLinuxManager,
+  LinuxScopeNotStartedError,
   launchLinuxScope,
+  linuxManagerListener,
   prepareLinuxTerminalScope,
-  probeLinuxManager,
   probeLinuxNative,
   signalLinuxDirectProcess,
+  systemdRunIdentity,
 } from './linux-scope.ts'
+import { LinuxScopeSelector } from './linux-scope-selector.ts'
+import type { LinuxScopeDecision } from './linux-scope-selector.ts'
 import { launchWindowsJob, probeWindowsJob } from './windows-job.ts'
 import { targetEnvironment } from './runner-launch.ts'
 import { createProcessInspector } from './process-inspector.ts'
 import type { ProcessInspector } from './process-inspector.ts'
-import type { BoundProcessOwner } from './managed-owner.ts'
 import { LocalTerminalHandle } from './terminal.ts'
 import { prepareShellActivity } from './shell-activity.ts'
 
@@ -76,8 +80,18 @@ export class LocalSubprocessRuntime extends SubprocessRuntime {
   internals: SpawnInternals = {}
   /** Provider-lifetime latch suppressing repeated weaker-containment warnings. */
   private fallbackWarningIssued = false
-  /** Positive-only cache for the expensive Linux bootstrap and scope probe. */
-  private linuxDeepProbePassed = false
+  /**
+   * Linux native containment decisions. Each probe is a spawnSync that blocks the event loop and forks the
+   * host, so the selector reruns it only after an event invalidates the previous verdict.
+   */
+  private readonly linuxScope = new LinuxScopeSelector({
+    probe: () => probeLinuxNative(),
+    managerListener: () => linuxManagerListener(),
+    confirmManager: () => confirmLinuxManager(),
+    launcherIdentity: () => systemdRunIdentity(),
+  })
+  /** Scope decision of the launch in progress; selectContainmentMode sets it immediately before the launch reads it. */
+  private linuxScopeDecision: Extract<LinuxScopeDecision, { kind: 'scope' }> | undefined
   /** Test hook for platform process inspection; production resolves lazily on terminal spawn. */
   terminalInspector: ProcessInspector | undefined
 
@@ -198,17 +212,29 @@ export class LocalSubprocessRuntime extends SubprocessRuntime {
     const env = targetEnvironment(spec)
     const containmentMode = this.selectContainmentMode('ordinary')
     let handle: LocalSubprocessHandle
-    let owner: BoundProcessOwner | undefined
     const internals: SpawnInternals = { ...this.internals, onSpillFailure: this.reportSpillFailure }
     if (containmentMode === 'fallback') {
       handle = spawnSubprocess(spec, internals)
     } else {
       const binding = prepareManagedProcessBinding(internals)
-      const launch = containmentMode === 'linux-scope'
-        ? launchLinuxScope(spec, env)
-        : launchWindowsJob(spec, env)
-      owner = launch.owner
+      const linuxScope = containmentMode === 'linux-scope' ? this.linuxScopeDecision : undefined
+      const launch = linuxScope === undefined
+        ? launchWindowsJob(spec, env)
+        : launchLinuxScope(spec, env, linuxScope.literalArgv)
       handle = bindManagedProcess(spec, launch, binding)
+      if (linuxScope !== undefined) this.watchLinuxScopeStart(handle.done, linuxScope.generation)
+      // A scope unit lives as long as its cgroup holds any process, so a payload
+      // that exits while an inherited straggler runs (MSBuild `/nodeReuse:true`, a
+      // leaked worker) leaves `dsh-subprocess-<host>-<id>.scope` behind for hours —
+      // 2026-10-23 had five of them, one for 16h. The owner reaps those and keeps
+      // only deliberately detached survivors.
+      const scopeOwner = launch.owner
+      void handle.done
+        .then(() => scopeOwner.reapOrphans?.())
+        .then((outcome) => {
+          if (outcome !== undefined && outcome.startsWith('reaped')) this.reportReapedRange(outcome)
+        })
+        .catch(() => {})
     }
     this.live.add(handle)
     const control = handle.control
@@ -223,22 +249,14 @@ export class LocalSubprocessRuntime extends SubprocessRuntime {
     const release = (): Promise<void> =>
       handle.waitForExit().then(() => { this.live.delete(handle) })
     void handle.done.then(release, release).catch(() => {})
-    // A scope unit lives as long as its cgroup holds any process, so a payload
-    // that exits while an inherited straggler runs (MSBuild `/nodeReuse:true`, a
-    // leaked worker) leaves `dsh-subprocess-<host>-<id>.scope` behind for hours —
-    // 2026-10-23 had five of them, one for 16h. The owner reaps those and keeps
-    // only deliberately detached survivors.
-    const reap = owner?.reapOrphans
-    if (reap !== undefined && owner !== undefined) {
-      const scopeOwner = owner
-      void handle.done
-        .then(() => scopeOwner.reapOrphans?.())
-        .then((outcome) => {
-          if (outcome !== undefined && outcome.startsWith('reaped')) this.reportReapedRange(outcome)
-        })
-        .catch(() => {})
-    }
     return handle
+  }
+
+  /** Probe again before the next launch when a scope launched under generation never started its target. */
+  private watchLinuxScopeStart(done: Promise<unknown>, generation: number): void {
+    void done.catch((error: unknown) => {
+      if (error instanceof LinuxScopeNotStartedError) this.linuxScope.scopeNotStarted(generation)
+    })
   }
 
   private selectContainmentMode(
@@ -256,11 +274,13 @@ export class LocalSubprocessRuntime extends SubprocessRuntime {
       return 'fallback'
     }
     if (platform === 'linux') {
-      const available = this.linuxDeepProbePassed
-        ? probeLinuxManager()
-        : probeLinuxNative()
-      if (available) this.linuxDeepProbePassed = true
-      if (available) return 'linux-scope'
+      const decision = this.linuxScope.select()
+      const probe = decision.probe === undefined ? '' : `, probed after ${decision.probe}`
+      this.ctx.logger.debug(`linux native containment: ${decision.kind} (${decision.reason}${probe})`)
+      if (decision.kind === 'scope') {
+        this.linuxScopeDecision = decision
+        return 'linux-scope'
+      }
       fallbackReason = 'the current user-systemd scope or private bootstrap is unavailable'
     }
     if (kind === 'ordinary' && platform === 'win32') {
@@ -325,12 +345,13 @@ export class LocalSubprocessRuntime extends SubprocessRuntime {
       // verbatim, see [Agent Note](../../../../.agents/notes/implemented/bug-fix/2026-09-28-pty-bundled-console-host.md).
       ...(platform === 'win32' ? { useConptyDll: true } : {}),
     }
+    const linuxScope = containmentMode === 'linux-scope' ? this.linuxScopeDecision : undefined
     let scope: ReturnType<typeof prepareLinuxTerminalScope> | undefined
     let terminal: NodePty.IPty
     try {
-      scope = containmentMode === 'linux-scope'
-        ? prepareLinuxTerminalScope(launch, { ...activity?.env ?? env, PWD: spec.cwd, TERM: spec.terminalType })
-        : undefined
+      scope = linuxScope === undefined
+        ? undefined
+        : prepareLinuxTerminalScope(launch, { ...activity?.env ?? env, PWD: spec.cwd, TERM: spec.terminalType }, linuxScope.literalArgv)
       if (scope !== undefined) { options.cwd = scope.cwd; options.env = scope.env }
       terminal = requireNodePty().spawn(
         scope?.command ?? file,
@@ -363,6 +384,7 @@ export class LocalSubprocessRuntime extends SubprocessRuntime {
       spec.shellActivity === true,
     )
     this.terminals.add(handle)
+    if (linuxScope !== undefined) this.watchLinuxScopeStart(handle.done, linuxScope.generation)
     const release = async (): Promise<void> => {
       // terminate() can wait on this direct-exit promise.
       directSettlement.resolve()

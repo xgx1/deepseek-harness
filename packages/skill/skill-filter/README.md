@@ -33,7 +33,7 @@ Choose this package when a project's agent should see a subset of the installed 
 
 ### Configuration files
 
-The personal config lives at `$DSH_HOME/skill-filter.yaml` and applies to every project. The project config lives at `<cwd>/.dsh/skill-filter.yaml` and, when present, replaces the personal rules for that working directory. Both files take the same shape:
+The personal config lives at `$DSH_HOME/skill-filter.yaml` and applies to every project. The project config lives at `<cwd>/.dsh/skill-filter.yaml` and adds to the personal rules for that working directory: the two layers union, so a skill either layer allows is visible. Both files take the same shape:
 
 ```yaml
 allow:
@@ -43,7 +43,7 @@ deny:
   - "git-rebase"
 ```
 
-`allow` is required; a config with no `allow` key is a parse error. `deny` is optional. A pattern with no glob metacharacters is a specific skill name, and a specific name wins over a glob inside the same file. A skill denied by either file stays user-invocable: only its model-visible flag is cleared.
+`allow` is required; a config with no `allow` key is a parse error. `deny` is optional. A pattern with no glob metacharacters is a specific skill name, and a specific name wins over a glob inside the same file. A skill no file allows stays user-invocable: only its model-visible flag is cleared.
 
 ### Minimal composition
 
@@ -69,7 +69,7 @@ The mounted preset must disable the default filesystem provider so discovery run
 
 ### Rule merging
 
-`filter.ts` compiles each config layer into allow and deny matchers and resolves one skill name across three sources: the project config, the personal config, and the skill's own frontmatter deny. Project rules win over personal rules, personal rules win over frontmatter, and within one file a specific name wins over a glob with ties going to deny. A name no rule allows is denied, because the model is default-deny.
+`filter.ts` compiles each config layer into allow and deny matchers and resolves one skill name across three sources: the project config, the personal config, and the skill's own frontmatter deny. The two config layers union — an allow in either layer makes the skill visible, and a deny in one layer cannot veto an allow in the other — while within one file a specific name wins over a glob with ties going to deny. Frontmatter deny is the weakest source. A name no rule allows is denied, because the model is default-deny.
 
 ### Catalog invalidation
 
@@ -98,7 +98,7 @@ The rules are re-read on every catalog collection, but the registry caches compl
 
 #### What the model sees
 
-`dsh-tool-skill` renders the surviving invocable names and capped descriptions into the catalog: skills whose name matches an allow rule, minus those a deny rule or the skill's own frontmatter removes. A denied skill stays invocable as a plain `/name` reference, and a skill with no matching allow rule is absent from the catalog.
+`dsh-tool-skill` renders the surviving invocable names and capped descriptions into the catalog: skills whose name matches an allow rule in either layer, minus those a deny rule or the skill's own frontmatter removes. A denied skill stays invocable as a plain `/name` reference, and a skill with no matching allow rule is absent from the catalog.
 
 #### Token effect
 
@@ -112,7 +112,7 @@ A config write invalidates the provider's catalog, and the next request appends 
 ## Known Limitations and Deferred Work
 
 - Both files are one flat allow/deny pair. A per-tool, per-directory, or conditional rule needs a schema this package does not define.
-- The project config replaces the personal rules entirely rather than layering pattern by pattern, so a project that wants one extra skill restates the personal list.
+- The layers union, so a project cannot hide a skill the personal config allows; that skill comes off the personal list instead.
 - A personal config that fails to parse falls back to the last valid copy, which is cached beside the config file; the project config has no cache and reads as absent.
 
 **Runtime invariant:** No companion is published. The skill registry owns the provider relationship this package contributes to, and the composition and filter suites cover the wrapped provider's catalog and invalidation directly.

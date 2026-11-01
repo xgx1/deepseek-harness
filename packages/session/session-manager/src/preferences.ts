@@ -178,13 +178,14 @@ export class ManagerPreferences {
     if (sessions === undefined || controller === undefined || this.ctx.get('sessionPersistence') === undefined
       || sessions.get(session.id) !== session || !(await sessions.flush(session))) return fail('Durable human preference evidence is required.', 'rejected')
     signal.throwIfAborted()
-    const snapshot = await controller.inspect(session.id, signal)
-    const event = snapshot.events[input.evidenceSeq]
-    const latest = snapshot.events.findLast(item => item.type === 'user/message' && item.data.source.kind === 'user')
-    if (snapshot.meta.origin === 'subagent' || input.evidenceSeq < snapshot.inheritedEventCount || event?.seq !== input.evidenceSeq
+    using observation = await this.ctx.sessionQuery.observeSession(session.id, { signal, projectionMode: 'none' })
+    const events = observation.events
+    const event = events[input.evidenceSeq]
+    const latest = events.findLast(item => item.type === 'user/message' && item.data.source.kind === 'user')
+    if (observation.header.origin === 'subagent' || input.evidenceSeq < observation.inheritedEventCount || event?.seq !== input.evidenceSeq
       || event.type !== 'user/message' || event.data.source.kind !== 'user' || event.surfaceOp !== 'append'
       || event.sourceEventSeqs !== undefined || latest !== event
-      || snapshot.events.some(item => typeof item.surfaceOp === 'object' && item.surfaceOp.startSeq <= event.seq && item.surfaceOp.endSeq >= event.seq)
+      || events.some(item => typeof item.surfaceOp === 'object' && item.surfaceOp.startSeq <= event.seq && item.surfaceOp.endSeq >= event.seq)
       || event.data.content.some(block => block.type !== 'text')) return fail('Use the latest actual direct-human preference request.', 'rejected')
     const text = event.data.content.map(block => block.type === 'text' ? block.text : '').join('\n')
     // ponytail: exact directives only; broader prose requires explicit human clarification, not inferred authorization.
