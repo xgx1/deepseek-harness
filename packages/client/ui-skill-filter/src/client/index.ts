@@ -1,7 +1,7 @@
 /**
- * Skill filtering surfaces, browser half: the Settings page that owns the
- * personal rule lists and the right-Sidebar tab that shows the merged rules and
- * the project override.
+ * Skill filtering surfaces, browser half: the Conversation view that edits the
+ * catalog beside both rule layers, the Settings page that owns the personal and
+ * project lists, and the right-Sidebar tab that shows the merged rules.
  *
  * Both surfaces read and write through one Host face bound to the `skillFilter`
  * Remote namespace, and both list the Session's skills through the `skills`
@@ -17,20 +17,26 @@ import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
 import type {} from '@deepseek-ai/dsh-client-ui-sidebar-right/client'
 // Type-only: the Session catalog's types and the ctx.remote Context merge.
 import type {} from '@deepseek-ai/dsh-api-remotes/client'
+// Type-only: the 'conversation.view' SlotMap row this package registers into.
+import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
 // Type-only: the renderer's SlotRegistry service merge (ctx.slots).
 import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 // Type-only: the Session standard props merge (useSessions / sessionId).
 import type {} from '@deepseek-ai/dsh-client-ui-session/client'
 import type { Context } from '@deepseek-ai/cordis'
 import { createSkillFilterFace } from './face.ts'
-import { SKILL_FILTER_ID, skillFilterDefinition } from './definition.tsx'
+import { SKILL_FILTER_ID, SKILL_FILTER_KIND, skillFilterDefinition } from './definition.tsx'
 import { SkillFilterSettingsSection } from './SettingsSection.tsx'
 import { SkillFilterBody } from './SkillFilterBody.tsx'
+import { SkillFilterView } from './SkillFilterView.tsx'
 import { SkillFilterTitle } from './SkillFilterTitle.tsx'
 import { de, en, es, fr, ja, pt, ru, zh, type SkillFilterKey } from './locales.ts'
 
 export type { SkillFilterFace, SkillFilterSkillEntry } from './face.ts'
 export type { SkillFilterBodyProps } from './SkillFilterBody.tsx'
+export type { SkillFilterViewProps } from './SkillFilterView.tsx'
+export type { PersonalLayer, PersonalRulesPanelProps } from './PersonalRules.tsx'
+export type { ProjectLayer, ProjectRulesPanelProps, SaveState } from './ProjectRules.tsx'
 export type { SkillFilterSettingsSectionProps } from './SettingsSection.tsx'
 export type { SkillFilterTitleProps } from './SkillFilterTitle.tsx'
 export type { SkillCatalogProps } from './SkillCatalog.tsx'
@@ -59,6 +65,14 @@ export function apply(ctx: Context): void {
 
   const face = createSkillFilterFace(ctx.remote)
 
+  ctx.effect(() => ctx.slots.inject('conversation.view', () => ctx.slots.register({
+    name: 'conversation.view',
+    id: SKILL_FILTER_KIND,
+    order: 20,
+    locale: NS,
+    label: () => t('nav'),
+    inject: () => face,
+  }, SkillFilterView)), 'ui-skill-filter: conversation view')
   ctx.effect(() => ctx.sidebarRightTabs.register(skillFilterDefinition(t)), 'ui-skill-filter: tab type')
   ctx.effect(() => ctx.slots.inject('sidebar.right.pane.tab', () => ctx.slots.register({
     name: 'sidebar.right.pane.tab',

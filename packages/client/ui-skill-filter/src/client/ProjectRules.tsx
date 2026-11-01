@@ -17,8 +17,8 @@ import type {} from './locales.ts'
 import { RuleList } from './RuleList.tsx'
 import css from './skill-filter.module.css'
 
-/** The save's local state. */
-type SaveState = 'idle' | 'saving' | 'saved' | 'failed'
+/** One layer's save state, shared by the personal and project drafts. */
+export type SaveState = 'idle' | 'saving' | 'saved' | 'failed'
 
 /** Everything a surface renders and drives for the project layer. */
 export interface ProjectLayer {

@@ -55,6 +55,7 @@ export function RuleList({ t, heading, hint, patterns, onChange }: RuleListProps
       </ul>
       <Button
         size="sm"
+        className={css.addPattern}
         icon={<IconPlusOutlineRegular size={14} />}
         onClick={() => { onChange([...patterns, '']) }}
       >

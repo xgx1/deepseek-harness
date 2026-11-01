@@ -17,6 +17,7 @@ export type SkillFilterKey =
   | 'action.allow' | 'action.deny' | 'action.clear' | 'action.save' | 'action.saving'
   | 'action.saved' | 'action.saveFailed' | 'action.addPattern'
   | 'prefixes' | 'prefixes.intro' | 'prefixes.empty'
+  | 'page.total'
 
 /** English copy. */
 export const en: Record<SkillFilterKey, string> = {
@@ -69,6 +70,7 @@ export const en: Record<SkillFilterKey, string> = {
   prefixes: 'Suggested groups',
   'prefixes.intro': 'Skill names share a prefix before the first hyphen. Allow a whole group at once.',
   'prefixes.empty': 'No skill is available to group.',
+  'page.total': 'Total skills',
 }
 
 /** Chinese copy. */
@@ -122,6 +124,7 @@ export const zh: Record<SkillFilterKey, string> = {
   prefixes: '建议分组',
   'prefixes.intro': '技能名在第一个连字符前共享前缀，可以整组放行。',
   'prefixes.empty': '没有可用于分组的技能。',
+  'page.total': '技能总数',
 }
 
 /** Japanese copy. */
@@ -175,6 +178,7 @@ export const ja: Record<SkillFilterKey, string> = {
   prefixes: '推奨グループ',
   'prefixes.intro': 'スキル名は最初のハイフンの前で接頭辞を共有します。グループ全体を一度に許可できます。',
   'prefixes.empty': 'グループ化できるスキルはありません。',
+  'page.total': 'スキル総数',
 }
 
 /** Spanish copy. */
@@ -228,6 +232,7 @@ export const es: Record<SkillFilterKey, string> = {
   prefixes: 'Grupos sugeridos',
   'prefixes.intro': 'Los nombres de habilidad comparten un prefijo antes del primer guion. Permite un grupo entero de una vez.',
   'prefixes.empty': 'Ninguna habilidad disponible para agrupar.',
+  'page.total': 'Habilidades totales',
 }
 
 /** French copy. */
@@ -281,6 +286,7 @@ export const fr: Record<SkillFilterKey, string> = {
   prefixes: 'Groupes suggérés',
   'prefixes.intro': 'Les noms de compétence partagent un préfixe avant le premier tiret. Autorisez tout un groupe d’un coup.',
   'prefixes.empty': 'Aucune compétence disponible pour le regroupement.',
+  'page.total': 'Compétences au total',
 }
 
 /** German copy. */
@@ -334,6 +340,7 @@ export const de: Record<SkillFilterKey, string> = {
   prefixes: 'Vorgeschlagene Gruppen',
   'prefixes.intro': 'Skill-Namen teilen ein Präfix vor dem ersten Bindestrich. Erlaube eine ganze Gruppe auf einmal.',
   'prefixes.empty': 'Kein Skill zum Gruppieren verfügbar.',
+  'page.total': 'Skills gesamt',
 }
 
 /** Russian copy. */
@@ -387,6 +394,7 @@ export const ru: Record<SkillFilterKey, string> = {
   prefixes: 'Предложенные группы',
   'prefixes.intro': 'Имена навыков делят префикс до первого дефиса. Разрешите целую группу сразу.',
   'prefixes.empty': 'Нет навыков, доступных для группировки.',
+  'page.total': 'Всего навыков',
 }
 
 /** Portuguese copy. */
@@ -440,4 +448,5 @@ export const pt: Record<SkillFilterKey, string> = {
   prefixes: 'Grupos sugeridos',
   'prefixes.intro': 'Os nomes de habilidade compartilham um prefixo antes do primeiro hífen. Permita um grupo inteiro de uma vez.',
   'prefixes.empty': 'Nenhuma habilidade disponível para agrupar.',
+  'page.total': 'Habilidades no total',
 }
