@@ -92,6 +92,7 @@ None; this package neither assembles nor sends a provider request.
 - The catalog is the Session's, so a Settings page opened before any Session exists shows no skill list.
 - The project panel addresses itself by the Session's working directory, so the Settings page and the Conversation tab render it only once a Session exists.
 - The catalog's switches write the project layer in the Conversation tab and the personal layer in Settings: which page you are on decides the file you edit.
+- An empty allow list cannot be saved: the file format requires at least one pattern, so both panels disable Save and say why. A refusal for any other cause repeats the Host's own reason.
 
 **Runtime invariant:** No companion is published. Both surfaces read and write through the `skillFilter` Remote namespace, and the apply and component suites cover registration, disposal, and each surface's behavior.
 

@@ -40,6 +40,8 @@ export interface ProjectLayer {
   readonly setDeny: (patterns: readonly string[]) => void
   /** Persist both drafts as the project layer. */
   readonly onSave: () => void
+  /** Why the last save was refused, as the Host worded it. */
+  readonly reason: string | undefined
 }
 
 /** The Host calls and the address the project layer is read and written with. */
@@ -69,6 +71,7 @@ export function useProjectLayer(options: UseProjectLayerOptions): ProjectLayer {
   const [allow, setAllow] = useState<readonly string[]>([])
   const [deny, setDeny] = useState<readonly string[]>([])
   const [save, setSave] = useState<SaveState>('idle')
+  const [reason, setReason] = useState<string | undefined>(undefined)
   const [reload, setReload] = useState(0)
 
   useEffect(() => {
@@ -101,20 +104,31 @@ export function useProjectLayer(options: UseProjectLayerOptions): ProjectLayer {
     return () => { live = false }
   }, [cwd, loadProject, loadEffective, reload])
 
+  // The Host refuses an empty allow list, and the project draft starts from the
+  // merged rules when no project file exists — so "clear the wildcard, then add
+  // mine" passes through a state the Host will never accept. Name it before the
+  // Save is pressed instead of after.
+  const emptyAllow = allow.every(pattern => pattern.length === 0)
+
   const onSave = useCallback(() => {
-    if (cwd === undefined) return
+    if (cwd === undefined || emptyAllow) return
     setSave('saving')
+    setReason(undefined)
     const kept = allow.filter(pattern => pattern.length > 0)
     const dropped = deny.filter(pattern => pattern.length > 0)
     void saveProject(cwd, { allow: kept, ...dropped.length > 0 ? { deny: dropped } : {} }).then((result) => {
-      setSave(result.ok ? 'saved' : 'failed')
-      if (!result.ok) return
-      setReload(value => value + 1)
-      onSaved?.()
+      if (result.ok) {
+        setSave('saved')
+        setReload(value => value + 1)
+        onSaved?.()
+        return
+      }
+      setSave('failed')
+      setReason(result.error.message)
     })
-  }, [allow, deny, cwd, saveProject, onSaved])
+  }, [allow, deny, cwd, saveProject, onSaved, emptyAllow])
 
-  return { status, exists, error, allow, deny, save, setAllow, setDeny, onSave }
+  return { status, exists, error, allow, deny, save, reason, setAllow, setDeny, onSave }
 }
 
 /** Props the project panel receives. */
@@ -162,12 +176,20 @@ export function ProjectRulesPanel({ t, layer, canSave = true }: ProjectRulesPane
         onChange={layer.setDeny}
       />
       <div className={css.actions}>
-        <Button variant="primary" disabled={layer.save === 'saving' || !canSave} onClick={layer.onSave}>
+        <Button
+          variant="primary"
+          disabled={layer.save === 'saving' || !canSave || layer.allow.every(pattern => pattern.length === 0)}
+          onClick={layer.onSave}
+        >
           {layer.save === 'saving' ? t('action.saving') : t('action.save')}
         </Button>
         {layer.save === 'saved' && <span className={css.note}>{t('action.saved')}</span>}
         {layer.save === 'failed' && <span className={css.error}>{t('action.saveFailed')}</span>}
+        {layer.reason !== undefined && <span className={css.error}>{layer.reason}</span>}
       </div>
+      {layer.allow.every(pattern => pattern.length === 0) && (
+        <p className={css.note}>{t('action.allowRequired')}</p>
+      )}
     </div>
   )
 }

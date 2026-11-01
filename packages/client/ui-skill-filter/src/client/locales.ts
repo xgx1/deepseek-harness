@@ -16,6 +16,7 @@ export type SkillFilterKey =
   | 'state.visible' | 'state.hidden'
   | 'action.allow' | 'action.deny' | 'action.clear' | 'action.save' | 'action.saving'
   | 'action.saved' | 'action.saveFailed' | 'action.addPattern'
+  | 'action.allowRequired'
   | 'prefixes' | 'prefixes.intro' | 'prefixes.empty'
   | 'page.total'
 
@@ -66,6 +67,7 @@ export const en: Record<SkillFilterKey, string> = {
   'action.saving': 'Saving…',
   'action.saved': 'Saved.',
   'action.saveFailed': 'The config was rejected; the previous rules are still in effect.',
+  'action.allowRequired': 'The allow list needs at least one pattern; the Host refuses an empty one.',
   'action.addPattern': 'Add pattern',
   prefixes: 'Suggested groups',
   'prefixes.intro': 'Skill names share a prefix before the first hyphen. Allow a whole group at once.',
@@ -120,6 +122,7 @@ export const zh: Record<SkillFilterKey, string> = {
   'action.saving': '保存中…',
   'action.saved': '已保存。',
   'action.saveFailed': '配置被拒绝；此前的规则仍然生效。',
+  'action.allowRequired': '允许清单至少需要一个模式，宿主会拒绝空清单。',
   'action.addPattern': '添加模式',
   prefixes: '建议分组',
   'prefixes.intro': '技能名在第一个连字符前共享前缀，可以整组放行。',
@@ -174,6 +177,7 @@ export const ja: Record<SkillFilterKey, string> = {
   'action.saving': '保存中…',
   'action.saved': '保存しました。',
   'action.saveFailed': '設定は拒否されました。それまでのルールが引き続き適用されます。',
+  'action.allowRequired': '許可リストには少なくとも1つのパターンが必要です。空のリストは拒否されます。',
   'action.addPattern': 'パターンを追加',
   prefixes: '推奨グループ',
   'prefixes.intro': 'スキル名は最初のハイフンの前で接頭辞を共有します。グループ全体を一度に許可できます。',
@@ -228,6 +232,7 @@ export const es: Record<SkillFilterKey, string> = {
   'action.saving': 'Guardando…',
   'action.saved': 'Guardado.',
   'action.saveFailed': 'La configuración fue rechazada; las reglas anteriores siguen vigentes.',
+  'action.allowRequired': 'La lista de permitidos necesita al menos un patrón; el Host rechaza una vacía.',
   'action.addPattern': 'Añadir patrón',
   prefixes: 'Grupos sugeridos',
   'prefixes.intro': 'Los nombres de habilidad comparten un prefijo antes del primer guion. Permite un grupo entero de una vez.',
@@ -282,6 +287,7 @@ export const fr: Record<SkillFilterKey, string> = {
   'action.saving': 'Enregistrement…',
   'action.saved': 'Enregistré.',
   'action.saveFailed': 'La configuration a été refusée ; les règles précédentes restent en vigueur.',
+  'action.allowRequired': 'La liste d\'autorisation nécessite au moins un motif ; l\'hôte refuse une liste vide.',
   'action.addPattern': 'Ajouter un motif',
   prefixes: 'Groupes suggérés',
   'prefixes.intro': 'Les noms de compétence partagent un préfixe avant le premier tiret. Autorisez tout un groupe d’un coup.',
@@ -336,6 +342,7 @@ export const de: Record<SkillFilterKey, string> = {
   'action.saving': 'Speichern…',
   'action.saved': 'Gespeichert.',
   'action.saveFailed': 'Die Konfiguration wurde abgelehnt; die bisherigen Regeln gelten weiterhin.',
+  'action.allowRequired': 'Die Allow-Liste braucht mindestens ein Muster; der Host lehnt eine leere ab.',
   'action.addPattern': 'Muster hinzufügen',
   prefixes: 'Vorgeschlagene Gruppen',
   'prefixes.intro': 'Skill-Namen teilen ein Präfix vor dem ersten Bindestrich. Erlaube eine ganze Gruppe auf einmal.',
@@ -390,6 +397,7 @@ export const ru: Record<SkillFilterKey, string> = {
   'action.saving': 'Сохранение…',
   'action.saved': 'Сохранено.',
   'action.saveFailed': 'Конфигурация отклонена; прежние правила продолжают действовать.',
+  'action.allowRequired': 'Список разрешений требует хотя бы один шаблон; хост отклоняет пустой.',
   'action.addPattern': 'Добавить шаблон',
   prefixes: 'Предложенные группы',
   'prefixes.intro': 'Имена навыков делят префикс до первого дефиса. Разрешите целую группу сразу.',
@@ -444,6 +452,7 @@ export const pt: Record<SkillFilterKey, string> = {
   'action.saving': 'Salvando…',
   'action.saved': 'Salvo.',
   'action.saveFailed': 'A configuração foi rejeitada; as regras anteriores continuam em vigor.',
+  'action.allowRequired': 'A lista de permissões precisa de pelo menos um padrão; o Host recusa uma vazia.',
   'action.addPattern': 'Adicionar padrão',
   prefixes: 'Grupos sugeridos',
   'prefixes.intro': 'Os nomes de habilidade compartilham um prefixo antes do primeiro hífen. Permita um grupo inteiro de uma vez.',

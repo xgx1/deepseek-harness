@@ -65,6 +65,34 @@ describe('the skill-filter conversation view', () => {
     expect(screen.getByText(zh['personal.present'])).toBeDefined()
   })
 
+  it('refuses to save a cleared allow list and says why', async () => {
+    const saveProject = vi.fn()
+    render(<SkillFilterView {...props({ saveProject })} />)
+    // The project card seeds from the merged rules while no project file exists.
+    const projectCard = within((await screen.findByText(zh['project.present'])).closest('div') as HTMLElement)
+    await waitFor(() => {
+      expect(projectCard.getByDisplayValue('ue-*')).toBeDefined()
+    })
+    fireEvent.click(projectCard.getByLabelText(zh['action.clear']))
+    await waitFor(() => {
+      expect(screen.queryByDisplayValue('ue-*')).toBeNull()
+    })
+    expect(screen.getByText(zh['action.allowRequired'])).toBeDefined()
+    fireEvent.click(screen.getAllByRole('button', { name: zh['action.save'] })[0] as HTMLElement)
+    expect(saveProject).not.toHaveBeenCalled()
+  })
+
+  it('shows the Host reason when a save is refused for another cause', async () => {
+    const saveProject = vi.fn(() => Promise.resolve({
+      ok: false as const,
+      error: { code: 'skill-filter/rejected', message: 'disk is read-only' } as never,
+    }))
+    render(<SkillFilterView {...props({ saveProject })} />)
+    await screen.findByText(zh['project.present'])
+    fireEvent.click(screen.getAllByRole('button', { name: zh['action.save'] })[0] as HTMLElement)
+    expect(await screen.findByText('disk is read-only')).toBeDefined()
+  })
+
   it('writes a catalog switch into the project draft and saves it', async () => {
     const saveProject = vi.fn((_cwd: string, config: { allow: readonly string[] }) => Promise.resolve({
       ok: true as const,
