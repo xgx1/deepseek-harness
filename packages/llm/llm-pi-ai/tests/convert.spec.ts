@@ -986,6 +986,9 @@ describe('mapStopReason / mapUsage', () => {
     'OpenAI Responses stream ended before a terminal response event',
     'openrouter stream ended without a terminal event',
     'Stream ended without finish_reason',
+    // OpenAI-compatible gateways relay a dropped upstream this way; freellmapi's
+    // routing layer surfaces it as `Provider error (…): stream interrupted`.
+    'Provider error (Qwen3.8 27B (OVH)): stream interrupted',
   ])('maps pi-ai transport wording %j', (errorMessage) => {
     expect(mapStopReason(assistant({ stopReason: 'error', errorMessage })))
       .toMatchObject({ kind: 'error', failure: { code: 'TRANSPORT' } })
