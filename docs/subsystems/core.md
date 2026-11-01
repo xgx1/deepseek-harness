@@ -927,12 +927,16 @@ Source: [`packages/core/agent/src/runtime-types.ts`](../../packages/core/agent/s
 
 #### `agent/pre-step` — waterfall
 
-Reject a proposed step or replace the messages that enter it. Calling `next()` preserves the current messages.
+Reject a proposed step or replace the messages that enter it. Calling `next()` preserves the current messages. The waterfall decides the step's messages before the assembly renders the request, so a listener that registers tools or prompt contributions adds them to that same step's request. The loop appends the projected runtime-context message after the waterfall returns.
 
 ```ts cordis-catalog
 /**
  * Reject a proposed step or replace the messages that enter it. Calling
- * `next()` preserves the current messages.
+ * `next()` preserves the current messages. The waterfall decides the
+ * step's messages before the assembly renders the request, so a listener
+ * that registers tools or prompt contributions adds them to that same
+ * step's request. The loop appends the projected runtime-context message
+ * after the waterfall returns.
  * @param payload.agent - the agent proposing the step.
  * @param payload.messages - messages removed from the inbox for this step.
  * @param payload.turn - the turn that will own the step.

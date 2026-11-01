@@ -1,0 +1,67 @@
+- id: persistence
+  name: cordis:persistence
+  config:
+    root: /mnt/Storage/tmp/dsh-native-management-OeAK7L/sessions
+    compression: none
+- id: storage
+  name: cordis:storage
+- id: storage-json
+  name: cordis:storage-json
+  config:
+    root: /mnt/Storage/tmp/dsh-native-management-OeAK7L/storages
+- id: storage-domain
+  name: cordis:storage-domain
+  config:
+    backend: json
+- id: workspace
+  name: cordis:workspace
+- id: query
+  name: cordis:query
+  config:
+    path: ':memory:'
+    openAt: never
+- id: typert
+  name: cordis:typert
+- id: default-model
+  name: cordis:default-model
+  config:
+    provider: fixture
+    model: fixture
+- id: credentials
+  name: cordis:credentials
+  config:
+    dshHome: /mnt/Storage/tmp/dsh-native-management-OeAK7L/home
+    watch: false
+- id: connection
+  name: cordis:connection
+- id: attachments
+  name: cordis:attachments
+  config:
+    dshHome: /mnt/Storage/tmp/dsh-native-management-OeAK7L/home
+- id: commands
+  name: cordis:commands
+- id: uploads
+  name: cordis:uploads
+- id: questions
+  name: cordis:questions
+- id: presets
+  name: cordis:presets
+  config:
+    default: ordinary
+- id: fixture-presets
+  name: cordis:fixture-presets
+- id: loop
+  name: cordis:loop
+  config:
+    agents: []
+- id: controller
+  name: cordis:controller
+  config:
+    nativeOpen: false
+- id: manager
+  name: cordis:manager
+  config:
+    managerPreset: manager
+    workerPresets:
+      - independent
+    questionWaitSeconds: 1

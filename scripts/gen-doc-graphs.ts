@@ -300,6 +300,13 @@ const SERVICE_ROLES: ServiceRole[] = [
     note: 'Lists the Session composition\'s user-invocable skills without activating a cold Agent.',
   },
   {
+    key: 'skillFilter',
+    pkg: 'api-skill-filter-controller',
+    title: 'Host skill-filter config Remote controller',
+    mode: 'core',
+    note: 'Reads and writes the personal and project skill-filter YAML files as Remote views and publishes each persisted write so the provider invalidates its catalog.',
+  },
+  {
     key: 'jobController',
     pkg: 'api-job-controller',
     title: 'Host job Remote controller',

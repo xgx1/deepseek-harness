@@ -505,11 +505,11 @@ export class SessionCommandController {
   }
 
   /**
-   * Cancel one live ordinary Agent while retaining pending inbox work.
-   * @param request - Session whose active Agent turn is cancelled.
-   * @returns acknowledgement that cancellation was requested.
+   * Cancel one live ordinary Agent, retain pending inbox work, and persist extension-owned stop intent.
+   * @param request - Session addressed by the explicit stop, including an idle Agent.
+   * @returns acknowledgement after stop listeners settle; native cancellation remains effective if a listener rejects.
    */
-  cancel(request: SessionCancelRequest): SessionCancelValue {
+  async cancel(request: SessionCancelRequest): Promise<SessionCancelValue> {
     const agent = this.ctx.agents.get(request.sessionId)
     if (agent === undefined) {
       throw new RemoteError(
@@ -522,6 +522,7 @@ export class SessionCommandController {
       throw apiSessionSubagentOwnershipError(request.sessionId)
     }
     agent.cancel({ kind: 'user' }, { keepInbox: true })
+    await this.ctx.parallel('session-controller/cancel-requested', request.sessionId)
     return { accepted: true }
   }
 

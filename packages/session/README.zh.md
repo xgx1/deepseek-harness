@@ -65,6 +65,12 @@ session 组让对话持久保存，恢复已发布的日志格式，并使已提
 | [`session-telemetry/`](session-telemetry/README.zh.md) | 捕获会话活动并把记录交给配置的上报后端 | `ctx.sessionTelemetry` |
 | [`session-telemetry-otel/`](session-telemetry-otel/README.zh.md) | 通过 OpenTelemetry 日志以 `FEEDBACK_ONLY` 或 `DISABLED` 模式投递遥测 | 注册到 `ctx.sessionTelemetry` |
 
+### 管理
+
+| 包 | 职责 | ctx key |
+|---|---|---|
+| [`session-manager/`](session-manager/README.zh.md) | 可选启用的管理预设，以及一个管理会话与它创建或由真人交接的普通工作会话之间的持久路由 | 无——独占 `session_manager` 存储域 |
+
 同一时间只允许一个标题提供方注册；未注册时，标题服务保留其确定性回退。下面的子系统页面是各家族后端无关的参考资料。
 
 -----

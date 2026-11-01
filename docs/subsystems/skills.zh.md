@@ -263,6 +263,59 @@ Host service backing `ctx.remote.skills` without activating a cold Agent.
 
 Source: [`packages/api/session-controller/src/skill-catalog.ts`](../../packages/api/session-controller/src/skill-catalog.ts)
 
+<a id="ctxskillfilter--skillfilterremote"></a>
+
+### `ctx.skillFilter` — `SkillFilterRemote`
+
+Host service backing the generated `ctx.remote.skillFilter` namespace.
+
+```ts cordis-catalog
+/**
+ * Subscribe to persisted config writes.
+ * @param listener - invoked once per successful write, without arguments.
+ * @returns disposer removing the listener.
+ */
+onConfigUpdated(listener: ConfigListener): () => void
+
+/**
+ * Read the personal (user-level) filter config.
+ * @returns the parsed config, or `exists: false` when the file is absent.
+ */
+@Remote async getPersonal(): Promise<SkillFilterPersonalView>
+
+/**
+ * Replace the personal (user-level) filter config.
+ * @param config - the complete replacement; `allow` is required, `deny` optional.
+ * @returns the persisted config as re-read from disk.
+ * @throws RemoteError `skill-filter/rejected` when the config is invalid or unwritable.
+ */
+@Remote async setPersonal(config: SkillFilterConfigView): Promise<SkillFilterPersonalView>
+
+/**
+ * Read the project filter config for one working directory.
+ * @param request - the project working directory.
+ * @returns the parsed config, or `exists: false` when the file is absent.
+ */
+@Remote async getProject(request: SkillFilterConfigRequest): Promise<SkillFilterProjectView>
+
+/**
+ * Replace the project filter config for one working directory.
+ * @param write - the working directory and the complete replacement config.
+ * @returns the persisted config as re-read from disk.
+ * @throws RemoteError `skill-filter/rejected` when the config is invalid or unwritable.
+ */
+@Remote async setProject(write: SkillFilterConfigWrite): Promise<SkillFilterProjectView>
+
+/**
+ * Read the merged effective config for one working directory.
+ * @param request - the project working directory.
+ * @returns which layers exist and the merged config; `config` is undefined only when no personal config exists.
+ */
+@Remote async getEffective(request: SkillFilterConfigRequest): Promise<SkillFilterEffectiveView>
+```
+
+Source: [`packages/api/skill-filter-controller/src/index.ts`](../../packages/api/skill-filter-controller/src/index.ts)
+
 <a id="ctxskills--skillregistry"></a>
 
 ### `ctx.skills` — `SkillRegistry`

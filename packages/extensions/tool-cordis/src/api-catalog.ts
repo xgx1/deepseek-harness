@@ -2055,10 +2055,10 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         returns: 'acknowledgement that the queue mutation was applied.',
       },
       {
-        signature: '@Remote(\'cancel\') cancel(request: SessionCancelRequest): SessionCancelValue',
-        description: 'Cancel one active Agent turn without dropping its pending inbox.',
-        parameters: [{ name: 'request', description: 'Session whose active Agent turn is cancelled.' }],
-        returns: 'acknowledgement that cancellation was requested.',
+        signature: '@Remote(\'cancel\') cancel(request: SessionCancelRequest): Promise<SessionCancelValue>',
+        description: 'Cancel one live ordinary Agent without dropping its pending inbox, and await stop-intent listeners even while idle.',
+        parameters: [{ name: 'request', description: 'Session addressed by the explicit stop.' }],
+        returns: 'acknowledgement after cancellation and listener persistence; listener failure does not undo cancellation.',
       },
       {
         signature: '@Remote(\'page\') page(request: SessionPageRequest, signal: AbortSignal): Promise<SessionPage>',
@@ -2658,6 +2658,51 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         description: 'Enumerate plugin-contributed variables without executing their resolvers.',
         parameters: [],
         returns: 'declarations sorted by environment variable name.',
+      },
+    ],
+  },
+  {
+    key: 'skillFilter',
+    summary: 'Host service backing the generated `ctx.remote.skillFilter` namespace.',
+    description: 'Host service backing the generated `ctx.remote.skillFilter` namespace.',
+    methods: [
+      {
+        signature: 'onConfigUpdated(listener: ConfigListener): () => void',
+        description: 'Subscribe to persisted config writes.',
+        parameters: [{ name: 'listener', description: 'invoked once per successful write, without arguments.' }],
+        returns: 'disposer removing the listener.',
+      },
+      {
+        signature: '@Remote async getPersonal(): Promise<SkillFilterPersonalView>',
+        description: 'Read the personal (user-level) filter config.',
+        parameters: [],
+        returns: 'the parsed config, or `exists: false` when the file is absent.',
+      },
+      {
+        signature: '@Remote async setPersonal(config: SkillFilterConfigView): Promise<SkillFilterPersonalView>',
+        description: 'Replace the personal (user-level) filter config.',
+        parameters: [{ name: 'config', description: 'the complete replacement; `allow` is required, `deny` optional.' }],
+        returns: 'the persisted config as re-read from disk.',
+        throws: ['RemoteError `skill-filter/rejected` when the config is invalid or unwritable.'],
+      },
+      {
+        signature: '@Remote async getProject(request: SkillFilterConfigRequest): Promise<SkillFilterProjectView>',
+        description: 'Read the project filter config for one working directory.',
+        parameters: [{ name: 'request', description: 'the project working directory.' }],
+        returns: 'the parsed config, or `exists: false` when the file is absent.',
+      },
+      {
+        signature: '@Remote async setProject(write: SkillFilterConfigWrite): Promise<SkillFilterProjectView>',
+        description: 'Replace the project filter config for one working directory.',
+        parameters: [{ name: 'write', description: 'the working directory and the complete replacement config.' }],
+        returns: 'the persisted config as re-read from disk.',
+        throws: ['RemoteError `skill-filter/rejected` when the config is invalid or unwritable.'],
+      },
+      {
+        signature: '@Remote async getEffective(request: SkillFilterConfigRequest): Promise<SkillFilterEffectiveView>',
+        description: 'Read the merged effective config for one working directory.',
+        parameters: [{ name: 'request', description: 'the project working directory.' }],
+        returns: 'which layers exist and the merged config; `config` is undefined only when no personal config exists.',
       },
     ],
   },
@@ -3958,7 +4003,7 @@ export const EVENT_API: readonly EventApiEntry[] = [
     mode: 'waterfall',
     signature: '\'agent/pre-step\'(this: Scoped<Agent>, payload: { agent: Agent; messages: UserMessage[]; turn: number; step: number; signal: AbortSignal }, next: () => Promise<PreStepDecision>): Promise<PreStepDecision>',
     summary: 'Reject a proposed step or replace the messages that enter it.',
-    description: 'Reject a proposed step or replace the messages that enter it. Calling `next()` preserves the current messages.',
+    description: 'Reject a proposed step or replace the messages that enter it. Calling `next()` preserves the current messages. The waterfall decides the step\'s messages before the assembly renders the request, so a listener that registers tools or prompt contributions adds them to that same step\'s request. The loop appends the projected runtime-context message after the waterfall returns.',
     parameters: [{ name: 'payload', description: '.signal - the current turn\'s cancellation signal. Scope-filtered dispatch (`@deepseek-ai/dsh-scope`): agent-scoped listeners receive only that agent.' }],
   },
   {
@@ -4296,6 +4341,14 @@ export const EVENT_API: readonly EventApiEntry[] = [
     summary: 'Durable task set changed; clients refetch global task and Session-active catalogs.',
     description: 'Durable task set changed; clients refetch global task and Session-active catalogs.',
     parameters: [],
+  },
+  {
+    name: 'session-controller/cancel-requested',
+    mode: 'parallel',
+    signature: '\'session-controller/cancel-requested\'(sessionId: SessionCancelRequest[\'sessionId\']): Promise<void>',
+    summary: 'An explicit human stop after native cancellation, including an already-idle Agent.',
+    description: 'An explicit human stop after native cancellation, including an already-idle Agent.',
+    parameters: [{ name: 'sessionId', description: 'Ordinary Session addressed by the stop command.' }],
   },
   {
     name: 'session-telemetry/record',
@@ -6387,7 +6440,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'PtcRunFailure',
-    declaration: 'export interface PtcRunFailure {\n    kind: \'exception\' | \'timeout\' | \'abort\' | \'worker-exit\' | \'invalid-output\' | \'output-limit\' | \'protocol\' | \'sandbox-unavailable\';\n    message: string;\n}',
+    declaration: 'export interface PtcRunFailure {\n    kind: \'exception\' | \'timeout\' | \'abort\' | \'worker-exit\' | \'invalid-output\' | \'output-limit\' | \'protocol\' | \'sandbox-unavailable\';\n    message: string;\n    diagnostic?: string;\n}',
   },
   {
     name: 'PtcRunRequest',
@@ -7356,6 +7409,30 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'SkillEntry',
     declaration: 'export interface SkillEntry {\n    readonly path?: string;\n    readonly name: string;\n    readonly description: string;\n    readonly whenToUse?: string;\n    readonly modelInvocable: boolean;\n}',
+  },
+  {
+    name: 'SkillFilterConfigRequest',
+    declaration: 'export interface SkillFilterConfigRequest {\n    readonly cwd: string;\n}',
+  },
+  {
+    name: 'SkillFilterConfigView',
+    declaration: 'export interface SkillFilterConfigView {\n    readonly allow: readonly string[];\n    readonly deny?: readonly string[];\n}',
+  },
+  {
+    name: 'SkillFilterConfigWrite',
+    declaration: 'export interface SkillFilterConfigWrite {\n    readonly cwd: string;\n    readonly config: SkillFilterConfigView;\n}',
+  },
+  {
+    name: 'SkillFilterEffectiveView',
+    declaration: 'export interface SkillFilterEffectiveView {\n    readonly personalExists: boolean;\n    readonly projectExists: boolean;\n    readonly config?: SkillFilterConfigView;\n}',
+  },
+  {
+    name: 'SkillFilterPersonalView',
+    declaration: 'export interface SkillFilterPersonalView {\n    readonly exists: boolean;\n    readonly error?: string;\n    readonly config?: SkillFilterConfigView;\n}',
+  },
+  {
+    name: 'SkillFilterProjectView',
+    declaration: 'export interface SkillFilterProjectView {\n    readonly exists: boolean;\n    readonly error?: string;\n    readonly config?: SkillFilterConfigView;\n}',
   },
   {
     name: 'SkillInvocationPolicy',

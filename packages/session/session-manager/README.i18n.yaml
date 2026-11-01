@@ -1,0 +1,100 @@
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write packages/session/session-manager/README.md
+/:
+  en: 5ef33c0bd8d8a836
+  zh: 4cb69e8d9e396df1
+/deepseek-ai-dsh-session-manager:
+  en: 4dde97d5ea131d46
+  zh: 5d00d3f9b7fe8a8c
+/deepseek-ai-dsh-session-manager/summary:
+  en: 39944a2cf8ed0333
+  zh: 339145f25248c974
+/deepseek-ai-dsh-session-manager/table-of-contents:
+  en: d152484eb41ac6b4
+  zh: 405b30feaf48c087
+/deepseek-ai-dsh-session-manager/use-this-package:
+  en: 9183b35276f96d5e
+  zh: 711d539afa6fba79
+/deepseek-ai-dsh-session-manager/use-this-package/human-commands:
+  en: f4be4fe87505b5e8
+  zh: 53b18dbe4332cf62
+/deepseek-ai-dsh-session-manager/use-this-package/placement:
+  en: f6d7bca18e8cde77
+  zh: cd138396e575e6a7
+/deepseek-ai-dsh-session-manager/understand-the-implementation:
+  en: 42b15ac6321706aa
+  zh: 7ae097f3abcc5d9c
+/deepseek-ai-dsh-session-manager/understand-the-implementation/scope-and-identity:
+  en: b687b1f534be09b2
+  zh: 59d11a578272c839
+/deepseek-ai-dsh-session-manager/understand-the-implementation/capability-isolation:
+  en: 303a1a407a7298ab
+  zh: 35028f15d9606521
+/deepseek-ai-dsh-session-manager/understand-the-implementation/creation:
+  en: 061725171c83b756
+  zh: 5eebb32b85171e1d
+/deepseek-ai-dsh-session-manager/understand-the-implementation/delivery-reports-and-recovery:
+  en: 0bbdf459faa39e8c
+  zh: 9c05f6f9af69d6f9
+/deepseek-ai-dsh-session-manager/understand-the-implementation/questions:
+  en: 46c1482811714094
+  zh: 82bcc852a7d1bfbe
+/deepseek-ai-dsh-session-manager/understand-the-implementation/explicit-stop:
+  en: e0720a9e8f0c7d5e
+  zh: 0ea6a667cb996ad5
+/deepseek-ai-dsh-session-manager/understand-the-implementation/preferences:
+  en: 12a89858076eee3f
+  zh: 9bcf1c200d36cc98
+/deepseek-ai-dsh-session-manager/further-exploration:
+  en: 25674a075efd32f3
+  zh: a11fbe2d4b430a57
+/deepseek-ai-dsh-session-manager/model-experience:
+  en: 215e7ba838619b7b
+  zh: a311da3843709f90
+/deepseek-ai-dsh-session-manager/model-experience/manager-system-prompt-and-tool-roster:
+  en: b04a021a12f3e622
+  zh: 1503b666793bb0b9
+/deepseek-ai-dsh-session-manager/model-experience/manager-system-prompt-and-tool-roster/what-the-model-sees:
+  en: 96f2d441eb9dccc2
+  zh: 6fd38e9c1b01f6fe
+/deepseek-ai-dsh-session-manager/model-experience/manager-system-prompt-and-tool-roster/what-the-model-sees/verbatim-text-for-this-field:
+  en: f310d13f2c5a4d6a
+  zh: 602c9de780dffcb0
+/deepseek-ai-dsh-session-manager/model-experience/manager-system-prompt-and-tool-roster/token-effect:
+  en: cd56dd07364da51e
+  zh: 50260be94bbcad35
+/deepseek-ai-dsh-session-manager/model-experience/manager-system-prompt-and-tool-roster/kv-cache-effect:
+  en: ddff6b3886f495d8
+  zh: bed87832796d9e8b
+/deepseek-ai-dsh-session-manager/model-experience/routed-worker-and-manager-inputs:
+  en: 2b5b0cb63cffb30f
+  zh: 96e39a240af073b6
+/deepseek-ai-dsh-session-manager/model-experience/routed-worker-and-manager-inputs/what-the-model-sees:
+  en: eef0d65cb8694147
+  zh: c9ac3735c325380e
+/deepseek-ai-dsh-session-manager/model-experience/routed-worker-and-manager-inputs/token-effect:
+  en: d5edfabfb68576bf
+  zh: c09d12409bd9457d
+/deepseek-ai-dsh-session-manager/model-experience/routed-worker-and-manager-inputs/kv-cache-effect:
+  en: 696aad3611222d0f
+  zh: 09b95b8f8799dd27
+/deepseek-ai-dsh-session-manager/model-experience/worker-ask-user-question-manager-report-and-manager-request-session:
+  en: 007f6022f03076bb
+  zh: 0eea92eb98518405
+/deepseek-ai-dsh-session-manager/model-experience/worker-ask-user-question-manager-report-and-manager-request-session/what-the-model-sees:
+  en: 2aecfe09dc2643f1
+  zh: fa6e82514348bba1
+/deepseek-ai-dsh-session-manager/model-experience/worker-ask-user-question-manager-report-and-manager-request-session/token-effect:
+  en: c0c75ac0afa3b726
+  zh: 5fc13eaa8db866a7
+/deepseek-ai-dsh-session-manager/model-experience/worker-ask-user-question-manager-report-and-manager-request-session/kv-cache-effect:
+  en: dfb12c479131da17
+  zh: 480088810dc51646
+/deepseek-ai-dsh-session-manager/known-limitations-and-deferred-work:
+  en: ad7e38d4425bc985
+  zh: 83d2eab5b3a842a9
+/deepseek-ai-dsh-session-manager/known-limitations-and-deferred-work/dev-note:
+  en: 78838fc403f908aa
+  zh: a906c60b65efd6a4
