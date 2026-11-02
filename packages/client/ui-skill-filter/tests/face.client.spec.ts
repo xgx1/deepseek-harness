@@ -5,6 +5,7 @@
 import { describe, expect, it } from 'vitest'
 import { RemoteError } from '@deepseek-ai/dsh-client-test-runtime'
 import type { RemoteResult } from '@deepseek-ai/dsh-typert-protocol'
+import { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { SkillFilterRemotes } from '../src/client/face.ts'
 import { createSkillFilterFace, filterByQuery, prefixOf, toggleName } from '../src/client/face.ts'
 
@@ -17,8 +18,10 @@ function ok<T>(value: T): RemoteResult<T> {
 function stubRemotes(): {
   remotes: SkillFilterRemotes
   calls: { personal: number; project: number; effective: number; skills: number }
+  requests: readonly { sessionId: string; includeHidden?: boolean }[]
 } {
   const calls = { personal: 0, project: 0, effective: 0, skills: 0 }
+  const requests: { sessionId: string; includeHidden?: boolean }[] = []
   const remotes: SkillFilterRemotes = {
     skillFilter: {
       getPersonal: () => { calls.personal += 1; return Promise.resolve(ok({ exists: true, config: { allow: ['*'] } })) },
@@ -31,8 +34,9 @@ function stubRemotes(): {
       },
     },
     skills: {
-      list: () => {
+      list: (request) => {
         calls.skills += 1
+        requests.push(request)
         return Promise.resolve(ok({
           skills: [
             { name: 'git-commit', description: 'Commit a change', modelInvocable: true },
@@ -42,10 +46,19 @@ function stubRemotes(): {
       },
     },
   }
-  return { remotes, calls }
+  return { remotes, calls, requests }
 }
 
 describe('the skill-filter face', () => {
+  it('lists the whole catalog, hidden skills included, so the page can show them', async () => {
+    const { remotes, calls, requests } = stubRemotes()
+    const face = createSkillFilterFace(remotes)
+    const listed = await face.listSkills(SessionId('session-1'))
+    expect(listed.ok && listed.value.map(skill => skill.name)).toEqual(['git-commit', 'git-rebase'])
+    expect(calls.skills).toBe(1)
+    expect(requests).toEqual([{ sessionId: 'session-1', includeHidden: true }])
+  })
+
   it('addresses the project and effective calls by working directory', async () => {
     const { remotes, calls } = stubRemotes()
     const face = createSkillFilterFace(remotes)

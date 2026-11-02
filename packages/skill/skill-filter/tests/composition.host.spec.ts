@@ -10,6 +10,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
+import { isUserInvocable } from '@deepseek-ai/dsh-skill'
 
 let home: string
 const fibers: Array<{ dispose: () => Promise<void> }> = []
@@ -74,7 +75,7 @@ async function visibility(ctx: Context, cwd?: string): Promise<Map<string, boole
 }
 
 describe('the skill filter in a real composition', () => {
-  it('hides a denied skill from the catalog while keeping it loadable by name', async () => {
+  it('hides a denied skill from both surfaces and refuses its /name load', async () => {
     const dir = skillRoot()
     try {
       personalConfig('allow:\n  - "git-*"\n')
@@ -86,10 +87,14 @@ describe('the skill filter in a real composition', () => {
       expect(state.get('git-rebase')).toBe(true)
       expect(state.get('ue-build')).toBe(false)
 
-      // The denied skill is still registered and still loads for a `/name` call.
+      // The load still resolves — the registry keeps the entry — but the verdict
+      // clears both invocation flags, which is what the `/name` gesture and the
+      // instructions-injection boundary read before either acts.
       const definition = await ctx.skills.get('ue-build', {})
       expect(definition?.name).toBe('ue-build')
       expect(definition?.content).toContain('Body of ue-build')
+      expect(definition?.invocation).toEqual({ modelInvocable: false, userInvocable: false })
+      expect(isUserInvocable(definition!)).toBe(false)
     } finally {
       rmSync(dir, { recursive: true, force: true })
     }

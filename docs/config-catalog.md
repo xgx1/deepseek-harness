@@ -3401,7 +3401,7 @@ export interface Config {
 ## `@deepseek-ai/dsh-skill-filter`
 
 - `inject`: `skills`
-- `source`: [`packages/skill/skill-filter/src/index.ts:35`](../packages/skill/skill-filter/src/index.ts)
+- `source`: [`packages/skill/skill-filter/src/index.ts:38`](../packages/skill/skill-filter/src/index.ts)
 
 ```ts config-catalog
 /** Skill filter plugin configuration. */

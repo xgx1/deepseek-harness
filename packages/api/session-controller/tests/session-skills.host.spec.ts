@@ -92,6 +92,42 @@ describe('SessionSkillCatalog', () => {
     expect(list).toHaveBeenCalledWith({ cwd: '/cold/project', scope: undefined })
   })
 
+  it('keeps hidden skills out of the default list and returns them on request', async () => {
+    const ctx = await context()
+    const sessionId = SessionId('hidden-skills')
+    ctx.provide('sessionQuery', {
+      observeSession: () => Promise.resolve(observation(sessionId, { workingDirectory: '/cold/project' })),
+    } as never)
+    const list = vi.fn(() => Promise.resolve([
+      {
+        name: 'review',
+        description: 'Review the current change.',
+        invocation: { modelInvocable: true, userInvocable: true },
+      },
+      {
+        // What the skill filter's denial looks like: both flags cleared, so no
+        // surface may advertise or load it.
+        name: 'hidden',
+        description: 'Filtered out.',
+        invocation: { modelInvocable: false, userInvocable: false },
+      },
+    ]))
+    ctx.provide('skills', { list } as never)
+    const catalog = new SessionSkillCatalog(ctx)
+
+    await expect(catalog.list({ sessionId }, new AbortController().signal)).resolves.toEqual({
+      skills: [{ name: 'review', description: 'Review the current change.', modelInvocable: true }],
+    })
+    await expect(
+      catalog.list({ sessionId, includeHidden: true }, new AbortController().signal),
+    ).resolves.toEqual({
+      skills: [
+        { name: 'review', description: 'Review the current change.', modelInvocable: true },
+        { name: 'hidden', description: 'Filtered out.', modelInvocable: false },
+      ],
+    })
+  })
+
   it.each([
     { cwd: undefined, workingDirectory: '/cold/current', expected: '/cold/current' },
     { cwd: '/cold/original', workingDirectory: null, expected: '/cold/original' },

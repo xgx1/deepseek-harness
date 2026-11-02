@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-Filters the skill catalog with personal and project allow/deny glob rules. Denied skills stay registered and callable with `/name` but leave the model catalog, which cuts the catalog each request carries to the skills the current project actually needs.
+Filters the skill catalog with personal and project allow/deny glob rules. The verdict gates both surfaces: a denied skill has both invocation flags cleared, so it leaves the model catalog, cannot be called with `/name`, and is never injected as instructions context — which cuts the catalog each request carries to the skills the current project actually needs.
 
 ## Table of Contents
 
@@ -43,7 +43,7 @@ deny:
   - "git-rebase"
 ```
 
-`allow` is required; a config with no `allow` key is a parse error. `deny` is optional. A pattern with no glob metacharacters is a specific skill name, and a specific name wins over a glob inside the same file. A skill no file allows stays user-invocable: only its model-visible flag is cleared.
+`allow` is required; a config with no `allow` key is a parse error. `deny` is optional. A pattern with no glob metacharacters is a specific skill name, and a specific name wins over a glob inside the same file. Glob metacharacters (`*`, `?`, `[...]`) match as globs, so `unreal*` covers every `unreal-` skill. A skill no layer allows is invisible on both surfaces.
 
 ### Minimal composition
 
@@ -65,7 +65,7 @@ The mounted preset must disable the default filesystem provider so discovery run
 
 ### Provider wrapping
 
-`FilteredSkillProvider` wraps an internal `FileSystemSkillProvider`. Every candidate the inner provider returns is rebranded with this plugin's provider name, because the registry resolves a candidate's later loads through that name. `get()` delegates to the inner provider unchanged.
+`FilteredSkillProvider` wraps an internal `FileSystemSkillProvider`. Every candidate the inner provider returns is rebranded with this plugin's provider name, because the registry resolves a candidate's later loads through that name. The verdict is applied on `list()` and on `get()` alike: `get()` returns the inner definition carrying the frontmatter policy, so without the second application a `/name` load would walk straight past the whitelist.
 
 ### Rule merging
 
@@ -114,6 +114,7 @@ A config write invalidates the provider's catalog, and the next request appends 
 - Both files are one flat allow/deny pair. A per-tool, per-directory, or conditional rule needs a schema this package does not define.
 - The layers union, so a project cannot hide a skill the personal config allows; that skill comes off the personal list instead.
 - A personal config that fails to parse falls back to the last valid copy, which is cached beside the config file; the project config has no cache and reads as absent.
+- Only this package's own discovery is filtered: a plugin that mounts its own skill provider (the OpenViking memory plugin's `openviking` provider, for instance) bypasses the whitelist, and its skills stay visible. Covering those means moving the verdict from the provider wrapper into the registry merge.
 
 **Runtime invariant:** No companion is published. The skill registry owns the provider relationship this package contributes to, and the composition and filter suites cover the wrapped provider's catalog and invalidation directly.
 
