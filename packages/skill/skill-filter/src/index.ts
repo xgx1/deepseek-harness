@@ -27,6 +27,7 @@ import type {
   SkillProvider,
   SkillProviderControl,
   SkillProviderObservation,
+  SkillSource,
 } from '@deepseek-ai/dsh-skill'
 import { compileConfig, filterSkill, type RuleSet } from './filter.js'
 import { readPersonalConfig, readProjectConfig } from './config.js'
@@ -129,6 +130,10 @@ export class FilteredSkillProvider implements SkillProvider {
     }
 
     const filtered = candidates.map((candidate) => {
+      // A skill the project itself ships under .dsh/skills or .agents/skills is
+      // part of the project, not part of the user's global collection: it is
+      // always in force, so the whitelist never governs it.
+      if (isProjectLocal(candidate.source)) return this.own(candidate)
       const verdict = filterSkill(
         candidate.name,
         rules.projectRules,
@@ -151,6 +156,7 @@ export class FilteredSkillProvider implements SkillProvider {
     // The locator is the inner provider's handle; delegate loading back to it.
     const definition = await this.inner.get(candidate, options)
     if (definition === undefined) return undefined
+    if (isProjectLocal(definition.source)) return definition
     // The inner definition carries the frontmatter policy, so a load would
     // bypass the verdict list() published unless it is applied here too — this
     // is the single lookup that decides what a /name gesture injects.
@@ -195,6 +201,18 @@ export class FilteredSkillProvider implements SkillProvider {
     if (personalRules === undefined && projectRules === undefined) return undefined
     return { personalRules, projectRules }
   }
+}
+
+/**
+ * Whether a discovery source belongs to the current project rather than to the
+ * user's global collection. Project skills ride along with the project, so the
+ * filter leaves them alone; everything else (user-dsh, user-agents, custom,
+ * bundled) is what the whitelist governs.
+ * @param source - the candidate's or definition's discovery source.
+ * @returns true for skills shipped under the project's own skill roots.
+ */
+function isProjectLocal(source: SkillSource): boolean {
+  return source === 'project-dsh' || source === 'project-agents'
 }
 
 /**

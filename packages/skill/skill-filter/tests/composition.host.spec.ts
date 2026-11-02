@@ -46,6 +46,16 @@ function skillRoot(): string {
   return dir
 }
 
+/** Ship a skill inside the working directory's own .dsh/skills root. */
+function projectSkill(dir: string, name: string): void {
+  const skillDir = join(dir, '.dsh', 'skills', name)
+  mkdirSync(skillDir, { recursive: true })
+  writeFileSync(
+    join(skillDir, 'SKILL.md'),
+    `---\nname: ${name}\ndescription: Shipped by the project.\n---\nBody of ${name}.\n`,
+    'utf-8')
+}
+
 /** Write the personal config the plugin reads on every collection. */
 function personalConfig(body: string): void {
   writeFileSync(join(home, '.dsh', 'skill-filter.yaml'), body, 'utf-8')
@@ -138,6 +148,29 @@ describe('the skill filter in a real composition', () => {
       expect(state.get('git-rebase')).toBe(true)
       // The project allow also overrides the skill's own frontmatter deny.
       expect(state.get('ue-build')).toBe(true)
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+
+  it('leaves a skill the project ships under .dsh/skills to the project', async () => {
+    const dir = skillRoot()
+    try {
+      projectSkill(dir, 'proj-only')
+      // A personal allow list that matches nothing: every user-level skill is
+      // denied, and the project's own skill still has to come through.
+      personalConfig('allow:\n  - "git-*"\n')
+      const ctx = await boot(dir)
+      const state = await visibility(ctx, dir)
+      expect(state.get('proj-only')).toBe(true)
+      expect(state.get('git-commit')).toBe(true)
+      expect(state.get('ue-build')).toBe(false)
+
+      // The load keeps the skill's own frontmatter policy — the verdict that
+      // denies the user-level skills never reaches it.
+      const definition = await ctx.skills.get('proj-only', { cwd: dir })
+      expect(definition?.content).toContain('Body of proj-only')
+      expect(definition?.invocation).toEqual({ modelInvocable: true, userInvocable: true })
     } finally {
       rmSync(dir, { recursive: true, force: true })
     }
