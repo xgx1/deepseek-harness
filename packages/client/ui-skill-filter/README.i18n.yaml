@@ -3,26 +3,26 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/client/ui-skill-filter/README.md
 /:
-  en: a2110d1d0449e084
-  zh: 7ff344bf4a2d2ee2
+  en: 5e7bf108efeb17e0
+  zh: d200d3df8c714b0e
 /deepseek-ai-dsh-client-ui-skill-filter:
   en: b0dc7aeffe2f45ae
   zh: cf132dc857171e14
 /deepseek-ai-dsh-client-ui-skill-filter/summary:
-  en: a8024f0b7e1a78f6
-  zh: 03515d581ec8a27d
+  en: d8b6cc0308051d51
+  zh: ebb3970e3ce48173
 /deepseek-ai-dsh-client-ui-skill-filter/table-of-contents:
   en: b563e4ec4727d0de
   zh: 96743a2cfcba9955
 /deepseek-ai-dsh-client-ui-skill-filter/use-this-package:
-  en: ed65408d79a2dba3
-  zh: 2518b5be5b8e463e
+  en: 0b7728c3e83868b8
+  zh: 74f4b657233db221
 /deepseek-ai-dsh-client-ui-skill-filter/use-this-package/when-to-choose-it:
   en: 201d363af20e5aa3
   zh: e624c1268f86bd02
 /deepseek-ai-dsh-client-ui-skill-filter/use-this-package/what-each-surface-shows:
-  en: fa03d65679f54b80
-  zh: 4eddc29a0c1cc9bf
+  en: c4b18e1cb623d9ea
+  zh: 5a43b69b0b038b45
 /deepseek-ai-dsh-client-ui-skill-filter/use-this-package/minimal-composition:
   en: ad6dd29ee7479724
   zh: 6d9f18154ab43733
@@ -33,8 +33,8 @@
   en: c3ab593e437cfafd
   zh: 36d31a46447af6dc
 /deepseek-ai-dsh-client-ui-skill-filter/understand-the-implementation/draft-ownership:
-  en: b18d3b13cd85b1a8
-  zh: ab5d50bb8458aecf
+  en: 365816e73516572d
+  zh: a0d68d526a127680
 /deepseek-ai-dsh-client-ui-skill-filter/further-exploration:
   en: 827a46800de9bad6
   zh: 95d23080eab9cf08
@@ -45,8 +45,8 @@
   en: ca75c51c89c2c9b0
   zh: 2064958b0754647e
 /deepseek-ai-dsh-client-ui-skill-filter/known-limitations-and-deferred-work:
-  en: f0c2f0ce41db33d8
-  zh: cc9d91f2b4f0c944
+  en: ad03643608334846
+  zh: e875cc3424a03e9d
 /deepseek-ai-dsh-client-ui-skill-filter/known-limitations-and-deferred-work/dev-note:
   en: e67f633dc6fe7773
   zh: 7e07e6178cc432a1

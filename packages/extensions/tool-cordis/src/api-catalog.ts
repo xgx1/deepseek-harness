@@ -9046,7 +9046,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'SkillListRequest',
-    declaration: 'export interface SkillListRequest {\n    readonly sessionId: SessionId;\n}',
+    declaration: 'export interface SkillListRequest {\n    readonly sessionId: SessionId;\n    readonly includeHidden?: boolean;\n}',
   },
   {
     name: 'SkillListValue',

@@ -75,7 +75,11 @@ export class SessionSkillCatalog extends TypertRemoteService {
     await using lease = live === undefined ? await this.scopeFor(agentPreset) : undefined
     const scope = live ?? lease?.key
     try {
-      const skills = (await skillRegistry.list({ cwd, scope })).filter(isUserInvocable)
+      const listed = await skillRegistry.list({ cwd, scope })
+      // The filter's denial clears `userInvocable`, so the default list is
+      // exactly what a `/name` gesture may invoke. The skill-filter management
+      // surface opts into the hidden remainder: it has to show what it hides.
+      const skills = request.includeHidden === true ? listed : listed.filter(isUserInvocable)
       return {
         skills: skills.map(skill => ({
           name: skill.name,

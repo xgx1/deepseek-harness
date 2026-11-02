@@ -63,7 +63,9 @@ export function createSkillFilterFace(remote: SkillFilterRemotes): SkillFilterFa
     saveProject: (cwd, config) => skillFilter.setProject({ cwd, config }),
     loadEffective: cwd => skillFilter.getEffective({ cwd }),
     listSkills: async (sessionId) => {
-      const result = await skills.list({ sessionId })
+      // The management surface must also list the skills the filter hides:
+      // `userInvocable` is cleared for those, and the default list drops them.
+      const result = await skills.list({ sessionId, includeHidden: true })
       if (!result.ok) return result
       return {
         ok: true,

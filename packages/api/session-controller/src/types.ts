@@ -219,6 +219,8 @@ declare module '@deepseek-ai/dsh-typert-protocol' {
 /** Session-addressed request for the human-invocable skill catalog. */
 export interface SkillListRequest {
   readonly sessionId: SessionId
+  /** Also list skills the filter hides; the default keeps only invocable ones. */
+  readonly includeHidden?: boolean
 }
 
 /** One skill available to the Session's human-facing composer. */

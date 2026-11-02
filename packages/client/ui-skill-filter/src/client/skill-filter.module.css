@@ -1,3 +1,6 @@
+/* Shared styling for the three skill-filter seats: the Conversation page, the
+   Settings section and the Sidebar tab. Cards, rule rows and catalog rows are
+   the same objects in each, so they read the same tokens. */
 .section {
   display: flex;
   flex-direction: column;
@@ -16,6 +19,8 @@
   margin: 0;
   font-size: 14px;
   font-weight: 600;
+  line-height: 1.4;
+  color: var(--dsw-alias-label-primary, inherit);
 }
 
 .title {
@@ -25,42 +30,47 @@
 .panel {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 12px;
-  border: 0.5px solid var(--dsw-alias-border-secondary, rgba(127, 127, 127, 0.35));
-  border-radius: var(--dsw-radius-sm);
+  gap: 10px;
+  padding: 16px;
+  background: var(--dsw-alias-bg-layer-1, transparent);
+  border: 0.5px solid var(--dsw-alias-border-l2, rgba(127, 127, 127, 0.35));
+  border-radius: var(--dsw-radius-lg, 10px);
 }
 
 .note {
   margin: 0;
   font-size: 12px;
-  line-height: 1.5;
-  color: var(--dsw-alias-text-secondary, inherit);
+  line-height: 1.6;
+  color: var(--dsw-alias-label-secondary, inherit);
 }
 
 .error {
   margin: 0;
   font-size: 12px;
-  line-height: 1.5;
-  color: var(--dsw-alias-text-danger, #d14343);
+  line-height: 1.6;
+  color: var(--dsw-alias-state-error-primary, #d14343);
 }
 
 .actions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
 .ruleList {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 0.5px solid var(--dsw-alias-border-l1, rgba(127, 127, 127, 0.2));
 }
 
 .ruleHeading {
   margin: 0;
   font-size: 13px;
   font-weight: 600;
+  color: var(--dsw-alias-label-primary, inherit);
 }
 
 .patterns {
@@ -81,19 +91,30 @@
 .patternInput {
   flex: 1;
   min-width: 0;
-  padding: 4px 8px;
-  font: inherit;
+  height: 30px;
+  padding: 0 10px;
+  font-family: var(--dsw-font-markdown-code-block, var(--dsw-font-family, monospace));
   font-size: 12px;
-  color: inherit;
-  background: transparent;
-  border: 0.5px solid var(--dsw-alias-border-secondary, rgba(127, 127, 127, 0.35));
-  border-radius: var(--dsw-radius-xs);
+  color: var(--dsw-alias-label-primary, inherit);
+  background: var(--dsw-alias-bg-base, transparent);
+  border: 0.5px solid var(--dsw-alias-border-l2, rgba(127, 127, 127, 0.35));
+  border-radius: var(--dsw-radius-sm, 6px);
+  transition: border-color 120ms ease;
+}
+
+.patternInput:hover {
+  border-color: var(--dsw-alias-border-l3, rgba(127, 127, 127, 0.5));
+}
+
+.patternInput:focus-visible {
+  outline: var(--dsw-focus-ring-width, 2px) solid var(--dsw-focus-ring-color, #4c8dff);
+  outline-offset: 1px;
 }
 
 .groups {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -103,70 +124,90 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  padding: 4px 6px;
   font-size: 12px;
+  border-radius: var(--dsw-radius-sm, 6px);
+}
+
+.groupRow:hover {
+  background: var(--dsw-alias-interactive-bg-hover, rgba(127, 127, 127, 0.12));
 }
 
 .groupName {
   flex: 1;
   min-width: 0;
-  font-family: var(--dsw-font-mono, monospace);
+  font-family: var(--dsw-font-markdown-code-block, var(--dsw-font-family, monospace));
+  color: var(--dsw-alias-label-primary, inherit);
 }
 
 .search {
+  display: block;
   width: 100%;
+}
+
+/* The Input primitive wraps its field in an inline-flex span; the catalog's
+   search owns the card's width, so the wrapper stretches with it. */
+.search > span {
+  display: flex;
+  width: 100%;
+}
+
+.addPattern {
+  align-self: flex-start;
 }
 
 .skills {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
   margin: 0;
+  margin-inline: -6px;
   padding: 0;
   list-style: none;
 }
 
 .skillRow {
   display: grid;
-  grid-template-columns: minmax(120px, 1fr) minmax(120px, 2fr) auto auto;
+  grid-template-columns: minmax(130px, 1.1fr) minmax(0, 2fr) auto auto;
   align-items: center;
-  gap: 8px;
-  padding: 4px 0;
+  gap: 10px;
+  padding: 6px;
   font-size: 12px;
+  border-radius: var(--dsw-radius-sm, 6px);
+}
+
+.skillRow:hover {
+  background: var(--dsw-alias-interactive-bg-hover, rgba(127, 127, 127, 0.12));
 }
 
 .skillName {
-  font-family: var(--dsw-font-mono, monospace);
+  font-family: var(--dsw-font-markdown-code-block, var(--dsw-font-family, monospace));
+  color: var(--dsw-alias-label-primary, inherit);
   overflow-wrap: anywhere;
 }
 
 .skillDescription {
-  color: var(--dsw-alias-text-secondary, inherit);
-  overflow-wrap: anywhere;
-}
-
-.skillState {
-  padding: 0 6px;
-  border-radius: 999px;
-  corner-shape: round;
-  border: 0.5px solid var(--dsw-alias-border-secondary, rgba(127, 127, 127, 0.35));
-}
-
-.skillState[data-state='visible'] {
-  color: var(--dsw-alias-text-success, #2e7d32);
-}
-
-.skillState[data-state='hidden'] {
-  color: var(--dsw-alias-text-secondary, inherit);
+  min-width: 0;
+  overflow: hidden;
+  color: var(--dsw-alias-label-secondary, inherit);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .skillActions {
   display: flex;
   gap: 4px;
+  justify-self: end;
 }
 
 .mergedPatterns {
   margin: 0;
+  padding: 8px 10px;
+  font-family: var(--dsw-font-markdown-code-block, var(--dsw-font-family, monospace));
   font-size: 12px;
-  font-family: var(--dsw-font-mono, monospace);
+  line-height: 1.6;
+  color: var(--dsw-alias-label-secondary, inherit);
+  background: var(--dsw-alias-bg-base, transparent);
+  border-radius: var(--dsw-radius-sm, 6px);
   overflow-wrap: anywhere;
 }

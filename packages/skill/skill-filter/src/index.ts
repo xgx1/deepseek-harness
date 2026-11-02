@@ -2,8 +2,10 @@
  * Whitelist-based skill visibility filter plugin.
  *
  * Wraps a `FileSystemSkillProvider` with personal + project allow/deny rules.
- * Denied skills stay registered (user-invocable via `/name`) but have their
- * `modelInvocable` flag cleared, so the model catalog hides them.
+ * The verdict is one gate for both surfaces: a denied skill has BOTH invocation
+ * flags cleared, so it leaves the model catalog, leaves the `/name` gesture, and
+ * is never injected as instructions context. An allowed skill restores
+ * `modelInvocable` even when its own frontmatter denied it (ADR-0002).
  *
  * The wrapped provider's candidates carry this plugin's own provider name, so
  * the registry resolves loads back to this provider (`get()` delegates to the
@@ -20,6 +22,7 @@ import { FileSystemSkillProvider } from '@deepseek-ai/dsh-skill-filesystem'
 import type {
   SkillCandidate,
   SkillDefinition,
+  SkillInvocationPolicy,
   SkillLookupOptions,
   SkillProvider,
   SkillProviderControl,
@@ -133,15 +136,9 @@ export class FilteredSkillProvider implements SkillProvider {
         !
         candidate.invocation.modelInvocable,
       )
-      // The verdict publishes the flag: a denied skill stays registered (so
-      // /name still works) with the flag cleared, and an allowed skill's flag
-      // is restored, so a config allow overrides the skill's own frontmatter
-      // deny (ADR-0002).
-      if (candidate.invocation.modelInvocable === verdict.visible) return this.own(candidate)
-      return this.own({
-        ...candidate,
-        invocation: { ...candidate.invocation, modelInvocable: verdict.visible },
-      })
+      const invocation = verdictPolicy(verdict.visible, candidate.invocation)
+      if (invocation === candidate.invocation) return this.own(candidate)
+      return this.own({ ...candidate, invocation })
     })
 
     return filtered
@@ -152,7 +149,22 @@ export class FilteredSkillProvider implements SkillProvider {
     options: SkillLookupOptions,
   ): Promise<SkillDefinition | undefined> {
     // The locator is the inner provider's handle; delegate loading back to it.
-    return this.inner.get(candidate, options)
+    const definition = await this.inner.get(candidate, options)
+    if (definition === undefined) return undefined
+    // The inner definition carries the frontmatter policy, so a load would
+    // bypass the verdict list() published unless it is applied here too — this
+    // is the single lookup that decides what a /name gesture injects.
+    const rules = await this.loadRules(options.cwd)
+    if (rules === undefined) return definition
+    const verdict = filterSkill(
+      definition.name,
+      rules.projectRules,
+      rules.personalRules,
+      !definition.invocation.modelInvocable,
+    )
+    const invocation = verdictPolicy(verdict.visible, definition.invocation)
+    if (invocation === definition.invocation) return definition
+    return { ...definition, invocation }
   }
 
   /** Dispose the internal watcher-managed provider. */
@@ -183,6 +195,28 @@ export class FilteredSkillProvider implements SkillProvider {
     if (personalRules === undefined && projectRules === undefined) return undefined
     return { personalRules, projectRules }
   }
+}
+
+/**
+ * Project one verdict onto a skill's invocation policy.
+ * A denial clears both flags, so no surface may advertise or load the skill. An
+ * allow restores `modelInvocable` (a config allow overrides the skill's own
+ * frontmatter deny, ADR-0002) and leaves `userInvocable` as the frontmatter
+ * declared it, so the filter never grants an invocation the skill withheld.
+ * @param visible - whether the merged rules allow the skill.
+ * @param policy - the skill's own frontmatter policy.
+ * @returns the same object when the verdict changes nothing.
+ */
+function verdictPolicy(
+  visible: boolean,
+  policy: SkillInvocationPolicy,
+): SkillInvocationPolicy {
+  if (visible) {
+    return policy.modelInvocable ? policy : { ...policy, modelInvocable: true }
+  }
+  return policy.modelInvocable || policy.userInvocable
+    ? { ...policy, modelInvocable: false, userInvocable: false }
+    : policy
 }
 
 /** Re-export the config types for consumers and the settings UI. */

@@ -7,7 +7,7 @@
  * owns no persistence of its own.
  */
 import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
-import { Button, Input } from '@deepseek-ai/dsh-client-ui-primitives'
+import { Button, Input, Pill, Tag } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { SkillFilterSkillEntry } from './face.ts'
 import { filterByQuery } from './face.ts'
 import type {} from './locales.ts'
@@ -78,24 +78,24 @@ export function SkillCatalog(props: SkillCatalogProps) {
             <li key={skill.name} className={css.skillRow}>
               <span className={css.skillName}>{skill.name}</span>
               <span className={css.skillDescription}>{skill.description}</span>
-              <span className={css.skillState} data-state={skill.modelInvocable ? 'visible' : 'hidden'}>
+              <Tag tone={skill.modelInvocable ? 'success' : 'quiet'}>
                 {skill.modelInvocable ? t('state.visible') : t('state.hidden')}
-              </span>
+              </Tag>
               <span className={css.skillActions}>
-                <Button
-                  size="sm"
-                  variant={allowed ? 'primary' : 'ghost'}
+                <Pill
+                  active={allowed}
+                  aria-pressed={allowed}
                   onClick={() => { onAllow(skill.name) }}
                 >
                   {t('action.allow')}
-                </Button>
-                <Button
-                  size="sm"
-                  variant={denied ? 'primary' : 'ghost'}
+                </Pill>
+                <Pill
+                  active={denied}
+                  aria-pressed={denied}
                   onClick={() => { onDeny(skill.name) }}
                 >
                   {t('action.deny')}
-                </Button>
+                </Pill>
               </span>
             </li>
           )

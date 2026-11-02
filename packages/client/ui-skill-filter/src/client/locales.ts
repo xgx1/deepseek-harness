@@ -16,13 +16,15 @@ export type SkillFilterKey =
   | 'state.visible' | 'state.hidden'
   | 'action.allow' | 'action.deny' | 'action.clear' | 'action.save' | 'action.saving'
   | 'action.saved' | 'action.saveFailed' | 'action.addPattern'
+  | 'action.allowRequired'
   | 'prefixes' | 'prefixes.intro' | 'prefixes.empty'
+  | 'page.total'
 
 /** English copy. */
 export const en: Record<SkillFilterKey, string> = {
   nav: 'Skills',
   title: 'Skill filtering',
-  intro: 'Choose which skills the model may see. A skill that is hidden stays callable with /name.',
+  intro: 'Choose which skills the model may see. A hidden skill is not callable and is not injected.',
   'type.label': 'Skills',
   'guide.title': 'Skills',
   'guide.description': 'Review and override which skills the model can see in this project.',
@@ -50,7 +52,7 @@ export const en: Record<SkillFilterKey, string> = {
   'effective.allow': 'Allowed',
   'effective.deny': 'Denied',
   catalog: 'Skill catalog',
-  'catalog.intro': 'Search every skill this session can see and switch it between allowed and denied.',
+  'catalog.intro': 'Search every skill this session can load and switch it between allowed and denied.',
   'catalog.search': 'Search skills',
   'catalog.empty': 'No skill matches this search.',
   'catalog.unavailable': 'Open a session to list its skills.',
@@ -65,17 +67,19 @@ export const en: Record<SkillFilterKey, string> = {
   'action.saving': 'Saving…',
   'action.saved': 'Saved.',
   'action.saveFailed': 'The config was rejected; the previous rules are still in effect.',
+  'action.allowRequired': 'The allow list needs at least one pattern; the Host refuses an empty one.',
   'action.addPattern': 'Add pattern',
   prefixes: 'Suggested groups',
   'prefixes.intro': 'Skill names share a prefix before the first hyphen. Allow a whole group at once.',
   'prefixes.empty': 'No skill is available to group.',
+  'page.total': 'Total skills',
 }
 
 /** Chinese copy. */
 export const zh: Record<SkillFilterKey, string> = {
   nav: '技能',
   title: '技能过滤',
-  intro: '选择模型可以看到哪些技能。被隐藏的技能仍可用 /名称 直接调用。',
+  intro: '选择模型可以看到哪些技能。不允许的技能既不能调用，也不会注入上下文。',
   'type.label': '技能',
   'guide.title': '技能',
   'guide.description': '查看并覆盖本项目中对模型可见的技能。',
@@ -103,7 +107,7 @@ export const zh: Record<SkillFilterKey, string> = {
   'effective.allow': '允许',
   'effective.deny': '拒绝',
   catalog: '技能目录',
-  'catalog.intro': '搜索本会话可见的全部技能，并在允许与拒绝之间切换。',
+  'catalog.intro': '搜索本会话可加载的全部技能，并在允许与拒绝之间切换。',
   'catalog.search': '搜索技能',
   'catalog.empty': '没有技能匹配当前搜索。',
   'catalog.unavailable': '打开一个会话后即可查看其技能。',
@@ -118,17 +122,19 @@ export const zh: Record<SkillFilterKey, string> = {
   'action.saving': '保存中…',
   'action.saved': '已保存。',
   'action.saveFailed': '配置被拒绝；此前的规则仍然生效。',
+  'action.allowRequired': '允许清单至少需要一个模式，宿主会拒绝空清单。',
   'action.addPattern': '添加模式',
   prefixes: '建议分组',
   'prefixes.intro': '技能名在第一个连字符前共享前缀，可以整组放行。',
   'prefixes.empty': '没有可用于分组的技能。',
+  'page.total': '技能总数',
 }
 
 /** Japanese copy. */
 export const ja: Record<SkillFilterKey, string> = {
   nav: 'スキル',
   title: 'スキルフィルタリング',
-  intro: 'モデルが参照できるスキルを選択します。非表示のスキルも /name で直接呼び出せます。',
+  intro: 'モデルが参照できるスキルを選択します。許可されていないスキルは呼び出せず、注入もされません。',
   'type.label': 'スキル',
   'guide.title': 'スキル',
   'guide.description': 'このプロジェクトでモデルから見えるスキルを確認し、上書きします。',
@@ -156,7 +162,7 @@ export const ja: Record<SkillFilterKey, string> = {
   'effective.allow': '許可',
   'effective.deny': '拒否',
   catalog: 'スキルカタログ',
-  'catalog.intro': 'このセッションから見えるすべてのスキルを検索し、許可と拒否を切り替えます。',
+  'catalog.intro': 'このセッションが読み込めるすべてのスキルを検索し、許可と拒否を切り替えます。',
   'catalog.search': 'スキルを検索',
   'catalog.empty': 'この検索に一致するスキルはありません。',
   'catalog.unavailable': 'セッションを開くとそのスキル一覧を表示できます。',
@@ -171,17 +177,19 @@ export const ja: Record<SkillFilterKey, string> = {
   'action.saving': '保存中…',
   'action.saved': '保存しました。',
   'action.saveFailed': '設定は拒否されました。それまでのルールが引き続き適用されます。',
+  'action.allowRequired': '許可リストには少なくとも1つのパターンが必要です。空のリストは拒否されます。',
   'action.addPattern': 'パターンを追加',
   prefixes: '推奨グループ',
   'prefixes.intro': 'スキル名は最初のハイフンの前で接頭辞を共有します。グループ全体を一度に許可できます。',
   'prefixes.empty': 'グループ化できるスキルはありません。',
+  'page.total': 'スキル総数',
 }
 
 /** Spanish copy. */
 export const es: Record<SkillFilterKey, string> = {
   nav: 'Habilidades',
   title: 'Filtrado de habilidades',
-  intro: 'Elige qué habilidades puede ver el modelo. Una habilidad oculta sigue siendo invocable con /name.',
+  intro: 'Elige qué habilidades puede ver el modelo. Una habilidad no permitida no se invoca ni se inyecta.',
   'type.label': 'Habilidades',
   'guide.title': 'Habilidades',
   'guide.description': 'Revisa y sobrescribe qué habilidades puede ver el modelo en este proyecto.',
@@ -209,7 +217,7 @@ export const es: Record<SkillFilterKey, string> = {
   'effective.allow': 'Permitido',
   'effective.deny': 'Denegado',
   catalog: 'Catálogo de habilidades',
-  'catalog.intro': 'Busca todas las habilidades que esta sesión puede ver y cámbialas entre permitida y denegada.',
+  'catalog.intro': 'Busca todas las habilidades que esta sesión puede cargar y cámbialas entre permitida y denegada.',
   'catalog.search': 'Buscar habilidades',
   'catalog.empty': 'Ninguna habilidad coincide con esta búsqueda.',
   'catalog.unavailable': 'Abre una sesión para listar sus habilidades.',
@@ -224,17 +232,19 @@ export const es: Record<SkillFilterKey, string> = {
   'action.saving': 'Guardando…',
   'action.saved': 'Guardado.',
   'action.saveFailed': 'La configuración fue rechazada; las reglas anteriores siguen vigentes.',
+  'action.allowRequired': 'La lista de permitidos necesita al menos un patrón; el Host rechaza una vacía.',
   'action.addPattern': 'Añadir patrón',
   prefixes: 'Grupos sugeridos',
   'prefixes.intro': 'Los nombres de habilidad comparten un prefijo antes del primer guion. Permite un grupo entero de una vez.',
   'prefixes.empty': 'Ninguna habilidad disponible para agrupar.',
+  'page.total': 'Habilidades totales',
 }
 
 /** French copy. */
 export const fr: Record<SkillFilterKey, string> = {
   nav: 'Compétences',
   title: 'Filtrage des compétences',
-  intro: 'Choisissez les compétences que le modèle peut voir. Une compétence masquée reste appelable avec /name.',
+  intro: 'Choisissez les compétences que le modèle peut voir. Une compétence non autorisée n’est ni appelable ni injectée.',
   'type.label': 'Compétences',
   'guide.title': 'Compétences',
   'guide.description': 'Consultez et remplacez les compétences que le modèle peut voir dans ce projet.',
@@ -262,7 +272,7 @@ export const fr: Record<SkillFilterKey, string> = {
   'effective.allow': 'Autorisé',
   'effective.deny': 'Refusé',
   catalog: 'Catalogue des compétences',
-  'catalog.intro': 'Recherchez toutes les compétences visibles dans cette session et basculez-les entre autorisé et refusé.',
+  'catalog.intro': 'Recherchez toutes les compétences que cette session peut charger et basculez-les entre autorisé et refusé.',
   'catalog.search': 'Rechercher des compétences',
   'catalog.empty': 'Aucune compétence ne correspond à cette recherche.',
   'catalog.unavailable': 'Ouvrez une session pour lister ses compétences.',
@@ -277,17 +287,19 @@ export const fr: Record<SkillFilterKey, string> = {
   'action.saving': 'Enregistrement…',
   'action.saved': 'Enregistré.',
   'action.saveFailed': 'La configuration a été refusée ; les règles précédentes restent en vigueur.',
+  'action.allowRequired': 'La liste d\'autorisation nécessite au moins un motif ; l\'hôte refuse une liste vide.',
   'action.addPattern': 'Ajouter un motif',
   prefixes: 'Groupes suggérés',
   'prefixes.intro': 'Les noms de compétence partagent un préfixe avant le premier tiret. Autorisez tout un groupe d’un coup.',
   'prefixes.empty': 'Aucune compétence disponible pour le regroupement.',
+  'page.total': 'Compétences au total',
 }
 
 /** German copy. */
 export const de: Record<SkillFilterKey, string> = {
   nav: 'Skills',
   title: 'Skill-Filterung',
-  intro: 'Wähle aus, welche Skills das Modell sehen darf. Ein ausgeblendeter Skill bleibt mit /name aufrufbar.',
+  intro: 'Wähle aus, welche Skills das Modell sehen darf. Ein nicht erlaubter Skill ist weder aufrufbar noch injiziert.',
   'type.label': 'Skills',
   'guide.title': 'Skills',
   'guide.description': 'Prüfe und überschreibe, welche Skills das Modell in diesem Projekt sehen kann.',
@@ -315,7 +327,7 @@ export const de: Record<SkillFilterKey, string> = {
   'effective.allow': 'Erlaubt',
   'effective.deny': 'Verweigert',
   catalog: 'Skill-Katalog',
-  'catalog.intro': 'Durchsuche alle Skills, die diese Sitzung sehen kann, und wechsle zwischen erlaubt und verweigert.',
+  'catalog.intro': 'Durchsuche alle Skills, die diese Sitzung laden kann, und wechsle zwischen erlaubt und verweigert.',
   'catalog.search': 'Skills suchen',
   'catalog.empty': 'Kein Skill passt zu dieser Suche.',
   'catalog.unavailable': 'Öffne eine Sitzung, um ihre Skills aufzulisten.',
@@ -330,17 +342,19 @@ export const de: Record<SkillFilterKey, string> = {
   'action.saving': 'Speichern…',
   'action.saved': 'Gespeichert.',
   'action.saveFailed': 'Die Konfiguration wurde abgelehnt; die bisherigen Regeln gelten weiterhin.',
+  'action.allowRequired': 'Die Allow-Liste braucht mindestens ein Muster; der Host lehnt eine leere ab.',
   'action.addPattern': 'Muster hinzufügen',
   prefixes: 'Vorgeschlagene Gruppen',
   'prefixes.intro': 'Skill-Namen teilen ein Präfix vor dem ersten Bindestrich. Erlaube eine ganze Gruppe auf einmal.',
   'prefixes.empty': 'Kein Skill zum Gruppieren verfügbar.',
+  'page.total': 'Skills gesamt',
 }
 
 /** Russian copy. */
 export const ru: Record<SkillFilterKey, string> = {
   nav: 'Навыки',
   title: 'Фильтрация навыков',
-  intro: 'Выберите, какие навыки видит модель. Скрытый навык по-прежнему вызывается через /name.',
+  intro: 'Выберите, какие навыки видит модель. Неразрешённый навык не вызывается и не внедряется.',
   'type.label': 'Навыки',
   'guide.title': 'Навыки',
   'guide.description': 'Просмотрите и переопределите, какие навыки модель видит в этом проекте.',
@@ -368,7 +382,7 @@ export const ru: Record<SkillFilterKey, string> = {
   'effective.allow': 'Разрешено',
   'effective.deny': 'Запрещено',
   catalog: 'Каталог навыков',
-  'catalog.intro': 'Ищите среди всех навыков, видимых в этой сессии, и переключайте их между «разрешено» и «запрещено».',
+  'catalog.intro': 'Ищите среди всех навыков, которые эта сессия может загрузить, и переключайте их между «разрешено» и «запрещено».',
   'catalog.search': 'Поиск навыков',
   'catalog.empty': 'Ни один навык не соответствует поиску.',
   'catalog.unavailable': 'Откройте сессию, чтобы увидеть список её навыков.',
@@ -383,17 +397,19 @@ export const ru: Record<SkillFilterKey, string> = {
   'action.saving': 'Сохранение…',
   'action.saved': 'Сохранено.',
   'action.saveFailed': 'Конфигурация отклонена; прежние правила продолжают действовать.',
+  'action.allowRequired': 'Список разрешений требует хотя бы один шаблон; хост отклоняет пустой.',
   'action.addPattern': 'Добавить шаблон',
   prefixes: 'Предложенные группы',
   'prefixes.intro': 'Имена навыков делят префикс до первого дефиса. Разрешите целую группу сразу.',
   'prefixes.empty': 'Нет навыков, доступных для группировки.',
+  'page.total': 'Всего навыков',
 }
 
 /** Portuguese copy. */
 export const pt: Record<SkillFilterKey, string> = {
   nav: 'Habilidades',
   title: 'Filtragem de habilidades',
-  intro: 'Escolha quais habilidades o modelo pode ver. Uma habilidade oculta continua chamável com /name.',
+  intro: 'Escolha quais habilidades o modelo pode ver. Uma habilidade não permitida não é chamável nem injetada.',
   'type.label': 'Habilidades',
   'guide.title': 'Habilidades',
   'guide.description': 'Revise e substitua quais habilidades o modelo pode ver neste projeto.',
@@ -421,7 +437,7 @@ export const pt: Record<SkillFilterKey, string> = {
   'effective.allow': 'Permitido',
   'effective.deny': 'Negado',
   catalog: 'Catálogo de habilidades',
-  'catalog.intro': 'Pesquise todas as habilidades que esta sessão pode ver e alterne entre permitido e negado.',
+  'catalog.intro': 'Pesquise todas as habilidades que esta sessão pode carregar e alterne entre permitido e negado.',
   'catalog.search': 'Pesquisar habilidades',
   'catalog.empty': 'Nenhuma habilidade corresponde a esta pesquisa.',
   'catalog.unavailable': 'Abra uma sessão para listar suas habilidades.',
@@ -436,8 +452,10 @@ export const pt: Record<SkillFilterKey, string> = {
   'action.saving': 'Salvando…',
   'action.saved': 'Salvo.',
   'action.saveFailed': 'A configuração foi rejeitada; as regras anteriores continuam em vigor.',
+  'action.allowRequired': 'A lista de permissões precisa de pelo menos um padrão; o Host recusa uma vazia.',
   'action.addPattern': 'Adicionar padrão',
   prefixes: 'Grupos sugeridos',
   'prefixes.intro': 'Os nomes de habilidade compartilham um prefixo antes do primeiro hífen. Permita um grupo inteiro de uma vez.',
   'prefixes.empty': 'Nenhuma habilidade disponível para agrupar.',
+  'page.total': 'Habilidades no total',
 }
