@@ -149,7 +149,8 @@ describe('native management composition', () => {
       { callId: 'manager-human', state: 'continued', questions: [{ id: 'color' }, { id: 'size' }] },
     ])
     await manager.whenIdle()
-    expect(requests(host, worker)).toHaveLength(2)
+    // 非阻塞：提问后这一轮继续往下走，所以是 3 次请求而不是「问完就停」的 2 次。
+    expect(requests(host, worker)).toHaveLength(3)
     expect(lastToolResult(worker.session)).toMatchObject({ isError: false })
     expect(lastToolResult(worker.session)?.content.some(block => block.type === 'text' && block.text.includes('"pending":true'))).toBe(true)
     const forwarded = inputs(manager.session).filter(message => JSON.stringify(message.content).includes('worker-question'))
@@ -160,9 +161,9 @@ describe('native management composition', () => {
       type: 'worker-question', id: questionId, workerId: worker.id, managerId: manager.id,
       questions, answers: [], status: 'pending',
     })
-    expect(await host.execute(worker, 'ask_user_question', { questions }, 'worker-business')).toMatchObject({
-      isError: false, value: { pending: true, questionId }, concludesTurn: true,
-    })
+    const asked = await host.execute(worker, 'ask_user_question', { questions }, 'worker-business')
+    expect(asked).toMatchObject({ isError: false, value: { pending: true, questionId } })
+    expect(asked.concludesTurn).not.toBe(true)
     expect(inputs(manager.session).filter(message => JSON.stringify(message.content).includes('worker-question'))).toHaveLength(1)
     await ctx.sessions.flush(manager.session)
     expect(lastToolResult(manager.session)).toMatchObject({ isError: false })
@@ -175,9 +176,10 @@ describe('native management composition', () => {
     await worker.whenIdle()
     expect(requests(host, worker)).toHaveLength(workerRequests)
     expect(state().questions[questionId]?.answers).toEqual([{ id: 'color', selected: ['Blue'] }])
+    // 问题未答也照样能继续派活：没有人被挂起。
     expect(await host.execute(manager, 'manager_send', {
-      workerSessionId: worker.id, message: 'Do not skip the size question.', idempotencyKey: 'blocked',
-    })).toMatchObject({ isError: true })
+      workerSessionId: worker.id, message: 'Keep going with the provisional layout.', idempotencyKey: 'continue',
+    })).toMatchObject({ isError: false, value: { delivered: true } })
 
     await ctx.sessions.flush(manager.session)
     await ctx.sessions.flush(worker.session)
