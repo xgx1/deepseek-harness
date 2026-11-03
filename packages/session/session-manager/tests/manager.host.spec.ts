@@ -163,7 +163,7 @@ describe('native management composition', () => {
     })
     const asked = await host.execute(worker, 'ask_user_question', { questions }, 'worker-business')
     expect(asked).toMatchObject({ isError: false, value: { pending: true, questionId } })
-    expect(asked.concludesTurn).not.toBe(true)
+    expect(asked?.concludesTurn).not.toBe(true)
     expect(inputs(manager.session).filter(message => JSON.stringify(message.content).includes('worker-question'))).toHaveLength(1)
     await ctx.sessions.flush(manager.session)
 
