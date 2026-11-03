@@ -77,8 +77,9 @@ export function renderAnswer(input: {
     '',
   ]
   for (const answer of input.answers) {
-    const parts = [...answer.selected]
-    if (answer.custom !== undefined && answer.custom.trim() !== '') parts.push(answer.custom.trim())
+    const custom = answer.custom?.trim() ?? ''
+    // 自由文本答复常常同时落在 selected 与 custom 上，去重后只写一遍。
+    const parts = [...new Set([...answer.selected, ...(custom === '' ? [] : [custom])])]
     lines.push(`- [${answer.id}] ${parts.join(' / ')}`)
   }
   lines.push('')
