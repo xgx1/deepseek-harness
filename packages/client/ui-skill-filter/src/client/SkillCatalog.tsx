@@ -76,8 +76,10 @@ export function SkillCatalog(props: SkillCatalogProps) {
           const denied = isDenied(skill.name)
           return (
             <li key={skill.name} className={css.skillRow}>
-              <span className={css.skillName}>{skill.name}</span>
-              <span className={css.skillDescription}>{skill.description}</span>
+              <span className={css.skillMain}>
+                <span className={css.skillName}>{skill.name}</span>
+                <span className={css.skillDescription}>{skill.description}</span>
+              </span>
               <Tag tone={skill.modelInvocable ? 'success' : 'quiet'}>
                 {skill.modelInvocable ? t('state.visible') : t('state.hidden')}
               </Tag>
