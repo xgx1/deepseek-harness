@@ -4,7 +4,6 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import type { Context } from '@deepseek-ai/cordis'
 import type { Agent } from '@deepseek-ai/dsh-agent'
-import { ToolCallId } from '@deepseek-ai/dsh-llm'
 import type { Session } from '@deepseek-ai/dsh-session'
 import { afterEach, describe, expect, it } from 'vitest'
 import { z } from 'zod'
@@ -142,12 +141,13 @@ describe('native management composition', () => {
 
     await manager.whenIdle()
     const questionId = deliveryId(worker.id, 'worker-business')
-    host.adapter.enqueue(manager, toolCallResponse('manager-human', 'ask_user_question', { questionId, questions, timeout: 1 }))
+    // 管理端不直接向用户提问：入口只把用户引到任务面板（ADR-0013）。
+    expect(await host.execute(manager, 'ask_user_question', { questions })).toMatchObject({
+      isError: false, value: { recorded: false, where: 'task-panel' },
+    })
+    expect(JSON.stringify(activeQuestions(ctx, manager) ?? {})).not.toContain('ask_user_question')
     await host.turn(worker, 'Ask for the two business decisions.', toolCallResponse('worker-business', 'ask_user_question', { questions }))
     await expect.poll(() => state().questions[questionId]?.status).toBe('pending')
-    await expect.poll(() => activeQuestions(ctx, manager)?.questions.active).toMatchObject([
-      { callId: 'manager-human', state: 'continued', questions: [{ id: 'color' }, { id: 'size' }] },
-    ])
     await manager.whenIdle()
     // 非阻塞：提问后这一轮继续往下走，所以是 3 次请求而不是「问完就停」的 2 次。
     expect(requests(host, worker)).toHaveLength(3)
@@ -166,8 +166,6 @@ describe('native management composition', () => {
     expect(asked.concludesTurn).not.toBe(true)
     expect(inputs(manager.session).filter(message => JSON.stringify(message.content).includes('worker-question'))).toHaveLength(1)
     await ctx.sessions.flush(manager.session)
-    expect(lastToolResult(manager.session)).toMatchObject({ isError: false })
-    expect(lastToolResult(manager.session)?.content.some(block => block.type === 'text' && block.text.includes('"pending":true'))).toBe(true)
 
     const workerRequests = requests(host, worker).length
     expect(await host.execute(manager, 'manager_answer', {
@@ -190,12 +188,10 @@ describe('native management composition', () => {
     const coldManager = resolved.agent
     expect(cold.state().questions[questionId]).toMatchObject({ status: 'pending', answers: [{ id: 'color', selected: ['Blue'] }] })
     expect(cold.ctx.agents.get(worker.id)).toBeUndefined()
-    expect(activeQuestions(cold.ctx, coldManager)?.questions.active).toMatchObject([
-      { callId: 'manager-human', state: 'continued' },
-    ])
-    expect(cold.ctx.userQuestions.answer(coldManager, ToolCallId('manager-human'), { answers: [
-      { id: 'color', selected: ['Blue'] }, { id: 'size', selected: [], custom: 'Large' },
-    ] })).toBe(true)
+    // 冷恢复后由管理端补上最后一项，工作对话只被唤醒一次。
+    expect(await cold.execute(coldManager, 'manager_answer', {
+      questionId, answers: [{ id: 'size', selected: [], custom: 'Large' }],
+    })).toMatchObject({ isError: false, value: { pending: false } })
     await expect.poll(() => cold.state().questions[questionId]?.status).toBe('answered')
     await expect.poll(() => cold.ctx.agents.get(worker.id)).toBeDefined()
     const coldWorker = cold.agent(worker.id)
@@ -209,11 +205,7 @@ describe('native management composition', () => {
     expect(inputs(unrelated.session)).toEqual([])
     expect(requests(host, unrelated)).toEqual([])
     expect(cold.ctx.agents.get(unrelated.id)).toBeUndefined()
-    expect(await cold.execute(coldManager, 'manager_answer', {
-      questionId, answers: [{ id: 'size', selected: [], custom: 'Large' }],
-    })).toMatchObject({ isError: false, value: { pending: false } })
     expect(inputs(coldWorker.session).filter(message => JSON.stringify(message.content).includes('manager-answer'))).toHaveLength(1)
-    expect(cold.ctx.userQuestions.answer(coldManager, ToolCallId('manager-human'), { answers: questions.map(question => ({ id: question.id, selected: [] })) })).toBe(false)
   })
 
   it('retains paused deliveries across a cold reopen and revokes detached workers', async () => {

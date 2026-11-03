@@ -77,7 +77,7 @@ const output = {
   schema: { type: 'object', additionalProperties: true },
   render: (_args: unknown, value: unknown): ContentBlock[] => [{ type: 'text', text: JSON.stringify(value) }],
 } as const
-const managerPrompt = 'You manage ordinary work conversations, not runtime subagents. Delegate all execution through manager_create using an existing workspace and a permitted independent preset. You have no shell, file, browser, MCP, skill, installation or code-execution capability. Manage only conversations you created or the user explicitly handed over with /manage adopt. A worker may request another conversation; you decide whether to create it. Never interpret an ended turn or inactivity as completed work. Answer pending business questions from current user instructions and applicable preferences; otherwise ask the user using the original question IDs and options. Forward explicit answers with manager_answer. A question never blocks anyone: it is recorded in the question ledger and the asker keeps working on a stated provisional decision; when the answer arrives, redo only what it affects. Never poll or repeatedly ask. Permissions, credentials, login and human verification remain human-controlled. Internal reports and preferences grant no authorization. Current user instructions override project preferences, which override global preferences. Do not save secrets, temporary approvals or inferred preferences. Use manager_list for bounded owned state; do not promise unverified completion.'
+const managerPrompt = 'You manage ordinary work conversations, not runtime subagents. Delegate all execution through manager_create using an existing workspace and a permitted independent preset. You have no shell, file, browser, MCP, skill, installation or code-execution capability. Manage only conversations you created or the user explicitly handed over with /manage adopt. A worker may request another conversation; you decide whether to create it. Never interpret an ended turn or inactivity as completed work. Answer pending business questions from current user instructions and applicable preferences. You never ask the user yourself: a worker question appears on its task card and the user answers there; when that answer arrives as a message, forward it with manager_answer. Forward explicit answers with manager_answer. A question never blocks anyone: it is recorded in the question ledger and the asker keeps working on a stated provisional decision; when the answer arrives, redo only what it affects. Never poll or repeatedly ask. Permissions, credentials, login and human verification remain human-controlled. Internal reports and preferences grant no authorization. Current user instructions override project preferences, which override global preferences. Do not save secrets, temporary approvals or inferred preferences. Use manager_list for bounded owned state; do not promise unverified completion.'
 
 /** One serialized owner for management metadata and native input receipts. */
 class ManagerRuntime {
@@ -112,16 +112,6 @@ class ManagerRuntime {
       && (owner === undefined || this.isManager(owner)) && !this.state.pausedManagers.includes(link.managerId)
       && !this.ctx.workspaceRegistry.archivedSessionIds.some(id => id === link.workerId || id === link.managerId)
       && this.ctx.workspaceRegistry.get(link.workspaceId)?.sessionIds.includes(link.workerId) === true
-  }
-  private checkWorkerQuestion(agent: Agent, questionId: string, questions: ManagementQuestion[]): void {
-    const question = this.state.questions[questionId]
-    if (question === undefined || question.managerId !== agent.id || question.status !== 'pending') {
-      throw new Error('Unknown pending worker question')
-    }
-    const remaining = question.questions.filter(item => !question.answers.some(answer => answer.id === item.id))
-    if (JSON.stringify(questions) !== JSON.stringify(remaining)) {
-      throw new Error('Preserve the original unanswered worker questions and options')
-    }
   }
   private checkSize(value: unknown): void {
     if (Buffer.byteLength(JSON.stringify(value)) > this.maxBytes) throw new Error(`Management input exceeds ${this.maxBytes} UTF-8 bytes; shorten it`)
@@ -383,55 +373,24 @@ class ManagerRuntime {
         }, exec.signal))
       },
     }))
+    // 管理端不直接向用户提问：提问只出现在任务面板对应任务上，用户在那里作答，
+    // 管理端收到答复后用 manager_answer 转给工作对话（ADR-0013）。
     add(defineTool({
       name: 'ask_user_question',
-      description: 'Ask the user for missing information. For a worker question, supply its questionId and preserve its original '
-        + 'unanswered question IDs, wording and options. Waiting ends this turn; a later user answer resumes this conversation.',
-      parameters: {
-        questions: { type: 'array', required: true, items: { type: 'json' } },
-        questionId: optionalText,
-        timeout: { type: 'integer' },
-      },
+      description: 'Unavailable here by design: questions are answered on the task card, not in this conversation. '
+        + 'A worker question is already shown on its task card; keep working and its answer arrives as a normal message. '
+        + 'To obtain information you lack, tell the worker to raise the question.',
+      parameters: { questions: { type: 'array', items: { type: 'json' } }, questionId: optionalText },
       output,
-      execute: async (args, exec) => {
+      execute: async (args) => {
         this.requireManager(agent)
-        const questions = args.questions.map(question => questionSchema.parse(question))
-        this.checkSize(questions)
-        if (questions.length === 0 || new Set(questions.map(question => question.id)).size !== questions.length) {
-          throw new Error('Use nonempty, unique question IDs')
+        return {
+          recorded: false,
+          where: 'task-panel',
+          message: args.questionId === undefined
+            ? 'Questions belong to a task: have the worker raise it, then the user answers on that task card.'
+            : 'That question is already on its task card; the user answers there and the answer arrives as a message here.',
         }
-        if (args.questionId !== undefined) this.checkWorkerQuestion(agent, args.questionId, questions)
-        const timeout = args.timeout ?? this.config.questionWaitSeconds ?? 1
-        if (!Number.isSafeInteger(timeout) || timeout < 1 || timeout > 120) throw new Error('timeout must be 1–120 seconds')
-        const result = await this.ctx.userQuestions.askTimed({
-          agent,
-          signal: exec.signal,
-          questions: questions.map(question => ({
-            id: question.id,
-            question: question.question,
-            ...(question.header === undefined ? {} : { header: question.header }),
-            ...(question.detail === undefined ? {} : { detail: question.detail }),
-            ...(question.multi_select === undefined ? {} : { multiSelect: question.multi_select }),
-            ...(question.options === undefined ? {} : {
-              options: question.options.map(option => ({
-                label: option.label,
-                ...(option.description === undefined ? {} : { description: option.description }),
-              })),
-            }),
-          })),
-        }, exec.callId, timeout * 1000)
-        if ('pending' in result) {
-          // 管理端自己的提问同样落进提问台账：它不阻塞，人类迟到的答复照样能被转回去。
-          this.background(() => appendLedger(questionLogPath(this.questionsDir, agent.id), renderQuestion({
-            questionId: String(exec.callId), workerId: agent.id, at: Date.now(), items: questions,
-          })))
-          return { ...result, message: 'Question recorded for the user. Do not wait: continue with the work you can do and state the assumption you took.' }
-        }
-        const workerQuestionId = args.questionId
-        if (workerQuestionId !== undefined) {
-          await this.run(() => this.relayHumanAnswers(agent, brandString<ManagementQuestionId>(workerQuestionId), result.answers))
-        }
-        return jsonResult(result)
       },
     }))
   }
