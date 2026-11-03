@@ -271,6 +271,31 @@ describe('WorkspaceRegistry lifecycle and bootstrap', () => {
     expect(storedState(pool)).toEqual({ initialized: true, workspaceIds: [], archivedSessionIds: [], pinnedSessionIds: [] })
   })
 
+  it('rewrites a stored symlink path to its canonical spelling before publishing membership', async () => {
+    const dir = await makeDir('legacy-path')
+    const alias = join(base, 'legacy-link')
+    await symlink(dir, alias)
+    const id = WorkspaceId('legacy')
+    const pool = storedPool([[id, record(alias, ['kept'])]], { initialized: true, workspaceIds: [id] })
+    const result = await harness({ pool, sessions: [header('kept', alias, 100), header('fresh', dir, 200)] })
+
+    expect(result.registry.get(id)!.path).toBe(dir)
+    expect(storedRecord(pool, id).path).toBe(dir)
+    expect(result.registry.get(id)!.sessionIds).toEqual(['kept'])
+    await result.registry.get(id)!.attachSession(SessionId('fresh'))
+    expect(result.registry.get(id)!.sessionIds).toEqual(['fresh', 'kept'])
+  })
+
+  it('keeps a stored path that no longer resolves in its recorded spelling', async () => {
+    const parent = await makeDir('legacy-missing-parent')
+    const missing = join(parent, 'gone')
+    const id = WorkspaceId('missing-path')
+    const pool = storedPool([[id, record(missing, [])]], { initialized: true, workspaceIds: [id] })
+    const result = await harness({ pool })
+    expect(result.registry.get(id)!.path).toBe(missing)
+    expect(storedRecord(pool, id).path).toBe(missing)
+  })
+
   it('reuses partial records after a bootstrap record write fails', async () => {
     const firstDir = await makeDir('partial-first')
     const secondDir = await makeDir('partial-second')

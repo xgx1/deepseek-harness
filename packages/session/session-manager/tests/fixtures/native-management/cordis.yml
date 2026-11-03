@@ -69,3 +69,6 @@
     workerPresets:
       - independent
     questionWaitSeconds: 1
+    # 提问台账写到临时目录：spec 不该往真实的 home 目录写文件。
+    questionsDir: !!js process.getBuiltinModule('node:path').join(
+      process.getBuiltinModule('node:os').tmpdir(), 'dsh-session-manager-questions')

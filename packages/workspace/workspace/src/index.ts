@@ -215,8 +215,37 @@ export class WorkspaceRegistry extends Service {
 
     await this.indexLiveSessions()
     this.validateStoredState(this.requireState())
+    await this.canonicalizeStoredPaths()
     this.rebuildEntities()
     this.reportFilteredCandidates()
+  }
+
+  /**
+   * Rewrite each stored path that is not its own canonical spelling. Membership
+   * and display compare a Session's canonical cwd against the record path, so a
+   * record holding a symlink spelling hides every Session that joins it, while
+   * `create` has always stored the canonical path; only a registry written
+   * before that guarantee can differ. A path that no longer resolves keeps its
+   * spelling, and the membership projection keeps reporting its Sessions.
+   */
+  private async canonicalizeStoredPaths(): Promise<void> {
+    const table = this.requireTable()
+    for (const id of this.requireState().workspaceIds) {
+      const record = table.get(id) as WorkspaceRecord | undefined
+      if (record === undefined) continue
+      let canonical: string
+      try {
+        canonical = await realpathNormalize(record.path)
+      } catch {
+        continue
+      }
+      if (canonical === record.path) continue
+      await table.update(id, current => ({
+        ...(current as WorkspaceRecord),
+        path: canonical,
+        updatedAt: new Date().toISOString(),
+      }))
+    }
   }
 
   /**

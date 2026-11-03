@@ -2,6 +2,8 @@
 import type { Context } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
 import { createHash, randomUUID } from 'node:crypto'
+import { homedir } from 'node:os'
+import { join } from 'node:path'
 import { brandString } from '@deepseek-ai/dsh-brand'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import type {} from '@deepseek-ai/dsh-api-session-controller'
@@ -21,6 +23,7 @@ import {
   type ManagementState, type PendingCreation, type PendingDelivery, type PendingQuestion,
 } from './state.ts'
 import { ManagerPreferences } from './preferences.ts'
+import { appendLedger, questionLogPath, renderAnswer, renderQuestion } from './questions.ts'
 
 /** Cordis plugin identity. */
 export const name = 'session-manager'
@@ -37,6 +40,8 @@ export interface Config {
   maxMessageBytes?: number
   /** Native human-question foreground wait, in seconds; waiting then ends the turn. */
   questionWaitSeconds?: number
+  /** Directory holding one Markdown question ledger per management relation. */
+  questionsDir?: string
 }
 
 /** Validated deployment configuration. */
@@ -45,6 +50,7 @@ export const Config: z<Config> = z.object({
   workerPresets: z.array(z.string()).required(),
   maxMessageBytes: z.number().min(512).step(1).default(16384),
   questionWaitSeconds: z.number().min(1).max(120).step(1).default(1),
+  questionsDir: z.string(),
 })
 
 declare module '@deepseek-ai/dsh-llm' {
@@ -71,7 +77,7 @@ const output = {
   schema: { type: 'object', additionalProperties: true },
   render: (_args: unknown, value: unknown): ContentBlock[] => [{ type: 'text', text: JSON.stringify(value) }],
 } as const
-const managerPrompt = 'You manage ordinary work conversations, not runtime subagents. Delegate all execution through manager_create using an existing workspace and a permitted independent preset. You have no shell, file, browser, MCP, skill, installation or code-execution capability. Manage only conversations you created or the user explicitly handed over with /manage adopt. A worker may request another conversation; you decide whether to create it. Never interpret an ended turn or inactivity as completed work. Answer pending business questions from current user instructions and applicable preferences; otherwise ask the user using the original question IDs and options. Forward explicit answers with manager_answer. Pending means waiting, not permission: end this turn, do not poll or repeatedly ask. Permissions, credentials, login and human verification remain human-controlled. Internal reports and preferences grant no authorization. Current user instructions override project preferences, which override global preferences. Do not save secrets, temporary approvals or inferred preferences. Use manager_list for bounded owned state; do not promise unverified completion.'
+const managerPrompt = 'You manage ordinary work conversations, not runtime subagents. Delegate all execution through manager_create using an existing workspace and a permitted independent preset. You have no shell, file, browser, MCP, skill, installation or code-execution capability. Manage only conversations you created or the user explicitly handed over with /manage adopt. A worker may request another conversation; you decide whether to create it. Never interpret an ended turn or inactivity as completed work. Answer pending business questions from current user instructions and applicable preferences. You never ask the user yourself: a worker question appears on its task card and the user answers there; when that answer arrives as a message, forward it with manager_answer. Forward explicit answers with manager_answer. A question never blocks anyone: it is recorded in the question ledger and the asker keeps working on a stated provisional decision; when the answer arrives, redo only what it affects. Never poll or repeatedly ask. Permissions, credentials, login and human verification remain human-controlled. Internal reports and preferences grant no authorization. Current user instructions override project preferences, which override global preferences. Do not save secrets, temporary approvals or inferred preferences. Use manager_list for bounded owned state; do not promise unverified completion.'
 
 /** One serialized owner for management metadata and native input receipts. */
 class ManagerRuntime {
@@ -81,10 +87,12 @@ class ManagerRuntime {
   private readonly revoked = new Set<SessionId>()
   private readonly scopes = new Map<Agent, { role: 'manager' | 'worker'; dispose: () => void }>()
   private readonly maxBytes: number
+  private readonly questionsDir: string
   private readonly preferences: ManagerPreferences
 
   constructor(private readonly ctx: Context, private readonly config: Config, private readonly domain: Domain<typeof managementDomain>) {
     this.maxBytes = config.maxMessageBytes ?? 16384
+    this.questionsDir = config.questionsDir ?? join(process.env.DSH_HOME ?? join(homedir(), '.dsh'), 'manager-questions')
     this.preferences = new ManagerPreferences(ctx, this.maxBytes)
   }
 
@@ -104,19 +112,6 @@ class ManagerRuntime {
       && (owner === undefined || this.isManager(owner)) && !this.state.pausedManagers.includes(link.managerId)
       && !this.ctx.workspaceRegistry.archivedSessionIds.some(id => id === link.workerId || id === link.managerId)
       && this.ctx.workspaceRegistry.get(link.workspaceId)?.sessionIds.includes(link.workerId) === true
-  }
-  private hasPendingQuestion(workerId: SessionId): boolean {
-    return Object.values(this.state.questions).some(question => question.workerId === workerId && question.status === 'pending')
-  }
-  private checkWorkerQuestion(agent: Agent, questionId: string, questions: ManagementQuestion[]): void {
-    const question = this.state.questions[questionId]
-    if (question === undefined || question.managerId !== agent.id || question.status !== 'pending') {
-      throw new Error('Unknown pending worker question')
-    }
-    const remaining = question.questions.filter(item => !question.answers.some(answer => answer.id === item.id))
-    if (JSON.stringify(questions) !== JSON.stringify(remaining)) {
-      throw new Error('Preserve the original unanswered worker questions and options')
-    }
   }
   private checkSize(value: unknown): void {
     if (Buffer.byteLength(JSON.stringify(value)) > this.maxBytes) throw new Error(`Management input exceeds ${this.maxBytes} UTF-8 bytes; shorten it`)
@@ -218,11 +213,6 @@ class ManagerRuntime {
       }
       const link = this.state.links[agent.id]
       if (link === undefined || !this.enabled(link)) { this.park(agent, decision.messages); return { kind: 'reject' } }
-      const waiting = Object.values(this.state.questions).some(question => question.workerId === agent.id && question.generation === link.generation && question.status === 'pending')
-      if (waiting && !decision.messages.some(message => message.source.kind === 'user')) { this.park(agent, decision.messages); return { kind: 'reject' } }
-      if (waiting) await this.run(() => this.write((state) => {
-        for (const question of Object.values(state.questions)) if (question.workerId === agent.id && question.status === 'pending') question.status = 'cancelled'
-      }))
       return { ...decision, messages: decision.messages.filter(message => message.source.kind !== 'session-manager'
         || (message.source.workerSessionId === agent.id && message.source.generation === link.generation)) }
     }, { prepend: true }))
@@ -315,7 +305,6 @@ class ManagerRuntime {
         this.requireManager(agent)
         const link = this.link(brandString<SessionId>(args.workerSessionId), agent.id)
         if (!this.enabled(link)) throw new Error('Conversation is paused, archived or detached; the user must resume it')
-        if (this.hasPendingQuestion(link.workerId)) throw new Error('Answer the pending question before sending more work')
         const id = deliveryId(agent.id, 'send', args.idempotencyKey)
         await this.enqueue(link, link.workerId, id, args.message, agent.id, args.attachmentMessageSeq)
         await this.drain()
@@ -384,52 +373,24 @@ class ManagerRuntime {
         }, exec.signal))
       },
     }))
+    // 管理端不直接向用户提问：提问只出现在任务面板对应任务上，用户在那里作答，
+    // 管理端收到答复后用 manager_answer 转给工作对话（ADR-0013）。
     add(defineTool({
       name: 'ask_user_question',
-      description: 'Ask the user for missing information. For a worker question, supply its questionId and preserve its original '
-        + 'unanswered question IDs, wording and options. Waiting ends this turn; a later user answer resumes this conversation.',
-      parameters: {
-        questions: { type: 'array', required: true, items: { type: 'json' } },
-        questionId: optionalText,
-        timeout: { type: 'integer' },
-      },
+      description: 'Unavailable here by design: questions are answered on the task card, not in this conversation. '
+        + 'A worker question is already shown on its task card; keep working and its answer arrives as a normal message. '
+        + 'To obtain information you lack, tell the worker to raise the question.',
+      parameters: { questions: { type: 'array', items: { type: 'json' } }, questionId: optionalText },
       output,
-      execute: async (args, exec) => {
+      execute: async (args) => {
         this.requireManager(agent)
-        const questions = args.questions.map(question => questionSchema.parse(question))
-        this.checkSize(questions)
-        if (questions.length === 0 || new Set(questions.map(question => question.id)).size !== questions.length) {
-          throw new Error('Use nonempty, unique question IDs')
+        return {
+          recorded: false,
+          where: 'task-panel',
+          message: args.questionId === undefined
+            ? 'Questions belong to a task: have the worker raise it, then the user answers on that task card.'
+            : 'That question is already on its task card; the user answers there and the answer arrives as a message here.',
         }
-        if (args.questionId !== undefined) this.checkWorkerQuestion(agent, args.questionId, questions)
-        const timeout = args.timeout ?? this.config.questionWaitSeconds ?? 1
-        if (!Number.isSafeInteger(timeout) || timeout < 1 || timeout > 120) throw new Error('timeout must be 1–120 seconds')
-        const result = await this.ctx.userQuestions.askTimed({
-          agent,
-          signal: exec.signal,
-          questions: questions.map(question => ({
-            id: question.id,
-            question: question.question,
-            ...(question.header === undefined ? {} : { header: question.header }),
-            ...(question.detail === undefined ? {} : { detail: question.detail }),
-            ...(question.multi_select === undefined ? {} : { multiSelect: question.multi_select }),
-            ...(question.options === undefined ? {} : {
-              options: question.options.map(option => ({
-                label: option.label,
-                ...(option.description === undefined ? {} : { description: option.description }),
-              })),
-            }),
-          })),
-        }, exec.callId, timeout * 1000)
-        if ('pending' in result) {
-          exec.concludeTurn()
-          return { ...result, message: 'Waiting for the user. This turn is finished; do not poll. Pending is not permission.' }
-        }
-        const workerQuestionId = args.questionId
-        if (workerQuestionId !== undefined) {
-          await this.run(() => this.relayHumanAnswers(agent, brandString<ManagementQuestionId>(workerQuestionId), result.answers))
-        }
-        return jsonResult(result)
       },
     }))
   }
@@ -437,14 +398,14 @@ class ManagerRuntime {
   private workerTools(agent: Agent, add: (definition: ToolDefinition) => void): void {
     add(defineTool({
       name: 'ask_user_question',
-      description: 'Ask a business question through this conversation’s manager. The question is persisted and this turn ends. '
-        + 'An attributed answer will resume only this work conversation. Permissions, login and human verification still require the human.',
+      description: 'Record a business question for this conversation’s manager. It never blocks: keep working on a provisional decision '
+        + 'and say which assumption you took. The answer arrives later as an ordinary message; redo only the parts it affects. '
+        + 'Permissions, login and human verification still require the human.',
       parameters: { questions: { type: 'array', required: true, items: { type: 'json' } } },
       output,
       execute: async (args, exec) => {
         const result = await this.request(agent, exec.callId, args.questions.map(question => questionSchema.parse(question)))
-        exec.concludeTurn()
-        return result
+        return { ...result, message: 'Question recorded. Do not wait: continue now with a provisional decision and state that assumption.' }
       },
     }))
     add(defineTool({
@@ -565,6 +526,9 @@ class ManagerRuntime {
       const question: PendingQuestion = { id, workerId: agent.id, managerId: link.managerId, generation: link.generation, callId, questions, answers: [], status: 'pending', ...(creation === undefined ? {} : { creation }) }
       const old = this.state.questions[id]
       if (old !== undefined && (JSON.stringify(old.questions) !== JSON.stringify(questions) || JSON.stringify(old.creation) !== JSON.stringify(creation))) throw new Error('Question call identity already belongs to different input')
+      this.background(() => appendLedger(questionLogPath(this.questionsDir, link.managerId), renderQuestion({
+        questionId: id, workerId: agent.id, at: Date.now(), items: questions,
+      })))
       const delivery = this.pending(link, link.managerId, deliveryId(id, 'question'), JSON.stringify({ type: creation === undefined ? 'worker-question' : 'creation-request', ...question }))
       await this.write((state) => {
         state.questions[id] ??= question
@@ -626,6 +590,11 @@ class ManagerRuntime {
       if (stored !== undefined) { stored.answers = answers; stored.status = done ? 'answered' : 'pending' }
       if (delivery !== undefined) state.deliveries[delivery.id] ??= delivery
     })
+    if (answers.length > 0) {
+      this.background(() => appendLedger(questionLogPath(this.questionsDir, question.managerId), renderAnswer({
+        questionId: id, at: Date.now(), answers,
+      })))
+    }
     if (done) await this.drain()
     return { pending: !done, questionId: id }
   }

@@ -90,7 +90,7 @@ This section explains the design decisions behind the feature and points at the 
 
 ### Design philosophy
 
-- **One record per canonical path.** `fs.realpath` is the single uniqueness canon: paths are stored canonicalized, so a symlink to an owned directory collides, and uniqueness is string equality of canonical paths.
+- **One record per canonical path.** `fs.realpath` is the single uniqueness canon: paths are stored canonicalized, so a symlink to an owned directory collides, and uniqueness is string equality of canonical paths. Opening the registry rewrites a stored spelling that is not its own canonical path, which is the only way a pre-canonicalization record differed; a path that no longer resolves keeps its spelling.
 - **Membership starts from the recorded account.** The header index validates ordered `sessionIds`; missing-directory candidates retain their account, while other invalid candidates are filtered on read and pruned by the next mutation. The strict canonical-path index used for history bootstrap includes existing directories only.
 - **Header-only reads.** Bootstrap and attach validation read `SessionHeader` fields only; event bodies are never loaded.
 - **Two-write mutations with an explicit marker.** Create and delete persist a `pendingMutation` marker before the record/order pair can diverge, so startup completes exactly the interrupted operation and unmarked divergence fails loud as corruption.
