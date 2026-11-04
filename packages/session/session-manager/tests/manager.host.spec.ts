@@ -73,7 +73,7 @@ describe('native management composition', () => {
     await host.turn(manager, 'List my capabilities.')
     const managerRequest = requests(host, manager).at(-1)
     expect(managerRequest?.tools?.map(tool => tool.name).sort()).toEqual([
-      'ask_user_question', 'manager_answer', 'manager_create', 'manager_list',
+      'ask_user_question', 'manager_add_workspace', 'manager_answer', 'manager_create', 'manager_list',
       'manager_preferences', 'manager_send', 'manager_workspaces',
     ])
     expect(JSON.stringify(managerRequest?.messages[0])).toContain('You manage ordinary work conversations')
@@ -95,6 +95,7 @@ describe('native management composition', () => {
     expect(inputs(ordinary.session)).toEqual([])
     expect(ctx.tools.get('manager_report', ordinary)).toBeUndefined()
     expect(ctx.tools.get('manager_create', ordinary)).toBeUndefined()
+    expect(ctx.tools.get('manager_add_workspace', ordinary)).toBeUndefined()
 
     const remove = manager.ctx.tools.register({
       name: 'bash', description: 'A later scope-local registration must not bypass policy.',
@@ -118,6 +119,42 @@ describe('native management composition', () => {
     // 管理器 scope 的 executor 已随之卸载，该 Agent 再也走不到模型；普通 Agent 的提示词与能力原样存活。
     await host.turn(ordinary, 'Use the surviving ordinary prompt after extension unload.')
     expect(JSON.stringify(requests(host, ordinary).at(-1)?.messages[0])).toContain('ORDINARY PERSONA')
+  })
+
+  it('registers an existing directory as a workspace and refuses paths it cannot own', async () => {
+    const host = await world()
+    const { ctx, manager, root } = host
+    const directory = join(root, 'fresh-workspace')
+    await mkdir(directory)
+    const canonical = await realpath(directory)
+
+    const added = await host.execute(manager, 'manager_add_workspace', { path: directory })
+    expect(added).toMatchObject({ isError: false, value: { path: canonical, created: true } })
+    const workspaceId = z.object({ workspaceId: z.string() }).parse(added?.value).workspaceId
+    expect(ctx.workspaceRegistry.list().map(workspace => workspace.id)).toContain(workspaceId)
+    expect(await host.execute(manager, 'manager_workspaces')).toMatchObject({
+      isError: false,
+      value: { workspaces: expect.arrayContaining([expect.objectContaining({ id: workspaceId, path: canonical })]) },
+    })
+
+    // 幂等：同一目录再加一次不产生第二条登记。
+    expect(await host.execute(manager, 'manager_add_workspace', { path: directory })).toMatchObject({
+      isError: false, value: { workspaceId, created: false },
+    })
+    expect(ctx.workspaceRegistry.list().filter(workspace => workspace.path === canonical)).toHaveLength(1)
+
+    // 相对路径拒绝（否则会按进程 cwd 建目录）。
+    const relative = await host.execute(manager, 'manager_add_workspace', { path: 'relative/dir' })
+    expect(relative).toMatchObject({ isError: true })
+    expect(JSON.stringify(relative?.content)).toContain('absolute path')
+    expect(ctx.workspaceRegistry.list()).toHaveLength(4)
+
+    // 目录不存在时一次调用就建出来并登记。
+    const fresh = join(root, 'made-by-manager', 'nested')
+    expect(await host.execute(manager, 'manager_add_workspace', { path: fresh })).toMatchObject({
+      isError: false, value: { path: await realpath(fresh), created: true, createdDirectory: true },
+    })
+    expect(ctx.workspaceRegistry.list()).toHaveLength(5)
   })
 
   it('creates an independent cross-workspace root and routes a durable question until all answers arrive once', async () => {

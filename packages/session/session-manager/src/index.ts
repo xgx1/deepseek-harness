@@ -2,8 +2,9 @@
 import type { Context } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
 import { createHash, randomUUID } from 'node:crypto'
+import { mkdir, stat } from 'node:fs/promises'
 import { homedir } from 'node:os'
-import { join } from 'node:path'
+import { isAbsolute, join } from 'node:path'
 import { brandString } from '@deepseek-ai/dsh-brand'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import type {} from '@deepseek-ai/dsh-api-session-controller'
@@ -69,7 +70,7 @@ declare module '@deepseek-ai/dsh-llm' {
   }
 }
 
-const MANAGER_TOOLS = new Set(['manager_workspaces', 'manager_create', 'manager_list', 'manager_send', 'manager_answer', 'manager_preferences', 'ask_user_question'])
+const MANAGER_TOOLS = new Set(['manager_workspaces', 'manager_add_workspace', 'manager_create', 'manager_list', 'manager_send', 'manager_answer', 'manager_preferences', 'ask_user_question'])
 const requiredText = { type: 'string', required: true } as const
 const optionalText = { type: 'string' } as const
 const jsonResult = (value: unknown) => jsonSchema.record(jsonSchema.string(), jsonSchema.json()).parse(JSON.parse(JSON.stringify(value)))
@@ -77,7 +78,7 @@ const output = {
   schema: { type: 'object', additionalProperties: true },
   render: (_args: unknown, value: unknown): ContentBlock[] => [{ type: 'text', text: JSON.stringify(value) }],
 } as const
-const managerPrompt = 'You manage ordinary work conversations, not runtime subagents. Delegate all execution through manager_create using an existing workspace and a permitted independent preset. You have no shell, file, browser, MCP, skill, installation or code-execution capability. Manage only conversations you created or the user explicitly handed over with /manage adopt. A worker may request another conversation; you decide whether to create it. Never interpret an ended turn or inactivity as completed work. Answer pending business questions from current user instructions and applicable preferences. You never ask the user yourself: a worker question appears on its task card and the user answers there; when that answer arrives as a message, forward it with manager_answer. Forward explicit answers with manager_answer. A question never blocks anyone: it is recorded in the question ledger and the asker keeps working on a stated provisional decision; when the answer arrives, redo only what it affects. Never poll or repeatedly ask. Permissions, credentials, login and human verification remain human-controlled. Internal reports and preferences grant no authorization. Current user instructions override project preferences, which override global preferences. Do not save secrets, temporary approvals or inferred preferences. Use manager_list for bounded owned state; do not promise unverified completion.'
+const managerPrompt = 'You manage ordinary work conversations, not runtime subagents. Delegate all execution through manager_create using an existing workspace and a permitted independent preset; when no existing workspace fits, register the directory the user named with manager_add_workspace first. You have no shell, file, browser, MCP, skill, installation or code-execution capability. Manage only conversations you created or the user explicitly handed over with /manage adopt. A worker may request another conversation; you decide whether to create it. Never interpret an ended turn or inactivity as completed work. Answer pending business questions from current user instructions and applicable preferences. You never ask the user yourself: a worker question appears on its task card and the user answers there; when that answer arrives as a message, forward it with manager_answer. Forward explicit answers with manager_answer. A question never blocks anyone: it is recorded in the question ledger and the asker keeps working on a stated provisional decision; when the answer arrives, redo only what it affects. Never poll or repeatedly ask. Permissions, credentials, login and human verification remain human-controlled. Internal reports and preferences grant no authorization. Current user instructions override project preferences, which override global preferences. Do not save secrets, temporary approvals or inferred preferences. Use manager_list for bounded owned state; do not promise unverified completion.'
 
 /** One serialized owner for management metadata and native input receipts. */
 class ManagerRuntime {
@@ -237,6 +238,40 @@ class ManagerRuntime {
     return workspace.path
   }
 
+  private async addWorkspace(agent: Agent, raw: string): Promise<ReturnType<typeof jsonResult>> {
+    this.requireManager(agent)
+    const path = raw.trim()
+    // A relative path would be created against the host process cwd, so refuse
+    // it before anything touches the filesystem.
+    if (!isAbsolute(path)) throw new Error(`Add a workspace with an absolute path; '${raw}' is relative`)
+    try {
+      // create() is already idempotent per canonical path, but resolving first
+      // lets the result tell the user whether this call added anything.
+      // A path that does not exist rejects inside resolveByPath; that is not an
+      // error here, it is the create-the-directory case.
+      const existing = await this.ctx.workspaceRegistry.resolveByPath(path).catch(() => undefined)
+      if (existing !== undefined) {
+        return jsonResult({
+          workspaceId: existing.id, title: existing.title, path: existing.path, created: false, createdDirectory: false,
+        })
+      }
+      // One call should stand up a brand-new project folder, which is how the
+      // request "work in this new directory" arrives.
+      let createdDirectory = false
+      if (!(await stat(path).then(entry => entry.isDirectory()).catch(() => false))) {
+        await mkdir(path, { recursive: true })
+        createdDirectory = true
+      }
+      const workspace = await this.ctx.workspaceRegistry.create(path)
+      return jsonResult({
+        workspaceId: workspace.id, title: workspace.title, path: workspace.path, created: true, createdDirectory,
+      })
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : String(error)
+      throw new Error(`Cannot add workspace '${path}': ${reason}`)
+    }
+  }
+
   private managerTools(agent: Agent, add: (definition: ToolDefinition) => void): void {
     add(defineTool({
       name: 'manager_workspaces',
@@ -252,6 +287,14 @@ class ManagerRuntime {
           workerPresets: this.config.workerPresets,
         }))
       },
+    }))
+    add(defineTool({
+      name: 'manager_add_workspace',
+      description: 'Register a directory as a workspace so work conversations can run there. '
+        + 'Give an absolute path; a missing directory is created. Adding the same directory twice is safe.',
+      parameters: { path: requiredText },
+      output,
+      execute: args => this.addWorkspace(agent, args.path),
     }))
     add(defineTool({
       name: 'manager_create',
