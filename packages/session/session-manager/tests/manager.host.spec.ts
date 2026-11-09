@@ -166,7 +166,7 @@ describe('native management composition', () => {
     expect(worker.session.header).toMatchObject({ cwd: work.path, agentPreset: 'independent', isSeeded: false })
     expect(worker.session.header.parentSession).toBeUndefined()
     expect(worker.session.header.origin).not.toBe('subagent')
-    expect(ctx.agents.roots()).toContain(worker)
+    expect(ctx.agents.list()).toContain(worker)
     expect(work.sessionIds).toContain(worker.id)
     expect(ctx.tools.schemas(worker).map(tool => tool.name)).toContain('independent_only')
     expect(ctx.tools.schemas(worker).map(tool => tool.name)).not.toContain('ordinary_only')
