@@ -30,15 +30,11 @@ export interface ProjectLayer {
   readonly error: string | undefined
   /** The project allow draft. */
   readonly allow: readonly string[]
-  /** The project deny draft. */
-  readonly deny: readonly string[]
   /** The save's state. */
   readonly save: SaveState
   /** Replace the allow draft. */
   readonly setAllow: (patterns: readonly string[]) => void
-  /** Replace the deny draft. */
-  readonly setDeny: (patterns: readonly string[]) => void
-  /** Persist both drafts as the project layer. */
+  /** Persist the draft as the project layer. */
   readonly onSave: () => void
   /** Why the last save was refused, as the Host worded it. */
   readonly reason: string | undefined
@@ -69,7 +65,6 @@ export function useProjectLayer(options: UseProjectLayerOptions): ProjectLayer {
   const [exists, setExists] = useState(false)
   const [error, setError] = useState<string | undefined>(undefined)
   const [allow, setAllow] = useState<readonly string[]>([])
-  const [deny, setDeny] = useState<readonly string[]>([])
   const [save, setSave] = useState<SaveState>('idle')
   const [reason, setReason] = useState<string | undefined>(undefined)
   const [reload, setReload] = useState(0)
@@ -98,7 +93,6 @@ export function useProjectLayer(options: UseProjectLayerOptions): ProjectLayer {
       const base = seeded ?? inherited
       if (base !== undefined) {
         setAllow([...base.allow])
-        setDeny(base.deny === undefined ? [] : [...base.deny])
       }
     })
     return () => { live = false }
@@ -115,8 +109,7 @@ export function useProjectLayer(options: UseProjectLayerOptions): ProjectLayer {
     setSave('saving')
     setReason(undefined)
     const kept = allow.filter(pattern => pattern.length > 0)
-    const dropped = deny.filter(pattern => pattern.length > 0)
-    void saveProject(cwd, { allow: kept, ...dropped.length > 0 ? { deny: dropped } : {} }).then((result) => {
+    void saveProject(cwd, { allow: kept }).then((result) => {
       if (result.ok) {
         setSave('saved')
         setReload(value => value + 1)
@@ -126,9 +119,9 @@ export function useProjectLayer(options: UseProjectLayerOptions): ProjectLayer {
       setSave('failed')
       setReason(result.error.message)
     })
-  }, [allow, deny, cwd, saveProject, onSaved, emptyAllow])
+  }, [allow, cwd, saveProject, onSaved, emptyAllow])
 
-  return { status, exists, error, allow, deny, save, reason, setAllow, setDeny, onSave }
+  return { status, exists, error, allow, save, reason, setAllow, onSave }
 }
 
 /** Props the project panel receives. */
@@ -167,13 +160,6 @@ export function ProjectRulesPanel({ t, layer, canSave = true }: ProjectRulesPane
         hint={t('project.allowHint')}
         patterns={layer.allow}
         onChange={layer.setAllow}
-      />
-      <RuleList
-        t={t}
-        heading={t('project.deny')}
-        hint={t('project.denyHint')}
-        patterns={layer.deny}
-        onChange={layer.setDeny}
       />
       <div className={css.actions}>
         <Button

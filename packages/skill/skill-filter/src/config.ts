@@ -2,7 +2,7 @@
  * YAML configuration reader for skill filter rules.
  *
  * Reads personal (`$DSH_HOME/skill-filter.yaml`) and project (`<cwd>/.dsh/skill-filter.yaml`)
- * configs, merges them as the union of both layers' allow and deny patterns, and caches
+ * configs, merges them as the union of both layers' allow patterns, and caches
  * the last valid parse to survive transient YAML corruption.
  *
  * @module @deepseek-ai/dsh-skill-filter/src/config
@@ -17,8 +17,6 @@ import { dshHomePath } from '@deepseek-ai/dsh-home-paths'
 export interface SkillFilterConfig {
   /** Glob patterns that allow skills to be visible. Required. */
   readonly allow: readonly string[]
-  /** Glob patterns that deny skills. Optional. */
-  readonly deny?: readonly string[]
 }
 
 /** One config layer with its parse status. */
@@ -57,7 +55,7 @@ function personalCachePath(): string {
  * Read and parse a single YAML filter config file.
  * @param filePath - absolute path to the YAML file.
  * @returns parsed config, or undefined if the file is missing.
- * @throws if the file exists but contains invalid YAML or missing `allow` field.
+ * @throws if the file exists but contains invalid YAML, a missing `allow` field, or a removed `deny` key.
  */
 export async function readConfigFile(filePath: string): Promise<SkillFilterConfig | undefined> {
   let raw: string
@@ -78,15 +76,13 @@ export async function readConfigFile(filePath: string): Promise<SkillFilterConfi
     throw new Error(`Invalid config at ${filePath}: "allow" is required and must be an array of strings`)
   }
 
-  const deny = parsed.deny
-  if (deny !== undefined && (!Array.isArray(deny) || deny.some(entry => typeof entry !== 'string'))) {
-    throw new Error(`Invalid config at ${filePath}: "deny" must be an array of strings`)
+  // The filter is an allow list only; a leftover deny key is an error rather
+  // than a silently ignored entry, so the file says what actually applies.
+  if (parsed.deny !== undefined) {
+    throw new Error(`Invalid config at ${filePath}: "deny" was removed — every skill outside "allow" is already hidden`)
   }
 
-  return {
-    allow: allow as readonly string[],
-    ...(deny !== undefined ? { deny: deny as readonly string[] } : {}),
-  }
+  return { allow: allow as readonly string[] }
 }
 
 /**
@@ -127,9 +123,8 @@ export async function readProjectConfig(cwd: string | undefined): Promise<Config
  * Merge personal and project configs into the effective rule set.
  *
  * The layers union: the effective allow list carries every pattern either layer
- * allows, and the effective deny list every pattern either layer denies. A
- * project therefore adds to the personal rules instead of replacing them, and
- * either layer alone still filters.
+ * allows. A project therefore adds to the personal rules instead of replacing
+ * them, and either layer alone still filters.
  *
  * @param personal - the personal config, or undefined.
  * @param project - the project config, or undefined.
@@ -143,11 +138,10 @@ export function mergeConfigs(
     return { personalExists: false, projectExists: false, config: undefined }
   }
   const allow = [...new Set([...(personal?.allow ?? []), ...(project?.allow ?? [])])]
-  const deny = [...new Set([...(personal?.deny ?? []), ...(project?.deny ?? [])])]
   return {
     personalExists: personal !== undefined,
     projectExists: project !== undefined,
-    config: { allow, ...deny.length > 0 ? { deny } : {} },
+    config: { allow },
   }
 }
 
@@ -185,10 +179,6 @@ export async function readCache(): Promise<SkillFilterConfig | undefined> {
 export async function writeConfigFile(filePath: string, config: SkillFilterConfig): Promise<void> {
   const lines = ['allow:']
   for (const pattern of config.allow) lines.push(`  - "${pattern}"`)
-  if (config.deny !== undefined && config.deny.length > 0) {
-    lines.push('deny:')
-    for (const pattern of config.deny) lines.push(`  - "${pattern}"`)
-  }
   const body = lines.join('\n') + '\n'
   await mkdir(dirname(filePath), { recursive: true })
   await writeFile(filePath, body, 'utf-8')

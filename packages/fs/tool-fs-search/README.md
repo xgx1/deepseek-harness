@@ -158,13 +158,13 @@ At assembly time, each section checks `ctx.tools.get(name, scope)` and renders o
 ##### Glob guidance
 
 ```markdown
-Use the glob tool — not shell find — to discover files by path pattern.
+用 glob 工具（而不是 shell find）按路径模式查找文件。
 ```
 
 ##### Grep guidance
 
 ```markdown
-Use the grep tool — not shell grep or rg — to search file contents. Use read on a matched file when you need surrounding context.
+用 grep 工具（而不是 shell grep 或 rg）搜索文件内容。需要看匹配处的上下文时，对匹配到的文件用 read。
 ```
 
 #### Token effect

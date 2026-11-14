@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-Filters the skill catalog with personal and project allow/deny glob rules. The verdict gates both surfaces: a denied skill has both invocation flags cleared, so it leaves the model catalog, cannot be called with `/name`, and is never injected as instructions context — which cuts the catalog each request carries to the skills the current project actually needs.
+Filters the skill catalog with personal and project allow glob rules: only a skill one of those lists matches is visible. The verdict gates both surfaces: a hidden skill has both invocation flags cleared, so it leaves the model catalog, cannot be called with `/name`, and is never injected as instructions context — which cuts the catalog each request carries to the skills the current project actually needs.
 
 ## Table of Contents
 
@@ -39,11 +39,9 @@ The personal config lives at `$DSH_HOME/skill-filter.yaml` and applies to every 
 allow:
   - "git-*"
   - "cbm-graph-first"
-deny:
-  - "git-rebase"
 ```
 
-`allow` is required; a config with no `allow` key is a parse error. `deny` is optional. A pattern with no glob metacharacters is a specific skill name, and a specific name wins over a glob inside the same file. Glob metacharacters (`*`, `?`, `[...]`) match as globs, so `unreal*` covers every `unreal-` skill. A skill no layer allows is invisible on both surfaces.
+`allow` is required; a config with no `allow` key is a parse error. The list is the whole rule set: a skill it does not match is invisible on both surfaces. A `deny` key is a parse error too, since the filter no longer has one. A pattern with no glob metacharacters matches only that exact skill name. Glob metacharacters (`*`, `?`, `[...]`) match as globs, so `unreal*` covers every `unreal-` skill.
 
 ### Minimal composition
 
@@ -69,7 +67,7 @@ The mounted preset must disable the default filesystem provider so discovery run
 
 ### Rule merging
 
-`filter.ts` compiles each config layer into allow and deny matchers and resolves one skill name across three sources: the project config, the personal config, and the skill's own frontmatter deny. The two config layers union — an allow in either layer makes the skill visible, and a deny in one layer cannot veto an allow in the other — while within one file a specific name wins over a glob with ties going to deny. Frontmatter deny is the weakest source. A name no rule allows is denied, because the model is default-deny.
+`filter.ts` compiles each config layer into allow matchers and resolves one skill name across three sources: the project config, the personal config, and the skill's own frontmatter deny. The two config layers union — an allow in either layer makes the skill visible — and a name no rule allows is hidden, because the model is default-deny. Frontmatter deny is the weakest source: an allow in either config layer overrides it.
 
 ### Catalog invalidation
 
@@ -98,11 +96,11 @@ The rules are re-read on every catalog collection, but the registry caches compl
 
 #### What the model sees
 
-`dsh-tool-skill` renders the surviving invocable names and capped descriptions into the catalog: skills whose name matches an allow rule in either layer, minus those a deny rule or the skill's own frontmatter removes. A denied skill stays invocable as a plain `/name` reference, and a skill with no matching allow rule is absent from the catalog.
+`dsh-tool-skill` renders the surviving invocable names and capped descriptions into the catalog: skills whose name matches an allow rule in either layer, minus those the skill's own frontmatter removes. A skill with no matching allow rule stays registered but is absent from the catalog, and neither `/name` nor instructions injection reaches it.
 
 #### Token effect
 
-The catalog shrinks to the allowed set. A workspace that denies half of its installed skills removes roughly that share of catalog bytes from every request that carries a catalog.
+The catalog shrinks to the allowed set. A workspace that allows half of its installed skills removes roughly the other half's share of catalog bytes from every request that carries a catalog.
 
 #### KV Cache effect
 
@@ -111,7 +109,7 @@ A config write invalidates the provider's catalog, and the next request appends 
 
 ## Known Limitations and Deferred Work
 
-- Both files are one flat allow/deny pair. A per-tool, per-directory, or conditional rule needs a schema this package does not define.
+- Both files are one flat allow list. A per-tool, per-directory, or conditional rule needs a schema this package does not define.
 - The layers union, so a project cannot hide a skill the personal config allows; that skill comes off the personal list instead.
 - A personal config that fails to parse falls back to the last valid copy, which is cached beside the config file; the project config has no cache and reads as absent.
 - Only this package's own discovery is filtered: a plugin that mounts its own skill provider (the OpenViking memory plugin's `openviking` provider, for instance) bypasses the whitelist, and its skills stay visible. Covering those means moving the verdict from the provider wrapper into the registry merge.

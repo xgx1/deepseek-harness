@@ -445,7 +445,7 @@ it('reads the saved default depth at each delegation without remounting the tool
     await subagentConfigs.get(ctx)!.update({ maxDepth: 0 })
     const disabled = ctx.systemPrompt.refreshContext(initial, assembleContextFor(agent))
     expect(disabled.contexts.find(part => part.name === 'tool:subagent:depth')?.text)
-      .toBe('Delegation depth for `subagent`: current 0, maximum 0, remaining levels 0. Do not call `subagent` at this depth; carry out the work directly.')
+      .toBe('`subagent` 的委派深度：当前 0，上限 0，剩余层数 0。不要在此深度调用 `subagent`；请直接完成工作。')
     expect(disabled.sections).toEqual(initial.sections)
     expect(disabled.tools).toEqual(initial.tools)
     await subagentConfigs.get(ctx)!.update({ maxDepth: 2 })

@@ -24,13 +24,13 @@ export const Config: z<Config> = z.object({})
 const REMOVED_CONFIG_KEYS = ['interrupt', 'freshProvider', 'forkProvider'] as const
 
 /** Model-facing collaboration guidance shared by Lead and teammates. */
-const TEAM_POLICY = `A shared task board is available in this session. Task owners are agent names from list_agents. The root can reassign tasks to itself or any continuable descendant; other agents claim ready tasks themselves.
+const TEAM_POLICY = `本会话提供了一块共享任务板。任务负责人是 list_agents 返回的 agent 名。root 可以把任务重新分配给自己或任何可继续的后代 agent；其它 agent 自己认领已就绪的任务。
 
-Split write work into disjoint scopes, record expected write scopes on shared tasks, and use task dependencies when work must be ordered. Write-scope overlap is advisory, not a lock.
+把写入工作拆成互不重叠的范围，把预期的写入范围记录在共享任务上，工作必须按序时用任务依赖表达。写入范围重叠只是提示性的，不是锁。
 
-Shared-task workflow is list, get, claim with the current revision, perform the work, then complete. Task readiness never starts an owner. The root agent must wait for required teammates before giving the final answer.
+共享任务的工作流是：list、带当前 revision 的 get、claim，然后执行，最后 complete。任务就绪不会启动负责人。root agent 必须等必需的队友完成后再给出最终答复。
 
-Task changes do not end wait_agent calls, add inbox messages, or start idle agents. Use send_message when another agent needs to act on a task.`
+任务变动不会结束 wait_agent 调用、不会新增收件箱消息、也不会启动空闲 agent。需要另一个 agent 对某个任务采取行动时，用 send_message。`
 
 /** One shared task, matching the public `TeamTaskView`. */
 const TASK_VIEW_SCHEMA = {

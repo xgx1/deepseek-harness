@@ -194,7 +194,7 @@ When the calling agent reaches or exceeds a visible tool's effective numeric dep
 ##### Depth-limit notice
 
 ```markdown
-Delegation depth for `subagent`: current 1, maximum 1, remaining levels 0. Do not call `subagent` at this depth; carry out the work directly.
+`subagent` 的委派深度：当前 1，上限 1，剩余层数 0。不要在此深度调用 `subagent`；请直接完成工作。
 ```
 
 #### Token effect

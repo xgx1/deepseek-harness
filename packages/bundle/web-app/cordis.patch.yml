@@ -17,7 +17,7 @@
 - id: system-prompt
   config:
     personaPrefix: >-
-      You are a coding agent powered by the {{model}} model.
+      你是一个由 {{model}} 模型驱动的编码 agent。
 
 # Full-text session search is opt-in (the base row's `openAt: never`). This
 # restatement keeps the Web values on one ephemeral in-memory index; a

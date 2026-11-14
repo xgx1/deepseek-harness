@@ -372,8 +372,8 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
         .map(tool => tool.name)
         .sort()
       if (visible[0] !== toolName) return ''
-      const names = visible.map(name => `\`${name}\``).join(' or ')
-      return `Start independent delegations with ${names} together in one assistant message and continue useful work while they run. When only waiting for their results remains, end your turn instead of sleeping or polling; the next result starts a new turn. Collect the subagent results required to complete the task before giving the user a final answer.\n\nAgents may use different working directories; changes to shared files affect other agents. Split parallel write work into disjoint file or directory scopes. Bash, formatters, code generators, and scripts can overwrite concurrent edits without conflict detection; coordinate their changes explicitly. The agent integrating the work must review the final diff and run relevant tests.`
+      const names = visible.map(name => `\`${name}\``).join(' 或 ')
+      return `独立的委派用 ${names} 在同一条 assistant 消息里一起发起，它们运行时继续做有用的工作。当只剩下等它们的结果时，结束本轮而不是睡眠或轮询；下一条结果会开启新一轮。给出用户最终答复前，先收集完成任务所需的 subagent 结果。\n\n各个 agent 可能使用不同的工作目录；对共享文件的改动会影响其他 agent。把并行写工作拆到互不重叠的文件或目录范围。bash、格式化器、代码生成器与脚本可能在没有冲突检测的情况下覆盖并发编辑；要显式协调它们的改动。集成这项工作的 agent 必须审查最终 diff 并跑相关测试。`
     },
   })
   ctx.systemPrompt.context({
@@ -386,8 +386,8 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
       if (maxDepth === undefined) return ''
       const depth = delegationDepthOf(context.agent)
       if (depth < maxDepth) return ''
-      return `Delegation depth for \`${toolName}\`: current ${depth}, maximum ${maxDepth}, remaining levels 0.`
-        + ` Do not call \`${toolName}\` at this depth; carry out the work directly.`
+      return `\`${toolName}\` 的委派深度：当前 ${depth}，上限 ${maxDepth}，剩余层数 0。`
+        + `不要在此深度调用 \`${toolName}\`；请直接完成工作。`
     },
   })
 }

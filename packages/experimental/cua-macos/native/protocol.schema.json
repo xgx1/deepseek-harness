@@ -240,11 +240,11 @@
               "maximum": 4294967295
             },
             "includeMenus": {
-              "description": "Expand menu contents; omitted or false shows menu-bar entries only.",
+              "description": "展开菜单内容；省略或 false 只显示菜单栏条目。",
               "type": "boolean"
             },
             "details": {
-              "description": "Include identifiers, global-point bounds and complete action names.",
+              "description": "包含标识符、全局点边界和完整动作名。",
               "type": "boolean"
             },
             "maxElements": {
@@ -414,7 +414,7 @@
                   ]
                 },
                 "holdMs": {
-                  "description": "Milliseconds between each mouse press and release; omitted for an ordinary click.",
+                  "description": "每次鼠标按下与释放之间的毫秒数；普通点击时省略。",
                   "type": "integer",
                   "minimum": 0,
                   "maximum": 9007199254740991
@@ -485,7 +485,7 @@
                   ]
                 },
                 "holdMs": {
-                  "description": "Milliseconds between each mouse press and release; omitted for an ordinary click.",
+                  "description": "每次鼠标按下与释放之间的毫秒数；普通点击时省略。",
                   "type": "integer",
                   "minimum": 0,
                   "maximum": 9007199254740991

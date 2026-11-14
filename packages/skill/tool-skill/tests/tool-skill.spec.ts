@@ -319,7 +319,7 @@ describe('dsh-tool-skill', () => {
           type: 'text',
           text: [
             '<system-reminder>',
-            'A skill is a reusable set of task-specific instructions. The following skills are available in this session:',
+            '技能是一组可复用的任务专用说明。本会话可用的技能如下：',
             '',
             '<available_skills>',
             '- `a-skill`: Use {{placeholder}} &lt;safely&gt; &amp; carefully.',

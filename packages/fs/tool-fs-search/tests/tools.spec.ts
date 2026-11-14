@@ -253,8 +253,8 @@ describe('registration', () => {
     expect(subprocess.spawns).toHaveLength(0)
     expect(ctx.tools.schemas().map(s => s.name).sort()).toEqual(['glob', 'grep'])
     const prompt = renderPrompt(await ctx.systemPrompt.assemble())
-    expect(prompt).toContain('Use the glob tool')
-    expect(prompt).toContain('Use the grep tool')
+    expect(prompt).toContain('用 glob 工具')
+    expect(prompt).toContain('用 grep 工具')
     const glob = ctx.tools.schemas().find(schema => schema.name === 'glob')
     expect(glob?.description).toContain('sampled across top-level entries')
   })
@@ -1280,8 +1280,8 @@ async function guidanceScope(ctx: Context) {
 }
 
 const originalSearchGuidance = {
-  glob: 'Use the glob tool — not shell find — to discover files by path pattern.',
-  grep: 'Use the grep tool — not shell grep or rg — to search file contents. Use read on a matched file when you need surrounding context.',
+  glob: '用 glob 工具（而不是 shell find）按路径模式查找文件。',
+  grep: '用 grep 工具（而不是 shell grep 或 rg）搜索文件内容。需要看匹配处的上下文时，对匹配到的文件用 read。',
 }
 
 describe('scope-aware search guidance', () => {
@@ -1294,7 +1294,7 @@ describe('scope-aware search guidance', () => {
       expect(assembly.tools.map(tool => tool.name)).toEqual([...allow].sort())
       expect(renderPrompt(assembly)).toBe(withPersona(...allow.map(name => name === 'glob'
         ? originalSearchGuidance.glob
-        : originalSearchGuidance.grep.replace(' Use read on a matched file when you need surrounding context.', ''))))
+        : originalSearchGuidance.grep.replace('需要看匹配处的上下文时，对匹配到的文件用 read。', ''))))
     } finally {
       await scope.dispose()
     }
@@ -1313,7 +1313,7 @@ describe('scope-aware search guidance', () => {
         .toBe(withPersona(originalSearchGuidance.glob, originalSearchGuidance.grep))
       scope.ctx.tools.restrict({ deny: ['read'] })
       expect(renderPrompt(await ctx.systemPrompt.assemble({ scope: key })))
-        .toBe(withPersona(originalSearchGuidance.glob, originalSearchGuidance.grep.split(' Use read')[0]!))
+        .toBe(withPersona(originalSearchGuidance.glob, originalSearchGuidance.grep.split('需要看匹配处')[0]!))
     } finally {
       await scope.dispose()
     }
@@ -1322,5 +1322,5 @@ describe('scope-aware search guidance', () => {
 
 /** Preserve the default persona and exact section separators in the oracle. */
 function withPersona(...sections: string[]): string {
-  return ['You are an AI agent powered by DeepSeek Harness.', ...sections].join('\n\n')
+  return ['你是一个由 DeepSeek Harness 驱动的 AI agent。', ...sections].join('\n\n')
 }

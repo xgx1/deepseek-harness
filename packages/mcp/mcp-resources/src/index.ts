@@ -63,9 +63,9 @@ export class McpResourceRuntime extends Service {
         interpolate: false,
         text: ({ scope }) => {
           const names = [...this.layers.merge(scope, layer => layer.servers).keys()].sort()
-          return names.length === 0 ? '' : '## MCP resource servers\n\n'
-            + 'Use list_mcp_resources, list_mcp_resource_templates, or read_mcp_resource with one of these names '
-            + `as the server argument: ${JSON.stringify(names)}.`
+          return names.length === 0 ? '' : '## MCP 资源服务器\n\n'
+            + '用 list_mcp_resources、list_mcp_resource_templates 或 read_mcp_resource，把下列名称之一'
+            + `作为 server 参数：${JSON.stringify(names)}。`
         },
       })
     })

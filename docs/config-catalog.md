@@ -951,21 +951,6 @@ export type Config = BrowserMcpConfig
 ```
 <!-- END GENERATED config-catalog:@deepseek-ai/dsh-experimental-browser-use-chrome-devtools-mcp -->
 
-<!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-experimental-browser-use-playwright-mcp -->
-<a id="deepseek-aidsh-experimental-browser-use-playwright-mcp"></a>
-
-## `@deepseek-ai/dsh-experimental-browser-use-playwright-mcp`
-
-- `inject`: `browserUse` · `agents` · `tools` · `systemPrompt` · `workingDirectory`
-- `refs`: `BrowserMcpConfig` (`@deepseek-ai/dsh-experimental-browser-use-runtime/mcp`)
-- `source`: [`packages/experimental/browser-use-playwright-mcp/src/index.ts:16`](../packages/experimental/browser-use-playwright-mcp/src/index.ts)
-
-```ts config-catalog
-/** Fixed Chromium launch or existing-browser attachment settings. */
-export type Config = BrowserMcpConfig
-```
-<!-- END GENERATED config-catalog:@deepseek-ai/dsh-experimental-browser-use-playwright-mcp -->
-
 <!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-experimental-browser-use-stagehand-native -->
 <a id="deepseek-aidsh-experimental-browser-use-stagehand-native"></a>
 
@@ -3139,7 +3124,7 @@ export type SessionLogCompressionLevel = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9
 ## `@deepseek-ai/dsh-session-manager`
 
 - `inject`: `agents` · `sessions` · `tools` · `systemPrompt` · `sessionController` · `sessionQuery` · `workspaceRegistry` · `storageDomain` · `userQuestions` · `commands` · `agentPresets`
-- `source`: [`packages/session/session-manager/src/index.ts:31`](../packages/session/session-manager/src/index.ts)
+- `source`: [`packages/session/session-manager/src/index.ts:35`](../packages/session/session-manager/src/index.ts)
 
 ```ts config-catalog
 /** Deployment choices for the opt-in management scope. */
@@ -3152,6 +3137,8 @@ export interface Config {
   maxMessageBytes?: number
   /** Native human-question foreground wait, in seconds; waiting then ends the turn. */
   questionWaitSeconds?: number
+  /** Directory holding one Markdown question ledger per management relation. */
+  questionsDir?: string
 }
 ```
 <!-- END GENERATED config-catalog:@deepseek-ai/dsh-session-manager -->
@@ -3470,7 +3457,7 @@ export interface Config {
 ## `@deepseek-ai/dsh-skill-filter`
 
 - `inject`: `skills`
-- `source`: [`packages/skill/skill-filter/src/index.ts:38`](../packages/skill/skill-filter/src/index.ts)
+- `source`: [`packages/skill/skill-filter/src/index.ts:40`](../packages/skill/skill-filter/src/index.ts)
 
 ```ts config-catalog
 /** Skill filter plugin configuration. */

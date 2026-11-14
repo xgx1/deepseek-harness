@@ -12,7 +12,7 @@ import type { PromptContextOrderName, PromptSectionOrderName } from '@deepseek-a
  * their own sections; the built-ins' behavior is pinned by its own describe.
  */
 const BUILT_IN = ['harness:identity', 'deployment:persona-prefix', 'deployment:persona-suffix']
-const IDENTITY = 'You are an AI agent powered by DeepSeek Harness.'
+const IDENTITY = '你是一个由 DeepSeek Harness 驱动的 AI agent。'
 const SECTION_ORDER_NAMES = [
   'HARNESS_IDENTITY', 'DEPLOYMENT_PERSONA_PREFIX',
   'PLAN_POLICY', 'TEAM_POLICY', 'PTC_ONLY', 'FILE_REFERENCE', 'TOOL_BASH',
@@ -142,7 +142,7 @@ describe('SystemPrompt', () => {
         { name: 'default', text: 'expanded' },
       ])
       expect(renderContextSnapshot(assembly))
-        .toBe(`Current runtime context. This snapshot supersedes earlier runtime-context snapshots.\n\n${literal}\n\nexpanded\n\nexpanded`)
+        .toBe(`当前运行时上下文。本快照取代此前的运行时上下文快照。\n\n${literal}\n\nexpanded\n\nexpanded`)
     } finally {
       await ctx.fiber.dispose()
     }
@@ -299,7 +299,7 @@ describe('SystemPrompt', () => {
     expect(assembly.tools).toEqual([{ name: 'echo', description: 'echo back', parameters: {} }])
     expect(assembly.variables).toEqual({})
     expect(renderPrompt(assembly)).toBe(`${IDENTITY}\n\nYou are DeepSeek Harness.\n\nBe precise.\n\ncwd: /tmp`)
-    expect(renderContextSnapshot(assembly)).toBe('Current runtime context. This snapshot supersedes earlier runtime-context snapshots.\n\ncontext 1\n\ncontext 2')
+    expect(renderContextSnapshot(assembly)).toBe('当前运行时上下文。本快照取代此前的运行时上下文快照。\n\ncontext 1\n\ncontext 2')
   })
 
   it('breaks equal section orders by code-unit name regardless of registration order', async () => {
@@ -564,7 +564,7 @@ describe('SystemPrompt', () => {
     ctx.systemPrompt.variable('mode', () => 'read-only')
     ctx.systemPrompt.context({ name: 'policy', order: 1, text: 'Mode: {{mode}}.' })
     expect(renderContextSnapshot(await ctx.systemPrompt.assemble()))
-      .toBe('Current runtime context. This snapshot supersedes earlier runtime-context snapshots.\n\nMode: read-only.')
+      .toBe('当前运行时上下文。本快照取代此前的运行时上下文快照。\n\nMode: read-only.')
   })
 
   it('attributes context interpolation failures to the contributing context', () => {

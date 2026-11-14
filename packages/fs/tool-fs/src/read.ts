@@ -71,7 +71,7 @@ export function applyReadTool(ctx: Context, caps: ReadToolCaps): void {
     order: ctx.systemPrompt.getSectionOrder('TOOL_READ'),
     text: ({ scope }) => ctx.tools.get('read', scope) === undefined
       ? ''
-      : 'Use the read tool — not shell commands like cat, sed, head, or tail — to inspect text files. Use offset and limit to read a line range or continue a large file.',
+      : '用 read 工具查看文本文件，不要用 cat、sed、head、tail 之类的 shell 命令。要读某段行范围或继续读大文件时用 offset 和 limit。',
   })
 
   ctx.tools.register(defineTool({

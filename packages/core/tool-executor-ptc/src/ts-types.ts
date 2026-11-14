@@ -9,6 +9,7 @@
 import type { ToolSchema } from '@deepseek-ai/dsh-llm'
 import type { PtcProgramFormat } from '@deepseek-ai/dsh-ptc-runtime'
 import { assertSupportedJsonSchema } from '@deepseek-ai/dsh-tools'
+import { ZH_DESCRIPTIONS } from './zh-descriptions.ts'
 import type { JsonSchemaNode, JsonSchemaScalar } from '@deepseek-ai/dsh-tools'
 /** Internal PTC mode projection: the model-facing schema plus the canonical output schema. */
 export interface ToolSdkSchema extends Readonly<ToolSchema> {
@@ -35,7 +36,9 @@ function docLines(description: unknown, indent: number): string[] {
   // Collapse prose to stable one-line docs and escape comment closers so a
   // schema description cannot terminate generated JSDoc.
   const collapsed = description.replace(/\s+/g, ' ').trim()
-  return [`${pad(indent)}/** ${collapsed.replaceAll('*/', String.raw`*\/`)} */`]
+  // The SDK section is Chinese: known descriptions render from the generated map.
+  const text = ZH_DESCRIPTIONS[collapsed] ?? collapsed
+  return [`${pad(indent)}/** ${text.replaceAll('*/', String.raw`*\/`)} */`]
 }
 
 /** Render one scalar already validated by the unified schema boundary. */
@@ -250,26 +253,27 @@ export function jsonSchemaToTs(schema: unknown, indent = 0): string {
 /** Render the argument and call instructions for the selected execution syntax. */
 function renderSdkInstructions(programFormat: PtcProgramFormat): string {
   const programDescription = programFormat === 'function-body'
-    ? 'the body of an async TypeScript function (erasable syntax only — no `enum` or namespaces; type annotations are advisory, the code runs type-stripped)'
-    : 'the program to execute'
-  return `## Writing code for run_code
+    ? '异步 TypeScript 函数的函数体（只接受可擦除语法——不能有 `enum` 或 namespace；类型标注仅供参考，执行时会剥离）'
+    : '要执行的程序'
+  return `## run_code 的写法
 
-\`run_code\` takes two required arguments: \`code\`, ${programDescription}, and \`description\`, a short summary of what the program does. The declarations below are SDK bindings for this program. A declaration does not make its name a directly callable tool; only names supplied as separate tool schemas may be called directly.`
+\`run_code\` 有两个必填参数：\`code\`，${programDescription}；\`description\`，一句话说明这个程序做什么。下面声明的类型是这个程序的 SDK 绑定；声明本身不会让名字变成可直接调用的工具，只有另外以工具 schema 形式提供的名字才能直接调用。`
 }
 
 /** Render tool execution and output instructions for the selected execution syntax. */
 function renderSdkProgramInstructions(programFormat: PtcProgramFormat): string {
   const outputInstruction = programFormat === 'function-body'
-    ? 'Emit results with `return` and/or `console.log(...)`. Only what you print or return is program output.'
-    : 'Only values emitted as program output enter the conversation.'
-  return `Inside the program:
+    ? '用 `return` 和/或 `console.log(...)` 输出结果；只有你打印或返回的内容才是程序输出。'
+    : '只有作为程序输出发出的值才会进入对话。'
+  return `在程序内部：
 
-- Call tools as \`await tools.name(args)\` — quoted access for exotic names: \`tools["my-tool"](args)\`. Every call resolves to the tool's typed canonical JSON value. Tool arguments must be lossless JSON.
-- A FAILED tool call rejects with \`ToolCallError\`, whose \`toolName\` identifies the failed tool and whose \`message\` is human-readable — \`try/catch\` it to handle and continue.
-- Independent read-only calls MAY overlap under \`Promise.all\` (safe calls run concurrently; mutating calls run alone, in submission order). Sequence dependent work with \`await\`.
-- ${outputInstruction} A successful tool result containing an image is attached after the run so you can inspect it on the next step; every other intermediate result stays out of the conversation, so extract just what you need.
+- 用 \`await tools.name(args)\` 调用工具——名字含特殊字符时用带引号的写法：\`tools["my-tool"](args)\`。每次调用都返回该工具的类型化 JSON 结果；工具参数必须是无损 JSON。
+- 工具调用失败会抛出 \`ToolCallError\`，\`toolName\` 指出失败的工具，\`message\` 是给人看的说明——用 \`try/catch\` 接住并继续。
+- 相互独立的只读调用可以放在 \`Promise.all\` 里并发（只读调用并发执行，写调用单独执行、按提交顺序）；有依赖的步骤用 \`await\` 串起来。
+- ${outputInstruction} 工具结果里带图片时，会在程序结束后作为附件给你，方便下一步查看；其余中间结果都不进对话，只取你需要的部分。
+- 能一起做的调用尽量放进同一个程序批量发起，省 token 和上下文；不要一个调用跑一次程序。
 
-Program-only SDK bindings:`
+仅存在于程序里的 SDK 绑定：`
 }
 
 /** Whether one string schema accepts the literal used by the bash example. */
@@ -294,7 +298,7 @@ function renderBashExample(schemas: ToolSdkSchema[], programFormat: PtcProgramFo
   const program = programFormat === 'function-body'
     ? `return await tools.bash({ ${description}command: 'pwd' })`
     : `console.log(await tools.bash({ ${description}command: 'pwd' }))`
-  return ` When no separate \`bash\` schema is supplied, invoke a declared \`bash\` binding inside \`run_code\`:\n\n\`run_code({ code: "${program}", description: "Show current directory" })\``
+  return ` 当没有单独提供 \`bash\` 工具 schema 时，在 \`run_code\` 里调用声明的 \`bash\` 绑定：\n\n\`run_code({ code: "${program}", description: "Show current directory" })\``
 }
 
 /**

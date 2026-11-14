@@ -544,7 +544,7 @@ describe('agent loop', () => {
     await waitForIdle(ctx, agent)
 
     const request = adapter.requests[0]
-    expect(systemOf(request)).toBe('You are an AI agent powered by DeepSeek Harness.\n\nYou are a test agent on mock.\n\nUse the noop tool wisely.')
+    expect(systemOf(request)).toBe('你是一个由 DeepSeek Harness 驱动的 AI agent。\n\nYou are a test agent on mock.\n\nUse the noop tool wisely.')
     expect(request!.tools?.map(t => t.name)).toEqual(['noop'])
   })
 
@@ -561,7 +561,7 @@ describe('agent loop', () => {
     send(agent, 'hi')
     await waitForIdle(ctx, agent)
 
-    expect(systemOf(adapter.requests[0])).toBe('You are an AI agent powered by DeepSeek Harness.\n\nA coding agent.')
+    expect(systemOf(adapter.requests[0])).toBe('你是一个由 DeepSeek Harness 驱动的 AI agent。\n\nA coding agent.')
     expect((await ctx.systemPrompt.assemble({ agent, scope: agent })).variables).not.toHaveProperty('cwd')
   })
 
@@ -599,7 +599,7 @@ describe('agent loop', () => {
     await waitForIdle(ctx, agent)
 
     expect(adapter.requests).toHaveLength(1)
-    expect(systemOf(adapter.requests[0])).toBe('You are an AI agent powered by DeepSeek Harness.\n\nIn /rescued.')
+    expect(systemOf(adapter.requests[0])).toBe('你是一个由 DeepSeek Harness 驱动的 AI agent。\n\nIn /rescued.')
     const turnEnds = agent.session.snapshotEvents().filter(e => e.type === 'turn/end')
     expect(turnEnds).toHaveLength(2)
     expect(turnEnds[1]?.type === 'turn/end' && turnEnds[1].data.reason.kind).toBe('completed')
@@ -616,7 +616,7 @@ describe('agent loop', () => {
 
     expect(adapter.requests).toHaveLength(1)
     expect(adapter.requests[0]!.model).toBe('mock')
-    expect(systemOf(adapter.requests[0])).toBe('You are an AI agent powered by DeepSeek Harness.\n\nYou run on mock.')
+    expect(systemOf(adapter.requests[0])).toBe('你是一个由 DeepSeek Harness 驱动的 AI agent。\n\nYou run on mock.')
   })
 
   it('sends no system message when system-prompt/assemble short-circuits with an empty assembly', async () => {
@@ -658,7 +658,7 @@ describe('agent loop', () => {
       send(agent, 'second')
       await secondIdle
       expect(adapter.requests).toHaveLength(2)
-      expect(systemOf(adapter.requests[1])).toBe('You are an AI agent powered by DeepSeek Harness.')
+      expect(systemOf(adapter.requests[1])).toBe('你是一个由 DeepSeek Harness 驱动的 AI agent。')
       expect(adapter.requests[1]?.messages.map(message => message.role)).toEqual(['system', 'user', 'assistant', 'user'])
       const replacement = agent.session.snapshotEvents().findLast(event => event.type === 'system/message')
       expect(replacement).toMatchObject({
@@ -696,7 +696,7 @@ describe('agent loop', () => {
     expect(contextEvents()).toHaveLength(1)
     expect(contextEvents()[0]?.data.content).toEqual([{
       type: 'text',
-      text: 'Current runtime context. This snapshot supersedes earlier runtime-context snapshots.\n\nMode: read-only.',
+      text: '当前运行时上下文。本快照取代此前的运行时上下文快照。\n\nMode: read-only.',
     }])
 
     send(agent, 'unchanged')
@@ -718,7 +718,7 @@ describe('agent loop', () => {
     expect(contextEvents()).toHaveLength(3)
     expect(contextEvents()[2]?.data.content).toEqual([{
       type: 'text',
-      text: 'Current runtime context: none. Earlier runtime-context snapshots no longer apply.',
+      text: '当前运行时上下文：无。此前的运行时上下文快照不再适用。',
     }])
 
     send(agent, 'still clear')
@@ -820,7 +820,7 @@ describe('agent loop', () => {
       await agent.whenIdle()
       const users = adapter.requests[0]?.messages.filter(message => message.role === 'user') ?? []
       expect(users.map(message => message.source?.kind)).toEqual(['runtime-context', 'user'])
-      expect(users[0]?.content).toEqual([{ type: 'text', text: 'Current runtime context. This snapshot supersedes earlier runtime-context snapshots.\n\nafter' }])
+      expect(users[0]?.content).toEqual([{ type: 'text', text: '当前运行时上下文。本快照取代此前的运行时上下文快照。\n\nafter' }])
       expect(users[1]?.content).toEqual([{ type: 'text', text: 'accepted user' }])
       expect(agent.session.snapshotEvents().filter(event => event.type === 'user/message')).toHaveLength(2)
     } finally {
@@ -968,7 +968,7 @@ describe('agent loop', () => {
       message.role === 'user' && message.source?.kind === 'runtime-context')
     expect(clearing?.content).toEqual([{
       type: 'text',
-      text: 'Current runtime context: none. Earlier runtime-context snapshots no longer apply.',
+      text: '当前运行时上下文：无。此前的运行时上下文快照不再适用。',
     }])
   })
 
@@ -1014,7 +1014,7 @@ describe('agent loop', () => {
     expect(runtimeContexts).toHaveLength(2)
     expect(runtimeContexts[1]?.data.content).toEqual([{
       type: 'text',
-      text: 'Current runtime context. This snapshot supersedes earlier runtime-context snapshots.\n\nMode: read-only.',
+      text: '当前运行时上下文。本快照取代此前的运行时上下文快照。\n\nMode: read-only.',
     }])
   })
 

@@ -539,7 +539,7 @@ describe('the mods API over harness services', () => {
         usage: { startedAt: agent.session.header.createdAt, context: { window: 0 }, rateLimits: [] },
         messages: [
           { role: 'user', text: 'hello', toolUses: [] },
-          { role: 'user', text: `Current runtime context. This snapshot supersedes earlier runtime-context snapshots.\n\nCurrent working directory: ${JSON.stringify(h.workspace)}.`, toolUses: [] },
+          { role: 'user', text: `当前运行时上下文。本快照取代此前的运行时上下文快照。\n\nCurrent working directory: ${JSON.stringify(h.workspace)}.`, toolUses: [] },
           { role: 'assistant', text: 'ok', toolUses: [] },
         ],
       })

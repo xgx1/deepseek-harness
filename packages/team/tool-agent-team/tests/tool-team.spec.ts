@@ -44,7 +44,7 @@ const TEAM_TOOLS = [
   'team_task_list',
   'team_task_update',
 ]
-const leadIdentity = (_agent: Agent): string => 'You are the root agent. Your name is "lead".'
+const leadIdentity = (_agent: Agent): string => '你是 root agent。你的名字是 "lead"。'
 
 const roots: string[] = []
 const contexts = new Set<Context>()
@@ -162,7 +162,7 @@ function teamTools(assembled: Awaited<ReturnType<typeof assembly>>): string[] {
 }
 
 function agentIdentity(name: string, parentName = 'lead'): string {
-  return `You are a subagent delegated by agent ${JSON.stringify(parentName)}.\nYour name is ${JSON.stringify(name)}.\nThe root agent of your collaboration tree is "lead".`
+  return `你是由 agent ${JSON.stringify(parentName)} 委派的 subagent。\n你的名字是 ${JSON.stringify(name)}。\n你所在协作树的 root agent 是 "lead"。`
 }
 
 async function runTurn(agent: Agent, text: string): Promise<void> {
@@ -264,9 +264,9 @@ describe('dsh-tool-team', () => {
     const leadAssembly = await assembly(ctx, lead)
     expect(teamTools(leadAssembly)).toEqual(TEAM_TOOLS)
     const leadPrompt = renderPrompt(leadAssembly)
-    expect(leadPrompt).toContain('A shared task board is available in this session')
-    expect(leadPrompt).toContain('Task readiness never starts an owner')
-    expect(leadPrompt).toContain('Task changes do not end wait_agent calls')
+    expect(leadPrompt).toContain('本会话提供了一块共享任务板')
+    expect(leadPrompt).toContain('任务就绪不会启动负责人')
+    expect(leadPrompt).toContain('任务变动不会结束 wait_agent 调用')
     expect(renderContextSnapshot(leadAssembly)).toContain(leadIdentity(lead))
     expect((await ctx.systemPrompt.assemble()).contexts.some(context => context.name === 'team:identity')).toBe(false)
     expect(leadAssembly.tools.map(schema => schema.name)).not.toContain('spawn_teammate')
@@ -842,7 +842,7 @@ describe('dsh-tool-team', () => {
     for (const agent of [lead, child]) {
       const built = await assembly(ctx, agent)
       expect(teamTools(built)).toEqual([])
-      expect(renderPrompt(built)).not.toContain('A shared task board is available')
+      expect(renderPrompt(built)).not.toContain('本会话提供了一块共享任务板')
     }
     expect(ctx.agents.get(child.id)).toBe(child)
     expect(() => ctx.agentTeams.listTasks(child)).toThrow('enable Agent Teams')
@@ -877,8 +877,8 @@ describe('dsh-tool-team', () => {
       expect(tools.filter(tool => !TEAM_TOOLS.includes(tool.name))).toEqual(ordinaryTools)
       const system = request.messages.find(message => message.role === 'system')
       const prompt = system?.content.flatMap(block => block.type === 'text' ? [block.text] : []).join('\n')
-      expect(prompt?.includes('A shared task board is available')).toBe(enabled)
-      expect(prompt?.includes('record expected write scopes on shared tasks')).toBe(enabled)
+      expect(prompt?.includes('本会话提供了一块共享任务板')).toBe(enabled)
+      expect(prompt?.includes('把预期的写入范围记录在共享任务上')).toBe(enabled)
       expect(runtimeContextText(request)).toContain(leadIdentity(lead))
       const contexts = request.messages.findLast(message => message.source?.kind === 'runtime-context')?.source
       const initial = adapter.requests[0]!.messages.findLast(message => message.source?.kind === 'runtime-context')?.source
@@ -914,7 +914,7 @@ describe('dsh-tool-team', () => {
       await disabling
       const built = await assembly(ctx, lead)
       expect(teamTools(built)).toEqual([])
-      expect(renderPrompt(built)).not.toContain('A shared task board is available')
+      expect(renderPrompt(built)).not.toContain('本会话提供了一块共享任务板')
       expect(renderContextSnapshot(built)).toContain(leadIdentity(lead))
     } finally {
       release.resolve(undefined)
@@ -932,11 +932,11 @@ describe('dsh-tool-team', () => {
     lead.ctx.tools.restrict({ deny: TEAM_TOOLS })
     const built = await assembly(ctx, lead)
     expect(teamTools(built)).toEqual([])
-    expect(renderPrompt(built)).toContain('A shared task board is available')
+    expect(renderPrompt(built)).toContain('本会话提供了一块共享任务板')
     expect(renderContextSnapshot(built)).toContain(leadIdentity(lead))
     await ctx.agentTeams.setEnabled(lead, false)
     const disabled = await assembly(ctx, lead)
-    expect(renderPrompt(disabled)).not.toContain('A shared task board is available')
+    expect(renderPrompt(disabled)).not.toContain('本会话提供了一块共享任务板')
     expect(renderContextSnapshot(disabled)).toContain(leadIdentity(lead))
   })
 
@@ -1013,9 +1013,9 @@ describe('dsh-tool-team', () => {
     const source = request.messages.findLast(message => message.source?.kind === 'runtime-context')?.source
     if (source?.kind !== 'runtime-context' || source.form !== 'snapshot') throw new Error('expected runtime context snapshot')
     const identity = source.sections.find(section => section.name === 'subagent:identity')?.text
-    expect(identity).toContain(`Your agent id is ${JSON.stringify(childId)}.`)
-    expect(identity).toContain('Your subagent tree root is unavailable. Continue independent work;')
-    expect(runtimeContextText(request)).not.toContain('To message other agents')
+    expect(identity).toContain(`你的 agent id 是 ${JSON.stringify(childId)}。`)
+    expect(identity).toContain('你的 subagent 树根当前不可用。继续独立工作；')
+    expect(runtimeContextText(request)).not.toContain('要给其它 agent 发消息')
     expect(orphan.agent.session.ownEvents().some(event => event.type === 'assistant/message'
       && event.data.message.content.some(block => block.type === 'text' && block.text === 'independent work done'))).toBe(true)
     await ctx.agentTeams.setEnabled(lead, false)
@@ -1039,7 +1039,7 @@ describe('dsh-tool-team', () => {
     vi.spyOn(ctx.subagents, 'rootOf').mockImplementation(unavailable)
     vi.spyOn(ctx.subagents, 'namesOf').mockImplementation(unavailable)
     const context = renderContextSnapshot(await assembly(ctx, lead))
-    expect(context).toContain('Your subagent tree root is unavailable. Continue independent work;')
+    expect(context).toContain('你的 subagent 树根当前不可用。继续独立工作；')
     expect(context).not.toContain('You are a teammate in the Team')
   })
 

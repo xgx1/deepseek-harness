@@ -151,17 +151,17 @@ describe('renderToolsSdkPy', () => {
     expect(text).toContain('# tools["my-mcp.tool"](args: dict[str, Any]) -> str')
     expect(text).toContain('# tools["class"](args: dict[str, Any]) -> str')
     // Fixed instruction lines the model relies on.
-    expect(text).toContain('and `description`, a short summary of what the program does')
+    expect(text).toContain('`description`，一句话说明这个程序做什么')
     // The binding boundary: `tools`/`ToolCallError` are bound, the TypedDicts
     // are not. Both halves are pinned — dropping either one turns a correct
     // contract into a wrong one (a model that reads only "STATIC STUB" would
     // stop catching `ToolCallError`).
-    expect(text).toContain('exactly two of the names declared below are bound: `tools` and `ToolCallError`')
-    expect(text).toContain('never `FooArgs(field=1)`, which raises `NameError`')
+    expect(text).toContain('运行时下面声明的名字里只有 `tools` 与 `ToolCallError` 是真实绑定的')
+    expect(text).toContain('而不是 `FooArgs(field=1)`（后者会抛 `NameError`）')
     expect(text).toContain('ToolCallError')
     expect(text).toContain('class ToolCallError(Exception):')
-    expect(text).toContain('MAY overlap under `asyncio.gather`')
-    expect(text).toContain('lossless JSON')
+    expect(text).toContain('只读调用并发执行')
+    expect(text).toContain('无损 JSON')
     expect(text).toContain('```python')
     expect(text).toContain('tools: Tools')
   })
@@ -170,7 +170,7 @@ describe('renderToolsSdkPy', () => {
     const text = renderToolsSdkPy([bash])
     expect(text).toContain('`code`')
     expect(text).toContain('`description`')
-    expect(text).toContain('two required arguments: `code`')
+    expect(text).toContain('`run_code` 有两个必填参数：`code`')
   })
 
   it('renders required as plain fields and optional as NotRequired, with per-field description comments', () => {

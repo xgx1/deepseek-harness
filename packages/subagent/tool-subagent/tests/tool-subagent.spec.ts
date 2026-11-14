@@ -44,7 +44,7 @@ async function projectedContext(): Promise<Context> {
 /** Read the model-visible delegation paragraphs, excluding empty sections. */
 async function delegationGuidance(ctx: Context, agent?: Agent): Promise<string[]> {
   const assembly = await ctx.systemPrompt.assemble(agent === undefined ? undefined : assembleContextFor(agent))
-  return assembly.sections.map(section => section.text).filter(text => text.startsWith('Start independent delegations'))
+  return assembly.sections.map(section => section.text).filter(text => text.startsWith('独立的委派用'))
 }
 
 /**
@@ -384,21 +384,21 @@ describe('dsh-tool-subagent', () => {
 
     const forkProvider = await mock.mountScriptedProvider(ctx, { name: 'fork', inheritsParentContext: true })
     expect(await delegationGuidance(ctx)).toEqual([
-      'Start independent delegations with `subagent_fork` together in one assistant message and continue useful work while they run. When only waiting for their results remains, end your turn instead of sleeping or polling; the next result starts a new turn. Collect the subagent results required to complete the task before giving the user a final answer.\n\nAgents may use different working directories; changes to shared files affect other agents. Split parallel write work into disjoint file or directory scopes. Bash, formatters, code generators, and scripts can overwrite concurrent edits without conflict detection; coordinate their changes explicitly. The agent integrating the work must review the final diff and run relevant tests.',
+      '独立的委派用 `subagent_fork` 在同一条 assistant 消息里一起发起，它们运行时继续做有用的工作。当只剩下等它们的结果时，结束本轮而不是睡眠或轮询；下一条结果会开启新一轮。给出用户最终答复前，先收集完成任务所需的 subagent 结果。\n\n各个 agent 可能使用不同的工作目录；对共享文件的改动会影响其他 agent。把并行写工作拆到互不重叠的文件或目录范围。bash、格式化器、代码生成器与脚本可能在没有冲突检测的情况下覆盖并发编辑；要显式协调它们的改动。集成这项工作的 agent 必须审查最终 diff 并跑相关测试。',
     ])
     await mock.mountScriptedProvider(ctx, { name: 'spawn' })
     expect(await delegationGuidance(ctx)).toEqual([
-      'Start independent delegations with `subagent` or `subagent_fork` together in one assistant message and continue useful work while they run. When only waiting for their results remains, end your turn instead of sleeping or polling; the next result starts a new turn. Collect the subagent results required to complete the task before giving the user a final answer.\n\nAgents may use different working directories; changes to shared files affect other agents. Split parallel write work into disjoint file or directory scopes. Bash, formatters, code generators, and scripts can overwrite concurrent edits without conflict detection; coordinate their changes explicitly. The agent integrating the work must review the final diff and run relevant tests.',
+      '独立的委派用 `subagent` 或 `subagent_fork` 在同一条 assistant 消息里一起发起，它们运行时继续做有用的工作。当只剩下等它们的结果时，结束本轮而不是睡眠或轮询；下一条结果会开启新一轮。给出用户最终答复前，先收集完成任务所需的 subagent 结果。\n\n各个 agent 可能使用不同的工作目录；对共享文件的改动会影响其他 agent。把并行写工作拆到互不重叠的文件或目录范围。bash、格式化器、代码生成器与脚本可能在没有冲突检测的情况下覆盖并发编辑；要显式协调它们的改动。集成这项工作的 agent 必须审查最终 diff 并跑相关测试。',
     ])
 
     await forkProvider.dispose()
     expect(await delegationGuidance(ctx)).toEqual([
-      'Start independent delegations with `subagent` together in one assistant message and continue useful work while they run. When only waiting for their results remains, end your turn instead of sleeping or polling; the next result starts a new turn. Collect the subagent results required to complete the task before giving the user a final answer.\n\nAgents may use different working directories; changes to shared files affect other agents. Split parallel write work into disjoint file or directory scopes. Bash, formatters, code generators, and scripts can overwrite concurrent edits without conflict detection; coordinate their changes explicitly. The agent integrating the work must review the final diff and run relevant tests.',
+      '独立的委派用 `subagent` 在同一条 assistant 消息里一起发起，它们运行时继续做有用的工作。当只剩下等它们的结果时，结束本轮而不是睡眠或轮询；下一条结果会开启新一轮。给出用户最终答复前，先收集完成任务所需的 subagent 结果。\n\n各个 agent 可能使用不同的工作目录；对共享文件的改动会影响其他 agent。把并行写工作拆到互不重叠的文件或目录范围。bash、格式化器、代码生成器与脚本可能在没有冲突检测的情况下覆盖并发编辑；要显式协调它们的改动。集成这项工作的 agent 必须审查最终 diff 并跑相关测试。',
     ])
     await mock.mountScriptedProvider(ctx, { name: 'fork', inheritsParentContext: true })
     await spawnTool.dispose()
     expect(await delegationGuidance(ctx)).toEqual([
-      'Start independent delegations with `subagent_fork` together in one assistant message and continue useful work while they run. When only waiting for their results remains, end your turn instead of sleeping or polling; the next result starts a new turn. Collect the subagent results required to complete the task before giving the user a final answer.\n\nAgents may use different working directories; changes to shared files affect other agents. Split parallel write work into disjoint file or directory scopes. Bash, formatters, code generators, and scripts can overwrite concurrent edits without conflict detection; coordinate their changes explicitly. The agent integrating the work must review the final diff and run relevant tests.',
+      '独立的委派用 `subagent_fork` 在同一条 assistant 消息里一起发起，它们运行时继续做有用的工作。当只剩下等它们的结果时，结束本轮而不是睡眠或轮询；下一条结果会开启新一轮。给出用户最终答复前，先收集完成任务所需的 subagent 结果。\n\n各个 agent 可能使用不同的工作目录；对共享文件的改动会影响其他 agent。把并行写工作拆到互不重叠的文件或目录范围。bash、格式化器、代码生成器与脚本可能在没有冲突检测的情况下覆盖并发编辑；要显式协调它们的改动。集成这项工作的 agent 必须审查最终 diff 并跑相关测试。',
     ])
     await forkTool.dispose()
     expect(await delegationGuidance(ctx)).toEqual([])
@@ -412,19 +412,19 @@ describe('dsh-tool-subagent', () => {
     const peer = (await ctx.agents.create({ sessionId: SessionId('guidance-peer') })).agent
     const showSpawn = parent.ctx.tools.restrict({ deny: ['subagent'] })
     expect(await delegationGuidance(ctx, parent)).toEqual([
-      'Start independent delegations with `subagent_fork` together in one assistant message and continue useful work while they run. When only waiting for their results remains, end your turn instead of sleeping or polling; the next result starts a new turn. Collect the subagent results required to complete the task before giving the user a final answer.\n\nAgents may use different working directories; changes to shared files affect other agents. Split parallel write work into disjoint file or directory scopes. Bash, formatters, code generators, and scripts can overwrite concurrent edits without conflict detection; coordinate their changes explicitly. The agent integrating the work must review the final diff and run relevant tests.',
+      '独立的委派用 `subagent_fork` 在同一条 assistant 消息里一起发起，它们运行时继续做有用的工作。当只剩下等它们的结果时，结束本轮而不是睡眠或轮询；下一条结果会开启新一轮。给出用户最终答复前，先收集完成任务所需的 subagent 结果。\n\n各个 agent 可能使用不同的工作目录；对共享文件的改动会影响其他 agent。把并行写工作拆到互不重叠的文件或目录范围。bash、格式化器、代码生成器与脚本可能在没有冲突检测的情况下覆盖并发编辑；要显式协调它们的改动。集成这项工作的 agent 必须审查最终 diff 并跑相关测试。',
     ])
     expect(await delegationGuidance(ctx, peer)).toEqual([
-      'Start independent delegations with `subagent` or `subagent_fork` together in one assistant message and continue useful work while they run. When only waiting for their results remains, end your turn instead of sleeping or polling; the next result starts a new turn. Collect the subagent results required to complete the task before giving the user a final answer.\n\nAgents may use different working directories; changes to shared files affect other agents. Split parallel write work into disjoint file or directory scopes. Bash, formatters, code generators, and scripts can overwrite concurrent edits without conflict detection; coordinate their changes explicitly. The agent integrating the work must review the final diff and run relevant tests.',
+      '独立的委派用 `subagent` 或 `subagent_fork` 在同一条 assistant 消息里一起发起，它们运行时继续做有用的工作。当只剩下等它们的结果时，结束本轮而不是睡眠或轮询；下一条结果会开启新一轮。给出用户最终答复前，先收集完成任务所需的 subagent 结果。\n\n各个 agent 可能使用不同的工作目录；对共享文件的改动会影响其他 agent。把并行写工作拆到互不重叠的文件或目录范围。bash、格式化器、代码生成器与脚本可能在没有冲突检测的情况下覆盖并发编辑；要显式协调它们的改动。集成这项工作的 agent 必须审查最终 diff 并跑相关测试。',
     ])
     expect(await delegationGuidance(unrelated)).toEqual([
-      'Start independent delegations with `other_delegate` together in one assistant message and continue useful work while they run. When only waiting for their results remains, end your turn instead of sleeping or polling; the next result starts a new turn. Collect the subagent results required to complete the task before giving the user a final answer.\n\nAgents may use different working directories; changes to shared files affect other agents. Split parallel write work into disjoint file or directory scopes. Bash, formatters, code generators, and scripts can overwrite concurrent edits without conflict detection; coordinate their changes explicitly. The agent integrating the work must review the final diff and run relevant tests.',
+      '独立的委派用 `other_delegate` 在同一条 assistant 消息里一起发起，它们运行时继续做有用的工作。当只剩下等它们的结果时，结束本轮而不是睡眠或轮询；下一条结果会开启新一轮。给出用户最终答复前，先收集完成任务所需的 subagent 结果。\n\n各个 agent 可能使用不同的工作目录；对共享文件的改动会影响其他 agent。把并行写工作拆到互不重叠的文件或目录范围。bash、格式化器、代码生成器与脚本可能在没有冲突检测的情况下覆盖并发编辑；要显式协调它们的改动。集成这项工作的 agent 必须审查最终 diff 并跑相关测试。',
     ])
     showSpawn()
 
     const scoped = await parent.ctx.plugin(tool, { provider: 'mock', toolName: 'subagent' })
     expect(await delegationGuidance(ctx, parent)).toEqual([
-      'Start independent delegations with `subagent` or `subagent_fork` together in one assistant message and continue useful work while they run. When only waiting for their results remains, end your turn instead of sleeping or polling; the next result starts a new turn. Collect the subagent results required to complete the task before giving the user a final answer.\n\nAgents may use different working directories; changes to shared files affect other agents. Split parallel write work into disjoint file or directory scopes. Bash, formatters, code generators, and scripts can overwrite concurrent edits without conflict detection; coordinate their changes explicitly. The agent integrating the work must review the final diff and run relevant tests.',
+      '独立的委派用 `subagent` 或 `subagent_fork` 在同一条 assistant 消息里一起发起，它们运行时继续做有用的工作。当只剩下等它们的结果时，结束本轮而不是睡眠或轮询；下一条结果会开启新一轮。给出用户最终答复前，先收集完成任务所需的 subagent 结果。\n\n各个 agent 可能使用不同的工作目录；对共享文件的改动会影响其他 agent。把并行写工作拆到互不重叠的文件或目录范围。bash、格式化器、代码生成器与脚本可能在没有冲突检测的情况下覆盖并发编辑；要显式协调它们的改动。集成这项工作的 agent 必须审查最终 diff 并跑相关测试。',
     ])
     await scoped.dispose()
     parent.ctx.tools.restrict({ deny: ['subagent', 'subagent_fork'] })
@@ -745,7 +745,7 @@ describe('dsh-tool-subagent local activation', () => {
     expect(properties.run_in_background).toBeUndefined()
     const assembly = await ctx.systemPrompt.assemble(assembleContextFor(parent))
     const guidance = assembly.sections.find(section => section.name === 'tool:subagent')
-    expect(guidance?.text).toBe('Start independent delegations with `subagent` together in one assistant message and continue useful work while they run. When only waiting for their results remains, end your turn instead of sleeping or polling; the next result starts a new turn. Collect the subagent results required to complete the task before giving the user a final answer.\n\nAgents may use different working directories; changes to shared files affect other agents. Split parallel write work into disjoint file or directory scopes. Bash, formatters, code generators, and scripts can overwrite concurrent edits without conflict detection; coordinate their changes explicitly. The agent integrating the work must review the final diff and run relevant tests.')
+    expect(guidance?.text).toBe('独立的委派用 `subagent` 在同一条 assistant 消息里一起发起，它们运行时继续做有用的工作。当只剩下等它们的结果时，结束本轮而不是睡眠或轮询；下一条结果会开启新一轮。给出用户最终答复前，先收集完成任务所需的 subagent 结果。\n\n各个 agent 可能使用不同的工作目录；对共享文件的改动会影响其他 agent。把并行写工作拆到互不重叠的文件或目录范围。bash、格式化器、代码生成器与脚本可能在没有冲突检测的情况下覆盖并发编辑；要显式协调它们的改动。集成这项工作的 agent 必须审查最终 diff 并跑相关测试。')
 
     const started = await callSubagent(
       ctx,

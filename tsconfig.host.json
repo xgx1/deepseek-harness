@@ -310,7 +310,6 @@
     { "path": "./packages/skill/tool-workspace-dependencies" },
     { "path": "./packages/browser-use/browser-use" },
     { "path": "./packages/experimental/browser-use-runtime" },
-    { "path": "./packages/experimental/browser-use-playwright-mcp" },
     { "path": "./packages/experimental/browser-use-chrome-devtools-mcp" },
     { "path": "./packages/experimental/browser-use-stagehand-native" },
     { "path": "./packages/api/terminal-controller/tsconfig.host.json" },

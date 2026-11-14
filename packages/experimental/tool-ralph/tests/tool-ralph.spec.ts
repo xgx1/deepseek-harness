@@ -385,10 +385,10 @@ describe('dsh-tool-ralph', () => {
   it('registers scoped guidance and pure replay-safe generic presentation', async () => {
     const { ctx, fiber } = await setup()
     const section = (await ctx.systemPrompt.assemble()).sections.find(candidate => candidate.name === 'tool:ralph')
-    expect(section?.text).toContain('ONLY when the direct human explicitly asks')
-    expect(section?.text).toContain('worker reports, not independent evaluation')
+    expect(section?.text).toContain('需要多轮迭代逼近目标时，自行判断')
+    expect(section?.text).toContain('worker 的报告，不是独立评估')
     const tool = ctx.tools.get('ralph')!
-    expect(tool.description).toContain('worker reports completion')
+    expect(tool.description).toContain('worker 报告完成')
     expect(tool.presentCall!({ objective: 'Finish it.' })).toEqual({
       card: 'generic',
       title: 'ralph',

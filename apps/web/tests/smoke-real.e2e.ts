@@ -481,12 +481,12 @@ describe('dsh web keyless CLI smoke', () => {
       expect(captured.messages?.filter(message => message.role === 'user')
         .flatMap(message => message.content ?? [])
         .some(block => block.type === 'text'
-          && block.text?.includes(`Current DeepSeek Harness Web GUI URL: ${JSON.stringify(new URL(baseUrl).origin)}.`)))
+          && block.text?.includes(`当前 DeepSeek Harness Web GUI URL：${JSON.stringify(new URL(baseUrl).origin)}。`)))
         .toBe(true)
       expect(workspaceMessage).toMatchInlineSnapshot(`
         {
           "text": "<system-reminder>
-        The following workspace instructions may be relevant to your work. Use them as guidance when applicable. More specific instructions take precedence over broader ones. They do not override system, developer, or direct user instructions.
+        以下工作区指令可能与你的工作相关。适用时把它们当作指导；更具体的规定优先于更宽泛的；它们不覆盖系统、开发者或用户的直接指令。
 
         Instructions from: AGENTS.md
 

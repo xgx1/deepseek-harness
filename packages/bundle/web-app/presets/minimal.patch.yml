@@ -11,7 +11,7 @@
           - id: persona
             name: '@deepseek-ai/dsh-persona'
             config:
-              prefix: You are a helpful software engineer assistant.
+              prefix: 你是一个乐于助人的软件工程师助手。
               complete: true
               includeRuntimeContext: false
           - id: tool-fs
@@ -50,13 +50,13 @@
                 config:
                   timeoutMs: 300000
                   description: |-
-                    Run commands in a bash shell
-                    * When invoking this tool, the contents of the "command" parameter does NOT need to be XML-escaped.
-                    * Network access depends on the task environment. Prefer configured mirrors/proxies when they are available.
-                    * State is persistent across command calls and discussions with the user.
-                    * To inspect a particular line range of a file, e.g. lines 10-25, try 'sed -n 10,25p /path/to/the/file'.
-                    * Please avoid commands that may produce a very large amount of output.
-                    * Please run long lived commands in the background, e.g. 'sleep 10 &' or start a server in the background.
+                    在 bash shell 里运行命令
+                    * 调用本工具时，“command” 参数的内容不需要做 XML 转义。
+                    * 网络访问取决于任务环境。可用时优先使用已配置的镜像/代理。
+                    * 状态在多次命令调用和与用户的讨论之间保持持久。
+                    * 要查看文件的某个行区间（例如第 10-25 行），可试 'sed -n 10,25p /path/to/the/file'。
+                    * 请避免可能产生极大量输出的命令。
+                    * 请把长期运行的命令放到后台执行，例如 'sleep 10 &'，或在后台启动服务。
               - id: terminal-pwsh
                 name: '@deepseek-ai/dsh-terminal-bash'
                 disabled: !!js process.platform !== 'win32'
@@ -69,10 +69,10 @@
                 config:
                   timeoutMs: 300000
                   description: |-
-                    Run commands in a PowerShell shell
-                    * When invoking this tool, the contents of the "command" parameter does NOT need to be XML-escaped.
-                    * You don't have access to the internet via this tool.
-                    * State is persistent across command calls and discussions with the user.
-                    * Use native Windows paths (C:\...) and $env:NAME variables; this is PowerShell, not bash.
-                    * Please avoid commands that may produce a very large amount of output.
-                    * Please run long lived commands in the background, e.g. 'Start-Job' or start a server with Start-Process.
+                    在 PowerShell shell 里运行命令
+                    * 调用本工具时，“command” 参数的内容不需要做 XML 转义。
+                    * 通过本工具无法访问互联网。
+                    * 状态在多次命令调用和与用户的讨论之间保持持久。
+                    * 使用原生 Windows 路径（C:\...）和 $env:NAME 变量；这是 PowerShell，不是 bash。
+                    * 请避免可能产生极大量输出的命令。
+                    * 请把长期运行的命令放到后台执行，例如 'Start-Job'，或用 Start-Process 启动服务。

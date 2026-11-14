@@ -39,7 +39,7 @@ export const Config = Schema.object({
   ]).default('ad-hoc'),
 }) satisfies Schema<Record<string, unknown>, Config>
 
-const description = 'Inspect macOS permissions, select an application and window, read AX state, capture screenshots or dispatch input. Use appHandle from getApp; verify actions by reading fresh state.'
+const description = '检查 macOS 权限，选择应用与窗口，读取 AX 状态，截图或派发输入。用 getApp 返回的 appHandle；靠读取新状态验证动作。'
 
 /**
  * Mount logged native operations with separate Agent connections to the shared helper.

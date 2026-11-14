@@ -59,7 +59,7 @@ describe('the skillFilter Remote namespace', () => {
     const { controller } = await boot()
     expect(await controller.getProject({ cwd })).toEqual({ exists: false })
     await mkdir(join(cwd, '.dsh'), { recursive: true })
-    await writeFile(join(cwd, '.dsh', 'skill-filter.yaml'), 'deny:\n  - "x"\n', 'utf-8')
+    await writeFile(join(cwd, '.dsh', 'skill-filter.yaml'), 'allow: not-a-list\n', 'utf-8')
     const broken = await controller.getProject({ cwd })
     expect(broken.exists).toBe(false)
     expect(broken.error).toContain('Invalid config')
@@ -68,7 +68,7 @@ describe('the skillFilter Remote namespace', () => {
   it('refuses a config whose allow list is missing or empty', async () => {
     const { controller } = await boot()
     // 解码后的原始 JSON 携带类型之外的非法的值：缺少 allow 与空 allow 都必须被校验拒绝。
-    const refused = [JSON.parse('{"deny":["x"]}') as SkillFilterConfigView, { allow: [] }]
+    const refused = [JSON.parse('{}') as SkillFilterConfigView, { allow: [] }]
     for (const config of refused) {
       const failure = await Promise.resolve()
         .then(() => controller.setPersonal(config))
@@ -80,23 +80,12 @@ describe('the skillFilter Remote namespace', () => {
     }
   })
 
-  it('refuses a deny entry that is not a string', async () => {
-    const { controller } = await boot()
-    const failure = await Promise.resolve()
-      .then(() => controller.setPersonal(JSON.parse('{"allow":["*"],"deny":[1]}') as SkillFilterConfigView))
-      .catch((error: unknown) => error)
-    expect(remoteErrorOf(failure)).toMatchObject({
-      code: 'skill-filter/rejected',
-      details: { reason: '"deny" must be an array of strings' },
-    })
-  })
-
   it('persists the personal config as YAML and reads it back', async () => {
     const { controller } = await boot()
-    const saved = await controller.setPersonal({ allow: ['git-*'], deny: ['git-rebase'] })
-    expect(saved).toEqual({ exists: true, config: { allow: ['git-*'], deny: ['git-rebase'] } })
+    const saved = await controller.setPersonal({ allow: ['git-*', 'git-rebase'] })
+    expect(saved).toEqual({ exists: true, config: { allow: ['git-*', 'git-rebase'] } })
     expect(await readFile(join(home, 'skill-filter.yaml'), 'utf-8')).toBe(
-      'allow:\n  - "git-*"\ndeny:\n  - "git-rebase"\n',
+      'allow:\n  - "git-*"\n  - "git-rebase"\n',
     )
     expect(await controller.getPersonal()).toEqual(saved)
   })
@@ -143,19 +132,19 @@ describe('the skillFilter Remote namespace', () => {
       personalExists: false, projectExists: false,
     })
 
-    await controller.setPersonal({ allow: ['*'], deny: ['ue-*'] })
+    await controller.setPersonal({ allow: ['*'] })
     await controller.setProject({ cwd, config: { allow: ['git-*'] } })
     expect(await controller.getEffective({ cwd })).toEqual({
       personalExists: true,
       projectExists: true,
-      config: { allow: ['*', 'git-*'], deny: ['ue-*'] },
+      config: { allow: ['*', 'git-*'] },
     })
 
     await rm(join(cwd, '.dsh'), { recursive: true, force: true })
     expect(await controller.getEffective({ cwd })).toEqual({
       personalExists: true,
       projectExists: false,
-      config: { allow: ['*'], deny: ['ue-*'] },
+      config: { allow: ['*'] },
     })
   })
 })

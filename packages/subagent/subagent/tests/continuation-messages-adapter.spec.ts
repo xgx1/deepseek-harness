@@ -91,8 +91,8 @@ it('continues the parent through default Messages after a reasoning-bearing cont
       ...closingContent,
       {
         type: 'text',
-        text: 'Current runtime context. This snapshot supersedes earlier runtime-context snapshots.\n\n'
-          + `Current working directory: ${JSON.stringify(process.cwd())}.`,
+        text: '当前运行时上下文。本快照取代此前的运行时上下文快照。\n\n'
+          + `当前工作目录：${JSON.stringify(process.cwd())}。`,
       },
     ]
     expect(requests[1]?.body).toMatchObject({ messages: [{ role: 'user', content: noticeWithContext }] })

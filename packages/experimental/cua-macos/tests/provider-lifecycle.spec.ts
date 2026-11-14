@@ -622,7 +622,7 @@ it('prepares the selected native component before registering CUA and creates no
 it('adds an installation-owned bridge URL when persistent PTC is available', async () => {
   const f = await setup()
   const text = async () => (await f.ctx.systemPrompt.assemble()).sections.find(section => section.name === 'computer-use:dsh-cua')?.text
-  expect(await text()).not.toContain('Persistent PTC initialization:')
+  expect(await text()).not.toContain('持久 PTC 初始化：')
   await f.ctx.plugin(FileSystem)
   await f.ctx.plugin(Sandbox)
   await f.ctx.plugin(SandboxPolicy)

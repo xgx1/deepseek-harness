@@ -344,7 +344,7 @@ describe('mode-aware wire contribution', () => {
     const assembly = await systemPrompt.assemble()
     const names = assembly.sections.map(section => section.name)
     const rule = assembly.sections.find(section => section.name === 'tools:ptc-only')
-    expect(rule?.text).toContain(`\`${RUN_CODE_NAME}\` is the only tool you can call directly`)
+    expect(rule?.text).toContain(`\`${RUN_CODE_NAME}\` 是你唯一能直接调用的工具`)
     // The rule is worthless after the guidance it qualifies.
     expect(names.indexOf('tools:ptc-only')).toBeLessThan(names.indexOf('tool:echo'))
     expect(names.indexOf('tools:ptc-only')).toBeLessThan(names.indexOf('tools:sdk'))
@@ -560,7 +560,7 @@ describe('mode-aware wire contribution', () => {
     const sdk = assembly.sections.find(section => section.name === 'tools:sdk')
     expect(sdk?.text).toContain('class Tools(Protocol):')
     expect(sdk?.text).toContain('async def echo(self, args:')
-    expect(sdk?.text).toContain('and `description`, a short summary of what the program does')
+    expect(sdk?.text).toContain('`description`，一句话说明这个程序做什么')
     expect(assembly.tools.map(tool => tool.name)).toEqual([RUN_CODE_NAME])
     expect(assembly.tools[0]?.description).toContain('Execute a Python program')
   })

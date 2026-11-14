@@ -525,14 +525,14 @@ def test_unimplemented_slash_remains_plain_text_without_recording_feedback(tmp_p
 
 
 _PERMISSION_FACTS = {"permission/preset", "sandbox/mode", "approval/policy"}
-_ASK_POLICY = "Approval prompts are enabled in this session"
-_NEVER_POLICY = "Approval prompts are disabled in this session"
+_ASK_POLICY = "本次会话已启用审批提示"
+_NEVER_POLICY = "本次会话已禁用审批提示"
 
 
 def _assert_request_permission(request: dict, sandbox: str, approval: str) -> None:
-    contexts = [text for text in _request_texts(request) if text.startswith("Current runtime context.")]
+    contexts = [text for text in _request_texts(request) if text.startswith("当前运行时上下文。")]
     assert contexts, "model request has no runtime-context snapshot"
-    assert f"Current DSH file policy: {sandbox}." in contexts[-1]
+    assert f"当前 DSH 文件策略：{sandbox}。" in contexts[-1]
     assert (_ASK_POLICY if approval == "ask" else _NEVER_POLICY) in contexts[-1]
 
 

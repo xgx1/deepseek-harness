@@ -9,8 +9,8 @@
   en: 6cc2cd9ced70bb09
   zh: 1c0e6cb4ba2ed637
 /tool-schema-catalog/tool-package-map:
-  en: 7b5b99bcc5cd46f4
-  zh: c1697f88326440ff
+  en: 83358e4adc608398
+  zh: b38e074d298732c8
 /tool-schema-catalog/deepseek-ai-dsh-plugin-manager:
   en: e0143916bb634762
   zh: e0143916bb634762
@@ -39,22 +39,22 @@
   en: 19e7df8d692b4375
   zh: 19e7df8d692b4375
 /tool-schema-catalog/deepseek-ai-dsh-experimental-browser-use-stagehand-native/stagehand-act:
-  en: c4b27bf62c534dcc
+  en: c2021ce52185f1a1
   zh: 70c53824ed57ac23
 /tool-schema-catalog/deepseek-ai-dsh-experimental-browser-use-stagehand-native/stagehand-extract:
-  en: ec7462ab99848155
+  en: b6e46d959f09c03f
   zh: 632fe0249040708e
 /tool-schema-catalog/deepseek-ai-dsh-experimental-browser-use-stagehand-native/stagehand-navigate:
-  en: ef97f063a037a006
+  en: 11f259fb82efca66
   zh: 27727ccc908e007f
 /tool-schema-catalog/deepseek-ai-dsh-experimental-browser-use-stagehand-native/stagehand-observe:
-  en: 2068f1baa0a59e1b
+  en: ab20555c9f8a6e33
   zh: 5743c7b33e2c5ccb
 /tool-schema-catalog/deepseek-ai-dsh-experimental-browser-use-stagehand-native/stagehand-screenshot:
-  en: 4910ab327694ee97
+  en: dac2a23b048a7cf9
   zh: 17e79e4366cb636d
 /tool-schema-catalog/deepseek-ai-dsh-experimental-browser-use-stagehand-native/stagehand-tabs:
-  en: a0d5b9b891358120
+  en: c2c2edcd5cc78c1f
   zh: 25793a62709770b5
 /tool-schema-catalog/deepseek-ai-dsh-action-cards:
   en: 60c9df6ffda98a1d
@@ -141,8 +141,8 @@
   en: f6f7a1140066ce04
   zh: d528e01a0939795a
 /tool-schema-catalog/deepseek-ai-dsh-tool-fs/write:
-  en: 22e7c232e157a1e2
-  zh: 176da52cdd4765a9
+  en: d11224f6f584c2e6
+  zh: d3904e6ae1f05717
 /tool-schema-catalog/deepseek-ai-dsh-tool-fs-search:
   en: 703fea005ce84c50
   zh: 703fea005ce84c50
@@ -210,7 +210,7 @@
   en: 45bd083870e2c92d
   zh: 45bd083870e2c92d
 /tool-schema-catalog/deepseek-ai-dsh-tool-ralph/ralph:
-  en: e97552156225cf10
+  en: 73efcbbe4dadf9a0
   zh: 9ea32b8485e950ec
 /tool-schema-catalog/deepseek-ai-dsh-tool-skill:
   en: 927a5ac0974b7642
@@ -315,7 +315,7 @@
   en: bb38a9d29f46563c
   zh: bb38a9d29f46563c
 /tool-schema-catalog/deepseek-ai-dsh-tool-workflow/workflow:
-  en: fdd667cfe21481e8
+  en: a1f5ca279744cf23
   zh: 88864d3b958398a4
 /tool-schema-catalog/deepseek-ai-dsh-tool-workspace-dependencies:
   en: 96bffc40b80df4b8

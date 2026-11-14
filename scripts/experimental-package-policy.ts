@@ -36,7 +36,6 @@ export const LEGACY_PREFIXED_EXPERIMENTAL_PACKAGE_DIRECTORIES: readonly string[]
   'packages/experimental/auto-review',
   'packages/experimental/badge-skill-bundle',
   'packages/experimental/browser-use-chrome-devtools-mcp',
-  'packages/experimental/browser-use-playwright-mcp',
   'packages/experimental/browser-use-runtime',
   'packages/experimental/browser-use-stagehand-native',
   'packages/experimental/claude-code-mods',

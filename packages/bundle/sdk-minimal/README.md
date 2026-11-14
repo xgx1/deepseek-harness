@@ -80,7 +80,7 @@ The bundle's single insert is the complete application tree: SDK stdio startup a
 
 #### What the model sees
 
-The system prompt is `DSH_SYSTEM_PROMPT` or `You are a helpful software engineer assistant.`. With no MCP server configured, the advertised tools are `read_image`, `working_directory`, and owner-scoped persistent `bash` on Linux/macOS or `pwsh` on Windows. Required user context supplies the current directory. Optional runtime context, text file tools, workspace instructions, skills, jobs controls, and Harness identity are absent.
+The system prompt is `DSH_SYSTEM_PROMPT` or `你是一个乐于助人的软件工程师助手。`. With no MCP server configured, the advertised tools are `read_image`, `working_directory`, and owner-scoped persistent `bash` on Linux/macOS or `pwsh` on Windows. Required user context supplies the current directory. Optional runtime context, text file tools, workspace instructions, skills, jobs controls, and Harness identity are absent.
 
 #### Token effect
 

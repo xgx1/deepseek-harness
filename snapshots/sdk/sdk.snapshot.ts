@@ -157,7 +157,7 @@ const SDK_ASSERTIONS: Readonly<Record<string, SdkAssertions>> = {
   'desktop-context': {
     expectedFinalResponse: 'SDK snapshot OK',
     runtimeContext: {
-      includes: ['Current working directory:'],
+      includes: ['当前工作目录：'],
       excludes: ['Current DeepSeek Harness implementation checkout:', 'Current DeepSeek Harness Web GUI URL:'],
     },
   },
@@ -224,7 +224,7 @@ const SDK_ASSERTIONS: Readonly<Record<string, SdkAssertions>> = {
   'ptc-turn': {
     patches: [fileURLToPath(new URL('./ptc-turn/runtime.cordis.yml', import.meta.url))],
     expectedFinalResponse: 'CODE_ONE+CODE_TWO',
-    expectedTools: { run_code: ['code', 'description'] },
+    expectedTools: { run_code: ['code'] },
   },
   'subagent-spawn-in-process': {
     patches: [fileURLToPath(new URL('./subagent-spawn-in-process/runtime.cordis.yml', import.meta.url))],
@@ -251,7 +251,7 @@ const SDK_ASSERTIONS: Readonly<Record<string, SdkAssertions>> = {
     expectedSystem: MINIMAL_SYSTEM_PROMPT,
     expectedToolDescriptions: { bash: MINIMAL_BASH_DESCRIPTION },
     runtimeContext: {
-      includes: ['Current working directory:', 'Current DSH file policy: danger-full-access', 'Approval prompts are disabled in this session'],
+      includes: ['当前工作目录：', '当前 DSH 文件策略：danger-full-access', '本次会话已禁用审批提示'],
       excludes: ['workspace-write'],
     },
   },
@@ -1224,7 +1224,7 @@ describe('TypeScript SDK snapshots over the jsonrpc runtime', () => {
         expect((first.tools as JsonObject[]).map(tool => tool.name)).toEqual(expect.arrayContaining([
           'team_task_create', 'team_task_get', 'team_task_list', 'team_task_update',
         ]))
-        expect(JSON.stringify(first.messages)).toContain('shared task board')
+        expect(JSON.stringify(first.messages)).toContain('共享任务板')
         expect(events.filter(event => event.type === 'team/task').map(event => event.data.task))
           .toEqual([expect.objectContaining({ subject: 'Configured Team', status: 'pending' })])
         expect(events.filter(event => event.type === 'tool/result').map(event => event.data.message.isError))
@@ -1236,7 +1236,7 @@ describe('TypeScript SDK snapshots over the jsonrpc runtime', () => {
         expect(JSON.stringify(childResults)).toContain('Configured Team')
         for (const request of modelRequests) {
           expect((request.tools as JsonObject[]).map(tool => tool.name)).toContain('team_task_list')
-          expect(JSON.stringify(request.messages)).toContain('shared task board')
+          expect(JSON.stringify(request.messages)).toContain('共享任务板')
         }
       }
       if (scenario.name === 'command-attachments') {
@@ -1280,7 +1280,7 @@ describe('TypeScript SDK snapshots over the jsonrpc runtime', () => {
         ])
         const requestMessages = modelRequests[0]?.messages as JsonObject[]
         expect(requestMessages.map(message => message.content)).toContainEqual(content)
-        expect(JSON.stringify(requestMessages)).toContain('You are in plan mode.')
+        expect(JSON.stringify(requestMessages)).toContain('你处于计划模式。')
         expect(events.findLast(event => event.type === 'assistant/message'))
           .toMatchObject({ data: { message: { content: [{ type: 'text', text: 'SDK_COMMAND_IMAGE_OK' }] } } })
       }
@@ -1323,7 +1323,7 @@ describe('TypeScript SDK snapshots over the jsonrpc runtime', () => {
         const active = modelRequests.map((request) => {
           const messages = request.messages as JsonObject[]
           const system = messages.filter(message => message.role === 'system').at(-1)
-          return JSON.stringify(system).includes('You are in plan mode.')
+          return JSON.stringify(system).includes('你处于计划模式。')
         })
         expect(active).toEqual([false, true, true, false, true, false])
         expect(modelRequests.map(request => (request.tools as JsonObject[]).some(tool => tool.name === 'exit_plan_mode')))
@@ -1388,7 +1388,7 @@ describe('TypeScript SDK snapshots over the jsonrpc runtime', () => {
         }
         const runtimeContexts = continuationMessages.filter(message => (message.source as JsonObject | undefined)?.kind === 'runtime-context')
         const runtimeText = JSON.stringify(runtimeContexts.at(-1))
-        expect(runtimeText).toContain('Current DSH file policy: read-only.')
+        expect(runtimeText).toContain('当前 DSH 文件策略：read-only。')
         const texts = continuationMessages.flatMap(message => message.content as JsonObject[])
           .flatMap(block => block.type === 'text' ? [block.text] : [])
         expect(texts).toContain('SDK_PERMISSION_READY')

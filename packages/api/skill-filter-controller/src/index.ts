@@ -71,7 +71,7 @@ export class SkillFilterRemote extends TypertRemoteService {
 
   /**
    * Replace the personal (user-level) filter config.
-   * @param config - the complete replacement; `allow` is required, `deny` optional.
+   * @param config - the complete replacement; `allow` is required and must not be empty.
    * @returns the persisted config as re-read from disk.
    * @throws RemoteError `skill-filter/rejected` when the config is invalid or unwritable.
    */
@@ -152,7 +152,7 @@ export class SkillFilterRemote extends TypertRemoteService {
         this.ctx.logger.warn(`skill-filter config listener failed: ${String(error)}`)
       }
     }
-    return { allow: [...config.allow], ...config.deny === undefined ? {} : { deny: [...config.deny] } }
+    return { allow: [...config.allow] }
   }
 }
 
@@ -164,20 +164,12 @@ function rejectionOf(config: SkillFilterConfigView): string | undefined {
   if (config.allow.some(pattern => typeof pattern !== 'string' || pattern.length === 0)) {
     return '"allow" must contain non-empty strings'
   }
-  if (config.deny !== undefined) {
-    if (!Array.isArray(config.deny) || config.deny.some(pattern => typeof pattern !== 'string')) {
-      return '"deny" must be an array of strings'
-    }
-  }
   return undefined
 }
 
 /** Project one parsed config onto its wire view. */
 function configView(config: SkillFilterConfig): SkillFilterConfigView {
-  return {
-    allow: [...config.allow],
-    ...config.deny === undefined ? {} : { deny: [...config.deny] },
-  }
+  return { allow: [...config.allow] }
 }
 
 /** Project the merge result onto its wire view. */

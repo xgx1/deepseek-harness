@@ -443,7 +443,7 @@ describe('headless stream-json snapshots', () => {
         const content = logs[0]?.content ?? ''
         const modes = parseJsonl(content).filter(event => event.type === 'sandbox/mode')
         expect(modes.at(-1)?.data).toEqual({ mode: 'workspace-write' })
-        if (process.platform !== 'win32') expect(content).toContain('Additional writable directories:')
+        if (process.platform !== 'win32') expect(content).toContain('额外可写目录：')
       },
     })
 
@@ -1254,18 +1254,18 @@ describe('headless stream-json snapshots', () => {
         "checkedAgents": true,
         "deliveredMessages": 0,
         "identities": [
-          "You are a subagent delegated by agent "lead".
-      Your name is "agent-2".
-      The root agent of your collaboration tree is "lead".
+          "你是由 agent "lead" 委派的 subagent。
+      你的名字是 "agent-2"。
+      你所在协作树的 root agent 是 "lead"。
 
-      To message other agents, use send_message({ agent: "<agent-name>", message: "..." }).
-      Use list_agents({}) to find your collaborator agents and their names.",
-          "You are a subagent delegated by agent "lead".
-      Your name is "agent-3".
-      The root agent of your collaboration tree is "lead".
+      要给其它 agent 发消息，请使用 send_message({ agent: "<agent-name>", message: "..." })。
+      要找到你的协作 agent 及其名字，请使用 list_agents({})。",
+          "你是由 agent "lead" 委派的 subagent。
+      你的名字是 "agent-3"。
+      你所在协作树的 root agent 是 "lead"。
 
-      To message other agents, use send_message({ agent: "<agent-name>", message: "..." }).
-      Use list_agents({}) to find your collaborator agents and their names.",
+      要给其它 agent 发消息，请使用 send_message({ agent: "<agent-name>", message: "..." })。
+      要找到你的协作 agent 及其名字，请使用 list_agents({})。",
         ],
         "queuedMessages": 0,
         "sessions": 4,

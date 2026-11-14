@@ -396,7 +396,7 @@
     {"digest":"8338ee303e2bd448e9e6144069942f63e3cfd5868962bddc9347d7009e8919d6","names":[],"sources":[]},
     {"digest":"834ede754a72c958fc9f5ee1f531d8d5a7883e7d7858af8583ba2be66b890b54","names":[],"sources":[]},
     {"digest":"83d6916021eede8f2d83a1872716caa1efdec39a3681890996c55147187fdd12","names":[],"sources":[]},
-    {"digest":"83da72c6857601c75da11212ef847f57d457b9c99f0a82246dcdff3e26700239","names":["packages/context/agent-instructions/src/render.ts#AgentInstructionChange"],"sources":["packages/context/agent-instructions/src/render.ts:62"]},
+    {"digest":"83da72c6857601c75da11212ef847f57d457b9c99f0a82246dcdff3e26700239","names":["packages/context/agent-instructions/src/render.ts#AgentInstructionChange"],"sources":["packages/context/agent-instructions/src/render.ts:64"]},
     {"digest":"8465ece5e9d9007c038b357015d849c15262cb0bc25abc59e47692d87ee01a15","names":["packages/workflow/workflow/src/types.ts#WorkflowStopReason"],"sources":["packages/workflow/workflow/src/types.ts:63"]},
     {"digest":"848639f8787f035b480ec53cb5686850897c5e8006d87ca231cd8a9ee8634936","names":["packages/subagent/subagent/src/continuation-messages.ts#SubagentSettledMessageSource"],"sources":["packages/subagent/subagent/src/continuation-messages.ts:29"]},
     {"digest":"84ac8c1a66ffc697262e181f42e851259eae14038c113ca329fb4700ccdb1f7c","names":["packages/goal/goal/src/types.ts#GoalBlockReason"],"sources":["packages/goal/goal/src/types.ts:52"]},

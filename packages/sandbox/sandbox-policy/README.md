@@ -116,25 +116,25 @@ One `sandbox:policy` contribution in the current runtime-context snapshot for ev
 ##### Read-only
 
 ```markdown
-Current DSH file policy: read-only. Any available operation enforced by the DSH file sandbox cannot modify files in the standing mode. Do not refuse a required modification from this policy alone: try an available tool normally and follow any denial and escalation guidance it returns.
+当前 DSH 文件策略：read-only。由 DSH 文件沙箱强制执行的任何可用操作，在现行模式下都不能修改文件。不要仅凭此策略就拒绝一项必需的修改：照常尝试可用的工具，并遵循它返回的拒绝与升级指引。
 ```
 
 ##### Workspace-write
 
 ```markdown
-Current DSH file policy: workspace-write. Any available operation enforced by the DSH file sandbox may modify files under the session workspace: "<workspace root>". Some platform temporary areas may also be writable.
+当前 DSH 文件策略：workspace-write。由 DSH 文件沙箱强制执行的任何可用操作，都可以修改会话工作区（"<workspace root>"）下的文件。部分平台临时区域也可能可写。
 ```
 
 ##### Workspace-write with extra directories
 
 ```markdown
-Current DSH file policy: workspace-write. Any available operation enforced by the DSH file sandbox may modify files under the session workspace: "<workspace root>". Additional writable directories: ["/repo/.git"]. Some platform temporary areas may also be writable.
+当前 DSH 文件策略：workspace-write。由 DSH 文件沙箱强制执行的任何可用操作，都可以修改会话工作区（"<workspace root>"）下的文件。额外可写目录：["/repo/.git"]。部分平台临时区域也可能可写。
 ```
 
 ##### Danger-full-access
 
 ```markdown
-Current DSH file policy: danger-full-access. The DSH file sandbox does not restrict file modifications by available operations.
+当前 DSH 文件策略：danger-full-access。DSH 文件沙箱不限制可用操作对文件的修改。
 ```
 
 #### Token effect

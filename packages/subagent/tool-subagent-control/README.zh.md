@@ -125,17 +125,17 @@ kind: "package-reference"
 
 #### 模型看到什么
 
-必需的 `subagent:identity` 运行时上下文按名称标识每个 agent。该上下文独立于 Team 模式和工具过滤。活动根可用时，身份上下文会分别根据标准工具的获准情况提供通信与发现指引。根看到 `You are the root agent. Your name is "lead".`，后接相同指引。活动根缺失时，上下文使用该 agent 的 Session id 明确报告，但不阻止独立工作。自动结果交付仍由 subagent 服务负责。根的子级名为 `reviewer`、两个工具均获准时，它看到：
+必需的 `subagent:identity` 运行时上下文按名称标识每个 agent。该上下文独立于 Team 模式和工具过滤。活动根可用时，身份上下文会分别根据标准工具的获准情况提供通信与发现指引。根看到 `你是 root agent。你的名字是 "lead"。`，后接相同指引。活动根缺失时，上下文使用该 agent 的 Session id 明确报告，但不阻止独立工作。自动结果交付仍由 subagent 服务负责。根的子级名为 `reviewer`、两个工具均获准时，它看到：
 
 ##### Subagent 身份
 
 ```markdown
-You are a subagent delegated by agent "lead".
-Your name is "reviewer".
-The root agent of your collaboration tree is "lead".
+你是由 agent "lead" 委派的 subagent。
+你的名字是 "reviewer"。
+你所在协作树的 root agent 是 "lead"。
 
-To message other agents, use send_message({ agent: "<agent-name>", message: "..." }).
-Use list_agents({}) to find your collaborator agents and their names.
+要给其它 agent 发消息，请使用 send_message({ agent: "<agent-name>", message: "..." })。
+要找到你的协作 agent 及其名字，请使用 list_agents({})。
 ```
 
 #### Token 影响

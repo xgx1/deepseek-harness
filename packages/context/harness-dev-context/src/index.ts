@@ -33,22 +33,22 @@ const HARNESS_SOURCE = 'harness:source'
 /** Prompt-section and runtime-context name for the Web GUI orientation and its URL. */
 const WEB_SURFACE = 'app:web-surface'
 
-const HARNESS_SOURCE_GUIDANCE = 'The checkout location and current working directory are separate values and may differ; '
-  + 'never infer the working directory from the checkout path. Use pwd to determine the current working directory. '
-  + 'Use this checkout only to inspect or extend DSH itself.'
+const HARNESS_SOURCE_GUIDANCE = '检出目录与当前工作目录是两个不同的值，可能并不一致；'
+  + '不要从检出路径推断工作目录。用 pwd 确定当前工作目录。'
+  + '只有在需要检查或扩展 DSH 本身时才使用这个检出。'
 
-const HARNESS_SOURCE_PROMPT = `The runtime context names the DeepSeek Harness implementation checkout. ${HARNESS_SOURCE_GUIDANCE}`
+const HARNESS_SOURCE_PROMPT = `运行时上下文会给出 DeepSeek Harness 的实现检出目录。${HARNESS_SOURCE_GUIDANCE}`
 
-const WEB_SURFACE_GUIDANCE = 'When the user refers to "this page", "this GUI", or "this app" without naming another target, they mean this GUI. '
-  + 'The browser provides no implicit DOM, route, or screenshot context. '
-  + 'The client-plugin HMR receiver is active, but client-plugin changes reload without a refresh only while '
-  + '`pnpm run dev:web` is also running from this same checkout to rebuild their bundles; verify that watcher before promising automatic updates. '
-  + 'Every other change — the apps/web shell and plain packages — requires rebuilding the affected Web artifacts and verifying this existing URL after a page refresh. '
-  + 'Starting another server does not update this GUI. '
-  + 'The apps/web Vite entry builds the shell but is not a standalone application because only dsh web injects window.__DSH_BOOT__. '
-  + 'Do not start a replacement server unless the user asks; if one is needed, use a managed background job and verify its exact URL.'
+const WEB_SURFACE_GUIDANCE = '当用户说“这个页面”“这个 GUI”或“这个应用”而没有指定其它目标时，指的就是本 GUI。'
+  + '浏览器不会提供任何隐式的 DOM、路由或截图上下文。 '
+  + '客户端插件的 HMR 接收器是启用的，但只有在同一检出里同时运行 '
+  + '`pnpm run dev:web` 重建其 bundle 时，客户端插件改动才会免刷新生效；在承诺自动更新之前先确认那个 watcher。 '
+  + '其它一切改动——apps/web 外壳与普通包——都需要重建受影响的 Web 产物，并在刷新页面后验证这个既有 URL。 '
+  + '另起一个服务不会更新本 GUI。 '
+  + 'apps/web 的 Vite 入口只构建外壳，不是独立应用，因为只有 dsh web 会注入 window.__DSH_BOOT__。 '
+  + '除非用户要求，不要另起替代服务；确实需要时用受管的后台任务，并验证它的确切 URL。'
 
-const WEB_SURFACE_PROMPT = `You are interacting with the user through the DeepSeek Harness Web GUI whose URL the runtime context names. ${WEB_SURFACE_GUIDANCE}`
+const WEB_SURFACE_PROMPT = `你正通过 DeepSeek Harness Web GUI 与用户交互，其 URL 由运行时上下文给出。${WEB_SURFACE_GUIDANCE}`
 
 /**
  * Fixed text around the value in each paragraph that embedded it, frozen as
@@ -141,7 +141,7 @@ export async function apply(ctx: Context): Promise<void> {
     name: HARNESS_SOURCE,
     order: ctx.systemPrompt.getContextOrder('HARNESS_SOURCE'),
     interpolate: false,
-    text: `Current DeepSeek Harness implementation checkout: ${JSON.stringify(SOURCE_ROOT)}.`,
+    text: `当前 DeepSeek Harness 实现检出目录：${JSON.stringify(SOURCE_ROOT)}。`,
   })
   ctx.systemPrompt.section({
     name: WEB_SURFACE,
@@ -153,6 +153,6 @@ export async function apply(ctx: Context): Promise<void> {
     name: WEB_SURFACE,
     order: ctx.systemPrompt.getContextOrder('WEB_SURFACE'),
     interpolate: false,
-    text: () => `Current DeepSeek Harness Web GUI URL: ${JSON.stringify(ctx.webApp.getAdvertisedUrl())}.`,
+    text: () => `当前 DeepSeek Harness Web GUI URL：${JSON.stringify(ctx.webApp.getAdvertisedUrl())}。`,
   })
 }

@@ -3078,10 +3078,10 @@ describe('continuable settlement delivery', () => {
     let childTurns = 0
     const respond = (options: GenerateOptions): StreamChunk[] => {
       const history = JSON.stringify(options.messages)
-      if (!history.includes('You are a subagent delegated by agent')) return textResponse('parent ack')
+      if (!history.includes('你是由 agent')) return textResponse('parent ack')
       childTurns += 1
       if (childTurns > 1) return textResponse('the answer')
-      const parentId = /You are a subagent delegated by agent \\"([^\\]+)\\"/.exec(history)![1]!
+      const parentId = /你是由 agent \\"([^\\]+)\\" 委派的 subagent/.exec(history)![1]!
       const calls = order.map(name => name === 'noop'
         ? { id: ToolCallId('n1'), name, arguments: '{}' }
         : { id: ToolCallId('s1'), name, arguments: JSON.stringify({ agent: parentId, message: 'interim' }) })

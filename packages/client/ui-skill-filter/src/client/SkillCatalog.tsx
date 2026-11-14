@@ -1,7 +1,7 @@
 /**
  * The skill catalog half shared by the settings page and the Sidebar tab: a
  * search box over the Session's user-invocable skills, each row's current
- * visibility, and the allow/deny switch for one skill name.
+ * visibility, and the allow switch for one skill name.
  *
  * Every list the rows write arrives as a draft from the caller; this component
  * owns no persistence of its own.
@@ -31,21 +31,17 @@ export interface SkillCatalogProps {
   onQueryChange: (query: string) => void
   /** Whether one skill name currently sits in the allow draft. */
   isAllowed: (name: string) => boolean
-  /** Whether one skill name currently sits in the deny draft. */
-  isDenied: (name: string) => boolean
-  /** Move one skill name into the allow draft. */
+  /** Add one skill name to the allow draft, or take it back out. */
   onAllow: (name: string) => void
-  /** Move one skill name into the deny draft. */
-  onDeny: (name: string) => void
 }
 
 /**
- * Render the searchable catalog with one allow/deny switch per skill.
+ * Render the searchable catalog with one allow switch per skill.
  * @param props - the catalog's data and callbacks.
  * @returns the catalog element tree.
  */
 export function SkillCatalog(props: SkillCatalogProps) {
-  const { t, skills, loading, failed, onRetry, query, onQueryChange, isAllowed, isDenied, onAllow, onDeny } = props
+  const { t, skills, loading, failed, onRetry, query, onQueryChange, isAllowed, onAllow } = props
   if (skills === undefined) {
     return (
       <div className={css.panel}>
@@ -73,7 +69,6 @@ export function SkillCatalog(props: SkillCatalogProps) {
       <ul className={css.skills}>
         {visible.map((skill) => {
           const allowed = isAllowed(skill.name)
-          const denied = isDenied(skill.name)
           return (
             <li key={skill.name} className={css.skillRow}>
               <span className={css.skillMain}>
@@ -90,13 +85,6 @@ export function SkillCatalog(props: SkillCatalogProps) {
                   onClick={() => { onAllow(skill.name) }}
                 >
                   {t('action.allow')}
-                </Pill>
-                <Pill
-                  active={denied}
-                  aria-pressed={denied}
-                  onClick={() => { onDeny(skill.name) }}
-                >
-                  {t('action.deny')}
                 </Pill>
               </span>
             </li>

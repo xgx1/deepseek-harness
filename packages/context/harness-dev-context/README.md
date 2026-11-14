@@ -95,9 +95,9 @@ You are interacting with the user through the DeepSeek Harness Web GUI whose URL
 ##### Runtime-context lines
 
 ```markdown
-Current DeepSeek Harness implementation checkout: "<installation root>".
+当前 DeepSeek Harness 实现检出目录："<installation root>"。
 
-Current DeepSeek Harness Web GUI URL: "<advertised URL>".
+当前 DeepSeek Harness Web GUI URL："<advertised URL>"。
 ```
 
 #### Token effect

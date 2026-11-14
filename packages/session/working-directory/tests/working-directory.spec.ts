@@ -53,7 +53,7 @@ describe('Session working directories', () => {
     const messages = f.harness.claim(f.agent, 'next-step', 1)
     expect(messages).toEqual([expect.objectContaining({
       role: 'user',
-      content: [{ type: 'text', text: `The working directory changed from ${JSON.stringify(f.root)} to ${JSON.stringify(child)}.` }],
+      content: [{ type: 'text', text: `工作目录已从 ${JSON.stringify(f.root)} 改为 ${JSON.stringify(child)}。` }],
     })])
   })
 
@@ -104,7 +104,7 @@ describe('Session working directories', () => {
     await rm(child, { recursive: true })
     await expect(f.ctx.workingDirectory.ensure(f.agent)).resolves.toBe(f.root)
     expect(f.harness.claim(f.agent, 'next-step', 1)).toEqual([expect.objectContaining({
-      content: [{ type: 'text', text: `The working directory ${JSON.stringify(child)} is unavailable. The working directory is now ${JSON.stringify(f.root)}.` }],
+      content: [{ type: 'text', text: `工作目录 ${JSON.stringify(child)} 已不可用。当前工作目录为 ${JSON.stringify(f.root)}。` }],
     })])
   })
 
@@ -144,7 +144,7 @@ describe('Session working directories', () => {
     await f.ctx.workingDirectory.set(f.agent, child)
     await rm(child, { recursive: true })
     const assembly = await f.ctx.systemPrompt.assemble({ agent: f.agent, scope: f.agent })
-    expect(renderContextSnapshot(assembly)).toContain(`Current working directory: ${JSON.stringify(f.root)}.`)
+    expect(renderContextSnapshot(assembly)).toContain(`当前工作目录：${JSON.stringify(f.root)}。`)
     expect(renderPrompt(assembly)).not.toContain(f.root)
     expect(renderContextSnapshot(await f.ctx.systemPrompt.assemble())).toBe('')
   })
@@ -174,7 +174,7 @@ describe('Session working directories', () => {
     await expect(f.ctx.workingDirectory.ensure(agent)).resolves.toBe(f.root)
     expect(agent.session.header.cwd).toBeUndefined()
     expect(f.harness.claim(agent, 'next-step', 1)).toEqual([expect.objectContaining({
-      content: [{ type: 'text', text: `The working directory ${JSON.stringify(temporary)} is unavailable. The working directory is now ${JSON.stringify(f.root)}.` }],
+      content: [{ type: 'text', text: `工作目录 ${JSON.stringify(temporary)} 已不可用。当前工作目录为 ${JSON.stringify(f.root)}。` }],
     })])
   })
 
@@ -189,7 +189,7 @@ describe('Session working directories', () => {
     })
     const assembled = await f.ctx.systemPrompt.assemble({ agent: f.agent, scope: f.agent })
     expect(assembled.contexts).toEqual([{
-      name: 'working-directory:current', text: `Current working directory: ${JSON.stringify(f.root)}.`, interpolate: false,
+      name: 'working-directory:current', text: `当前工作目录：${JSON.stringify(f.root)}。`, interpolate: false,
     }])
     expect(renderPrompt(assembled)).not.toContain(f.root)
   })
@@ -204,7 +204,7 @@ describe('Session working directories', () => {
     }
     await f.ctx.workingDirectory.set(f.agent, directory)
     const assembly = await f.ctx.systemPrompt.assemble({ agent: f.agent, scope: f.agent })
-    expect(renderContextSnapshot(assembly)).toContain(`Current working directory: ${JSON.stringify(directory)}.`)
+    expect(renderContextSnapshot(assembly)).toContain(`当前工作目录：${JSON.stringify(directory)}。`)
     expect(renderContextSnapshot(assembly)).not.toContain('wrong-directory')
   })
 
@@ -331,7 +331,7 @@ describe('Session working directories', () => {
       })
       try {
         expect(renderContextSnapshot(await f.ctx.systemPrompt.assemble({ agent: restored.agent, scope: restored.agent })))
-          .toContain(`Current working directory: ${JSON.stringify(child)}.`)
+          .toContain(`当前工作目录：${JSON.stringify(child)}。`)
       } finally {
         await restored.dispose()
       }

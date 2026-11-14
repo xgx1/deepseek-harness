@@ -106,8 +106,8 @@ export function filterByQuery(
 }
 
 /**
- * Move one skill name between a rule list and the other, keeping every other
- * pattern in place.
+ * Add one skill name to a pattern list or remove it, keeping every other pattern
+ * in place.
  * @param patterns - the current pattern list.
  * @param name - the exact skill name to add or remove.
  * @param present - whether the name is currently in the list.

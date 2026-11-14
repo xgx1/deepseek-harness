@@ -73,8 +73,8 @@ describe('the skill-filter face', () => {
   it('persists a personal config and reports the accepted copy', async () => {
     const { remotes } = stubRemotes()
     const face = createSkillFilterFace(remotes)
-    const saved = await face.savePersonal({ allow: ['git-*'], deny: ['git-rebase'] })
-    expect(saved.ok && saved.value.config).toEqual({ allow: ['git-*'], deny: ['git-rebase'] })
+    const saved = await face.savePersonal({ allow: ['git-*', 'git-rebase'] })
+    expect(saved.ok && saved.value.config).toEqual({ allow: ['git-*', 'git-rebase'] })
   })
 
   it('persists a project config with its working directory', async () => {

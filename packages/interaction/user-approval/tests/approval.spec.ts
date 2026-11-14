@@ -352,8 +352,8 @@ describe('ApprovalService.request', () => {
 })
 
 describe('approval policy (the approval/policy fold)', () => {
-  const NEVER_SENTENCE = 'Approval prompts are disabled in this session: actions that require approval are rejected automatically — do not request sandbox escalation (do not set `sandbox_permissions`).'
-  const ASK_SENTENCE = 'Approval prompts are enabled in this session: operations that require approval may ask through the configured answerers; without an available answerer, the request fails closed.'
+  const NEVER_SENTENCE = '本次会话已禁用审批提示：需要审批的操作会被自动拒绝——不要请求沙箱升级（不要设置 `sandbox_permissions`）。'
+  const ASK_SENTENCE = '本次会话已启用审批提示：需要审批的操作可能会通过已配置的应答方发起询问；如果没有可用的应答方，请求会被拒绝（fail closed）。'
 
   /**
    * An agent stand-in over a REAL Session — gate and context fold real events;
@@ -466,7 +466,7 @@ describe('approval policy (the approval/policy fold)', () => {
     expect(inject.mock.calls[0]?.[0]).toMatchObject({
       content: [{
         type: 'text',
-        text: 'The user changed the approval policy from "ask the user for approval" to "never ask the user for approval".',
+        text: '用户已把审批策略从“询问用户是否批准”改为“从不询问用户是否批准”。',
       }],
       source: { kind: 'user-approval' },
     })
@@ -476,7 +476,7 @@ describe('approval policy (the approval/policy fold)', () => {
     expect(inject.mock.calls[1]?.[0]).toMatchObject({
       content: [{
         type: 'text',
-        text: 'The user changed the approval policy from "never ask the user for approval" to "ask the user for approval".',
+        text: '用户已把审批策略从“从不询问用户是否批准”改为“询问用户是否批准”。',
       }],
     })
   })

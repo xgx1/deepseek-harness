@@ -72,7 +72,7 @@ describe('web e2e: a git workspace turn ends with its changed files', () => {
       replayOverride = join(replayRoot, 'replay.override.json')
       const script = deriveReplayScript(parseSessionLog(await readFile(FIXTURE, 'utf8')))
       // Recorded absolute paths must follow each isolated Session's working directory.
-      const cwdToken = '{{fromRequest:Current working directory: "([^"]+)"}}'
+      const cwdToken = '{{fromRequest:当前工作目录："([^"]+)"。}}'
       await writeFile(replayOverride, JSON.stringify(script).replaceAll('{{cwd}}', JSON.stringify(cwdToken).slice(1, -1)))
     }
     scaffold = await launchWebScaffold({

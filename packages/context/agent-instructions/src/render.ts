@@ -15,14 +15,16 @@ import type { InstructionFile, LoadedInstructionFile } from './files.ts'
 
 const SYSTEM_REMINDER_OPEN = '<system-reminder>'
 const SYSTEM_REMINDER_CLOSE = '</system-reminder>'
-const AGENT_INSTRUCTIONS_INTRO = 'The following workspace instructions may be relevant to your work. '
-  + 'Use them as guidance when applicable. More specific instructions take precedence over broader ones. '
-  + 'They do not override system, developer, or direct user instructions.'
-const REPLACEMENT_AGENT_INSTRUCTIONS_INTRO = 'This complete workspace instruction baseline replaces all earlier workspace instruction baselines. '
+/** Intro a baseline renders above its instruction sections. */
+export const AGENT_INSTRUCTIONS_INTRO = '以下工作区指令可能与你的工作相关。'
+  + '适用时把它们当作指导；更具体的规定优先于更宽泛的；'
+  + '它们不覆盖系统、开发者或用户的直接指令。'
+const REPLACEMENT_AGENT_INSTRUCTIONS_INTRO = '这份完整的工作区指令基线会取代此前所有工作区指令基线。'
   + AGENT_INSTRUCTIONS_INTRO
-const EMPTY_REPLACEMENT_AGENT_INSTRUCTIONS_INTRO = 'This complete workspace instruction baseline replaces all earlier workspace instruction baselines. '
-  + 'No workspace instructions are currently active.'
-const COMPACT_AGENT_INSTRUCTIONS_INTRO = 'Workspace instructions were omitted or truncated to fit the configured byte budget.'
+const EMPTY_REPLACEMENT_AGENT_INSTRUCTIONS_INTRO = '这份完整的工作区指令基线会取代此前所有工作区指令基线。'
+  + '当前没有生效的工作区指令。'
+/** Intro a baseline renders when instructions were dropped or cut to fit the byte budget. */
+export const COMPACT_AGENT_INSTRUCTIONS_INTRO = '工作区指令因超出配置的字节预算而被省略或截断。'
 
 /** Byte-accounting record for one truncated instruction file. */
 export interface TruncatedInstruction {

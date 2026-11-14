@@ -159,7 +159,7 @@ export function apply(ctx: Context, config: Config = {}): void {
   ctx.systemPrompt.section({
     name: 'tool:pty',
     order: ctx.systemPrompt.getSectionOrder('TOOL_PTY'),
-    text: 'Use a terminal session only when work needs persistent terminal state or interactive stdin; prefer shell/read/write/edit for bounded one-shot operations. Track every terminal session id and close sessions that no longer matter. An inferred_idle or timeout result does not prove the foreground command exited.',
+    text: '只有工作需要持久终端状态或交互式 stdin 时才用终端会话；有界的一次性操作优先用 shell/read/write/edit。记下每个终端会话 id，不再需要的会话要关掉。inferred_idle 或 timeout 结果并不证明前台命令已退出。',
   })
 
   ctx.tools.register(defineTool({

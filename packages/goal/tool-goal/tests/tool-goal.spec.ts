@@ -177,8 +177,8 @@ describe('goal tool registration and presentation', () => {
         .toEqual({ kind: 'exclusive' })
     }
     const section = (await ctx.systemPrompt.assemble()).sections.find(item => item.name === 'tool:goal')
-    expect(section?.text).toContain('infer goal intent')
-    expect(section?.text).toContain('at least 5 consecutive goal rounds')
+    expect(section?.text).toContain('推断目标意图')
+    expect(section?.text).toContain('5 个连续目标轮次')
 
     await fiber.dispose()
     expect(ctx.tools.get('get_goal')).toBeUndefined()
@@ -258,7 +258,7 @@ describe('goal tool registration and presentation', () => {
     await ctx.plugin(GoalService)
     toolGoal.apply(ctx, {})
     const section = (await ctx.systemPrompt.assemble()).sections.find(item => item.name === 'tool:goal')
-    expect(section?.text).toContain('at least 3 consecutive goal rounds')
+    expect(section?.text).toContain('3 个连续目标轮次')
   })
 })
 

@@ -2,7 +2,8 @@
  * REAL composition: the plugin runs against the real `SkillRegistry` and the
  * real filesystem provider over a temporary skill root, so the assertions cover
  * what a preset's agent actually reads — catalog visibility, `/name` loading of
- * a denied skill, and the invalidation a persisted config write triggers.
+ * a skill no allow rule covers, and the invalidation a persisted config write
+ * triggers.
  */
 
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
@@ -85,7 +86,7 @@ async function visibility(ctx: Context, cwd?: string): Promise<Map<string, boole
 }
 
 describe('the skill filter in a real composition', () => {
-  it('hides a denied skill from both surfaces and refuses its /name load', async () => {
+  it('hides a skill no allow rule covers from both surfaces and refuses its /name load', async () => {
     const dir = skillRoot()
     try {
       personalConfig('allow:\n  - "git-*"\n')
@@ -110,14 +111,15 @@ describe('the skill filter in a real composition', () => {
     }
   })
 
-  it('lets a specific name beat a glob inside one config', async () => {
+  it('reads a specific name and a glob in the same config as one allow list', async () => {
     const dir = skillRoot()
     try {
-      personalConfig('allow:\n  - "git-*"\ndeny:\n  - "git-rebase"\n')
+      personalConfig('allow:\n  - "git-commit"\n  - "ue-*"\n')
       const ctx = await boot(dir)
       const byName = await visibility(ctx)
-      expect(byName.get('git-rebase')).toBe(false)
       expect(byName.get('git-commit')).toBe(true)
+      expect(byName.get('git-rebase')).toBe(false)
+      expect(byName.get('ue-build')).toBe(true)
     } finally {
       rmSync(dir, { recursive: true, force: true })
     }

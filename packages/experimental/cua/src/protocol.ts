@@ -12,12 +12,12 @@ const pointer = { mouseButton: z.enum(['left', 'right', 'middle']).optional(),
   modifiers: z.array(z.enum(['command', 'control', 'option', 'shift', 'fn'])).optional() }
 const click = { ...pointer, clickCount: z.union([z.literal(1), z.literal(2)]).optional(),
   holdMs: z.number().int().nonnegative().optional()
-    .describe('Milliseconds between each mouse press and release; omitted for an ordinary click.') }
+    .describe('每次鼠标按下与释放之间的毫秒数；普通点击时省略。') }
 const window = { ...app, windowId: id }
 const snapshot = { ...app, snapshotId: z.string().min(1), elementIndex: z.number().int().nonnegative() }
 const coordinate = { ...window, snapshotId: z.string().min(1).optional(), x: point, y: point }
-const absoluteCoordinate = { ...coordinate, relative: z.literal(false).optional().describe('Omitted or false uses pixels in the latest screenshot returned by this tool.') }
-const relativeCoordinate = { ...coordinate, relative: z.literal(true).describe('Use integer thousandths of the window width and height, from 0 to 999.'), x: relativePoint, y: relativePoint }
+const absoluteCoordinate = { ...coordinate, relative: z.literal(false).optional().describe('省略或 false 时使用本工具最新返回截图里的像素。') }
+const relativeCoordinate = { ...coordinate, relative: z.literal(true).describe('使用窗口宽高的整数千分比，取值 0 到 999。'), x: relativePoint, y: relativePoint }
 const bounds = z.object({
   x: z.number(), y: z.number(), width: z.number().nonnegative(), height: z.number().nonnegative(),
 })
@@ -39,8 +39,8 @@ export const Request = z.discriminatedUnion('method', [
   operation('show', { ...app, windowId: id.optional() }),
   operation('listWindows', app),
   operation('getState', { ...app, windowId: id.optional(),
-    includeMenus: z.boolean().optional().describe('Expand menu contents; omitted or false shows menu-bar entries only.'),
-    details: z.boolean().optional().describe('Include identifiers, global-point bounds and complete action names.'),
+    includeMenus: z.boolean().optional().describe('展开菜单内容；省略或 false 只显示菜单栏条目。'),
+    details: z.boolean().optional().describe('包含标识符、全局点边界和完整动作名。'),
   }),
   z.object({ method: z.literal('hover'), params: z.union([
     z.object(snapshot).strict(), z.object(absoluteCoordinate).strict(), z.object(relativeCoordinate).strict(),

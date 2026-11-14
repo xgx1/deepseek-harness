@@ -95,7 +95,7 @@ One `tool:schedule` section when `schedule_create` or `schedule_edit` is visible
 ##### Task authorization
 
 ```markdown
-Only create or modify scheduled tasks at the user's explicit request; prior explicit user authorization for the running scheduled task remains valid.
+只在用户明确要求时创建或修改定时任务，用户先前对正在运行的定时任务的明确授权仍然有效。
 ```
 
 #### Token effect

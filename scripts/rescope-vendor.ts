@@ -190,7 +190,7 @@ const POSTCONDITIONS: readonly PostCondition[] = [
   { file: 'packages/boot/app-boot/tsdown.config.ts', text: '[\'@deepseek-ai/cordis-plugin-include\']', count: 1 },
   { file: 'tsconfig.base.json', text: '"@deepseek-ai/cordis-plugin-loader": ["./vendor/loader/src"]', count: 1 },
   // The vendored README owns this required entry; reject its deletion or duplication.
-  { file: 'vendor/README.md', text: '17. **`@deepseek-ai` rescope**', count: 1 },
+  { file: 'vendor/README.md', text: '**V17 · `@deepseek-ai` rescope**', count: 1 },
   { file: 'pnpm-workspace.yaml', text: 'cordis@4.0.0-rc.7', count: 0 },
   // The preset ids in this table are product data, not package names.
   { file: 'packages/client/ui-agent-preset/tests/locales.client.spec.ts', text: '[\'cordis\', \'presetCordisName\'', count: 1 },
@@ -276,8 +276,8 @@ const EXACT_EDITS: readonly ExactEdit[] = [
     // The root contract claimed vendored packages keep their upstream names.
     id: 'root-agents-vendored-name-contract',
     file: 'AGENTS.md',
-    find: 'vendored packages keep upstream names and are `private: true`. `cordis` is a peerDependency (+ dev) of every harness package.',
-    replace: 'vendor is [rescoped](docs/rescope.md) and `private: true`. Harness packages declare `@deepseek-ai/cordis` in `peerDependencies`/`devDependencies`.',
+    find: 'vendor 保留上游名字且 `private: true`。`cordis` 是每个 harness 包的 peerDependency（+ dev）。',
+    replace: 'vendor 已[重定 scope](docs/rescope.md) 且 `private: true`。harness 包在 `peerDependencies`/`devDependencies` 里声明 `@deepseek-ai/cordis`。',
     expect: 1,
   },
   {
@@ -669,7 +669,7 @@ export function exactEditState(text: string, find: string, replace: string, expe
 export function listRescopeFiles(repoRoot: string, env?: NodeJS.ProcessEnv): string[] {
   return execFileSync('git', ['ls-files', '-z'], { cwd: repoRoot, env, encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 })
     .split('\0')
-    .filter(file => file !== '' && !isRescopeExcluded(file))
+    .filter(file => file !== '' && !isRescopeExcluded(file) && existsSync(resolve(repoRoot, file)))
 }
 
 function main(): void {

@@ -60,16 +60,16 @@ function resolveAdditionalWritableRoots(roots: readonly string[] | undefined): r
 function renderPolicyContext(policy: SandboxExecutionPolicy): string {
   switch (policy.mode) {
     case 'read-only':
-      return 'Current DSH file policy: read-only. Any available operation enforced by the DSH file sandbox cannot modify files in the standing mode. Do not refuse a required modification from this policy alone: try an available tool normally and follow any denial and escalation guidance it returns.'
+      return '当前 DSH 文件策略：read-only。由 DSH 文件沙箱强制执行的任何可用操作，在现行模式下都不能修改文件。不要仅凭此策略就拒绝一项必需的修改：照常尝试可用的工具，并遵循它返回的拒绝与升级指引。'
     case 'workspace-write': {
       const additional = policy.additionalWritableRoots
       const extra = additional === undefined
         ? ''
-        : ` Additional writable directories: ${JSON.stringify(additional)}.`
-      return `Current DSH file policy: workspace-write. Any available operation enforced by the DSH file sandbox may modify files under the session workspace: ${JSON.stringify(policy.workspaceRoot)}.${extra} Some platform temporary areas may also be writable.`
+        : `额外可写目录：${JSON.stringify(additional)}。`
+      return `当前 DSH 文件策略：workspace-write。由 DSH 文件沙箱强制执行的任何可用操作，都可以修改会话工作区（${JSON.stringify(policy.workspaceRoot)}）下的文件。${extra}部分平台临时区域也可能可写。`
     }
     case 'danger-full-access':
-      return 'Current DSH file policy: danger-full-access. The DSH file sandbox does not restrict file modifications by available operations.'
+      return '当前 DSH 文件策略：danger-full-access。DSH 文件沙箱不限制可用操作对文件的修改。'
     /* v8 ignore next 4 -- SandboxMode is a typed same-process closed union; this branch is only the static exhaustiveness guard. */
     default: {
       const mode: never = policy.mode

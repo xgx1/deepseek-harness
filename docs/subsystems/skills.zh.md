@@ -285,7 +285,7 @@ onConfigUpdated(listener: ConfigListener): () => void
 
 /**
  * Replace the personal (user-level) filter config.
- * @param config - the complete replacement; `allow` is required, `deny` optional.
+ * @param config - the complete replacement; `allow` is required and must not be empty.
  * @returns the persisted config as re-read from disk.
  * @throws RemoteError `skill-filter/rejected` when the config is invalid or unwritable.
  */

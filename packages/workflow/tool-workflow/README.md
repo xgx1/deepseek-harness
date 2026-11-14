@@ -121,7 +121,7 @@ Every parent request in this plugin's registration scope receives the workflow g
 ##### Workflow guidance
 
 ```markdown
-Use the <toolName> tool ONLY when the user explicitly asks for a workflow or for large multi-agent orchestration: you write a JavaScript script (the tool description documents the exact format) that fans work out across many subagents with phases and structured results. For one or two delegations, prefer plain subagent calls.
+任务复杂、可拆成多路相互独立的工作时，自行判断是否使用 <toolName> 工具，不必等用户点名：你写一个 JavaScript 脚本（工具描述里有确切的格式），把工作按阶段扇出到多个子 agent，并汇总结构化结果。只委派一两件事时，用普通的 subagent 调用即可。
 ```
 
 #### Token effect

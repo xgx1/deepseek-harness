@@ -180,7 +180,7 @@ it('preserves native permission events, unchanged defaults, and the next model r
     expect(texts).toContain('PERMISSION_READY')
     expect(sdk.approvalInputs).toHaveLength(1)
     expect(content).toEqual(expect.arrayContaining(sdk.approvalInputs.flat()))
-    expect(texts.some(text => text.includes('Current DSH file policy: read-only.'))).toBe(true)
+    expect(texts.some(text => text.includes('当前 DSH 文件策略：read-only。'))).toBe(true)
     expect(texts).not.toContain('/permission read-only')
     expect(texts).not.toContain('preset read-only')
   } finally {

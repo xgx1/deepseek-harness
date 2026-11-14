@@ -174,12 +174,10 @@ for (let round = 1; round <= args.maxRounds; round += 1) {
 return { status: 'budget-limited', roundsStarted: args.maxRounds, report: previous }
 `
 
-const DESCRIPTION = 'Run a foreground fresh-agent Ralph loop toward one immutable objective. '
-  + 'Use only when the direct human explicitly asks for Ralph or fresh-agent iteration. Each round '
-  + 'opens a new child with no parent conversation or prior child session; the shared workspace is '
-  + 'long-term memory, and only a bounded structured report crosses rounds. The call returns when '
-  + 'a worker reports completion or a concrete blocker, or at the round limit. Ordinary long-running same-session work '
-  + 'belongs to goal tools.'
+const DESCRIPTION = '前台跑一个 fresh-agent 的 Ralph 循环，朝一个不可变目标迭代。'
+  + '任务复杂、需要多轮迭代逼近目标时自行判断使用，不必等用户点名 Ralph。每轮都新开一个'
+  + '没有父对话、没有历史子会话的 agent；共享工作区是长期记忆，只有一份受限的结构化报告跨轮传递。'
+  + 'worker 报告完成、报告具体阻塞，或到达轮数上限时返回。普通的长时间同会话工作交给 goal 工具。'
 
 /** Validate defaults even when a caller invokes apply() without Loader normalization. */
 function resolveConfig(config: Config): ResolvedConfig {
@@ -399,13 +397,13 @@ function presentResult(args: RalphCallArgs, result: { content: ContentBlock[]; i
   return { card: 'generic' }
 }
 
-/** Register the fixed Ralph tool and its explicit-ask usage policy. */
+/** Register the fixed Ralph tool and its usage policy. */
 export function apply(ctx: Context, config: Config): void {
   const resolved = resolveConfig(config)
   ctx.systemPrompt.section({
     name: 'tool:ralph',
     order: ctx.systemPrompt.getSectionOrder('TOOL_RALPH'),
-    text: 'Use the ralph tool ONLY when the direct human explicitly asks for a Ralph loop or fresh-agent iterative execution. Each Ralph round starts a fresh child with no conversation seed and uses the shared workspace as durable memory. Completion and blockers are worker reports, not independent evaluation. Use same-session goal tools for ordinary long-running objectives, and plain subagents or workflows for bounded delegation and fan-out.',
+    text: '任务复杂、需要多轮迭代逼近目标时，自行判断是否使用 ralph 工具，不必等用户点名。每一轮都新开一个不带对话种子的全新子 agent，共享工作区承载长期记忆。完成与阻塞是 worker 的报告，不是独立评估。普通的长时间同会话目标交给 goal 工具，有界的委派与扇出用普通 subagent 或 workflow。',
   })
   ctx.tools.register(defineTool({
     name: 'ralph',

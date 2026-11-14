@@ -14,6 +14,7 @@
  */
 
 import { assertSupportedJsonSchema } from '@deepseek-ai/dsh-tools'
+import { ZH_DESCRIPTIONS } from './zh-descriptions.ts'
 import type { JsonSchemaNode, JsonSchemaScalar } from '@deepseek-ai/dsh-tools'
 import type { ToolSdkSchema } from './ts-types.ts'
 
@@ -220,8 +221,10 @@ const LONE_SURROGATE = /[\ud800-\udfff]/gu
  * Python source escape and a `#` comment carries it verbatim.
  */
 function describe(schema: object): string | undefined {
-  const description = (schema as Record<string, unknown>).description
-  if (typeof description !== 'string') return undefined
+  const raw = (schema as Record<string, unknown>).description
+  if (typeof raw !== 'string') return undefined
+  // The SDK section is Chinese: known descriptions render from the generated map.
+  const description = ZH_DESCRIPTIONS[raw.replace(/\s+/g, ' ').trim()] ?? raw
   const collapsed = description
     .replace(/\s+/g, ' ')
     .replace(UNPRINTABLE, char => `\\x${char.charCodeAt(0).toString(16).padStart(2, '0')}`)
@@ -730,16 +733,16 @@ export function jsonSchemaToPy(schema: unknown): string {
 }
 
 /** The fixed model-facing usage contract rendered above the declarations. */
-const SDK_INSTRUCTIONS = `## Writing code for run_code
+const SDK_INSTRUCTIONS = `## run_code 的写法
 
-\`run_code\` takes two required arguments: \`code\`, the program to execute, and \`description\`, a short summary of what the program does. At run time exactly two of the names declared below are bound: \`tools\` and \`ToolCallError\`. Everything else is a STATIC STUB describing argument and return types — in particular the \`TypedDict\` classes do NOT exist at run time, so build arguments as plain \`dict\`/\`list\` JSON values: \`await tools.name({"field": 1})\`, never \`FooArgs(field=1)\`, which raises \`NameError\`. Inside the program:
+\`run_code\` 有两个必填参数：\`code\`，要执行的程序；\`description\`，一句话说明这个程序做什么。运行时下面声明的名字里只有 \`tools\` 与 \`ToolCallError\` 是真实绑定的，其余全是描述参数与返回类型的静态桩——特别注意 \`TypedDict\` 类在运行时**不存在**，所以参数要写成普通的 \`dict\`/\`list\` JSON 值：\`await tools.name({"field": 1})\`，而不是 \`FooArgs(field=1)\`（后者会抛 \`NameError\`）。在程序内部：
 
-- Call tools as \`await tools.name(args)\` — subscript access for exotic, reserved, or underscore-leading names: \`await tools["my-tool"](args)\`. Every call resolves to the tool's typed canonical JSON value (each method's return type below). Tool arguments must be lossless JSON.
-- A FAILED tool call raises \`ToolCallError\`, whose \`toolName\` identifies the failed tool and whose message is human-readable — wrap in \`try/except\` to handle and continue.
-- Independent read-only calls MAY overlap under \`asyncio.gather\` (safe calls run concurrently; mutating calls run alone, in submission order). Sequence dependent work with \`await\`.
-- Only values emitted as program output enter the conversation. A successful tool result containing an image is attached after the run so you can inspect it on the next step; every other intermediate result stays out of the conversation, so extract just what you need.
+- 用 \`await tools.name(args)\` 调用工具——名字含特殊字符、保留字或以下划线开头时用下标写法：\`await tools["my-tool"](args)\`。每次调用都返回该工具的类型化规范 JSON 值（即下面每个方法的返回类型）。工具参数必须是无损 JSON。
+- 工具调用失败会抛 \`ToolCallError\`，\`toolName\` 指出失败的工具，message 是给人看的说明——用 \`try/except\` 接住并继续。
+- 相互独立的只读调用可以放在 \`asyncio.gather\` 里并发（只读调用并发执行；写调用单独执行、按提交顺序）。有依赖的步骤用 \`await\` 串起来。
+- 只有作为程序输出发出的值才会进入对话。带图片的成功结果会在程序结束后附加给你，方便下一步查看；其余中间结果都不进对话，只取你需要的部分。
 
-The available tools:`
+下面声明的工具：`
 
 /**
  * Render the full `tools:sdk` prompt section under `runtime.language ===

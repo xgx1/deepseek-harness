@@ -314,7 +314,7 @@ export function applyGlobTool(ctx: Context, caps: GlobToolCaps): void {
     order: ctx.systemPrompt.getSectionOrder('TOOL_GLOB'),
     text: ({ scope }) => ctx.tools.get('glob', scope) === undefined
       ? ''
-      : 'Use the glob tool — not shell find — to discover files by path pattern.',
+      : '用 glob 工具（而不是 shell find）按路径模式查找文件。',
   })
 
   const overCapDescription = caps.sampleOverCapGlobResults ? 'is sampled across top-level entries' : 'keeps the first paths'

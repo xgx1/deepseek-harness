@@ -92,16 +92,16 @@ export function apply(ctx: Context, config: Config = {}): void {
       try {
         const names = ctx.subagents.namesOf(agent)
         let identity = names.parent === undefined
-          ? `You are the root agent. Your name is ${JSON.stringify(names.self)}.`
-          : `You are a subagent delegated by agent ${JSON.stringify(names.parent)}.\n`
-            + `Your name is ${JSON.stringify(names.self)}.\n`
-            + `The root agent of your collaboration tree is ${JSON.stringify(ROOT_AGENT_NAME)}.`
+          ? `你是 root agent。你的名字是 ${JSON.stringify(names.self)}。`
+          : `你是由 agent ${JSON.stringify(names.parent)} 委派的 subagent。\n`
+            + `你的名字是 ${JSON.stringify(names.self)}。\n`
+            + `你所在协作树的 root agent 是 ${JSON.stringify(ROOT_AGENT_NAME)}。`
         const guidance: string[] = []
         if (ctx.tools.get(sendMessage.name, scope, toolSet) === sendMessage) {
-          guidance.push('To message other agents, use send_message({ agent: "<agent-name>", message: "..." }).')
+          guidance.push('要给其它 agent 发消息，请使用 send_message({ agent: "<agent-name>", message: "..." })。')
         }
         if (ctx.tools.get(listAgents.name, scope, toolSet) === listAgents) {
-          guidance.push('Use list_agents({}) to find your collaborator agents and their names.')
+          guidance.push('要找到你的协作 agent 及其名字，请使用 list_agents({})。')
         }
         if (guidance.length > 0) identity += '\n\n' + guidance.join('\n')
         return identity
@@ -110,8 +110,8 @@ export function apply(ctx: Context, config: Config = {}): void {
           && 'name' in error && error.name === 'SubagentError'
           && 'code' in error && error.code === 'UNAUTHORIZED'
         if (!rootUnavailable) throw error
-        return `Your agent id is ${JSON.stringify(agent.id)}. Your subagent tree root is unavailable. `
-          + 'Continue independent work; subagent discovery and messaging require an active root.'
+        return `你的 agent id 是 ${JSON.stringify(agent.id)}。你的 subagent 树根当前不可用。`
+          + '继续独立工作；subagent 的发现与消息发送需要一个活跃的根。'
       }
     },
   })

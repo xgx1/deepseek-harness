@@ -17,7 +17,7 @@ declare module '@deepseek-ai/dsh-llm' {
 }
 
 const SOURCE = 'runtime-context'
-const CLEARED = 'Current runtime context: none. Earlier runtime-context snapshots no longer apply.'
+const CLEARED = '当前运行时上下文：无。此前的运行时上下文快照不再适用。'
 
 function isOwned(message: UserMessage): boolean {
   return message.source.kind === SOURCE

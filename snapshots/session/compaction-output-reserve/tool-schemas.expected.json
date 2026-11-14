@@ -1,34 +1,6 @@
 {
   "initial": [
     {
-      "name": "apply_patch",
-      "description": "Create, update, delete, or move UTF-8 text files with one patch; prefer it over multiple edit calls when a change spans several files or separated regions.",
-      "parameters": {
-        "type": "object",
-        "properties": {
-          "input": {
-            "type": "string",
-            "description": "Patch text: start with *** Begin Patch and end with *** End Patch. Use *** Add File: path with + lines; *** Update File: path, optionally followed by *** Move to: path, with @@ or @@ context and space-prefixed context, + added, or - removed lines; *** End of File anchors the last hunk to the file end. Use *** Delete File: path to delete. Paths are relative to the Session working directory."
-          },
-          "sandbox_permissions": {
-            "type": "string",
-            "description": "The narrowest wider sandbox mode for a one-shot retry of the exact operation the sandbox just denied; the retry asks the user for approval.",
-            "enum": [
-              "workspace-write",
-              "danger-full-access"
-            ]
-          },
-          "justification": {
-            "type": "string",
-            "description": "Required with sandbox_permissions: one sentence for the user explaining why this exact file operation needs the wider access. Use the language of the user’s current request."
-          }
-        },
-        "required": [
-          "input"
-        ]
-      }
-    },
-    {
       "name": "bash",
       "description": "Execute a bash command (`bash -c`) and return its stdout/stderr. Each call runs in a fresh shell; pass `workdir` instead of using `cd`. Managed `$DSH_*` variables expose current harness environment facts. Long output is truncated to its tail; the full output is saved to a file whose path is reported when available. Provide `description` before `command` in the arguments. Before any delete or move, verify that the resolved absolute target path is the intended one; never run it against a computed path you have not checked. An unset variable expands to an empty string, so guard variables in such paths with `${VAR:?}`. Commands may run under a file sandbox; a blocked file operation is reported as `[sandbox: file access denied under <mode> mode]`, a policy denial: do not retry another way.",
       "parameters": {
@@ -264,94 +236,6 @@
       }
     },
     {
-      "name": "list_mcp_resource_templates",
-      "description": "List parameterized resource URI templates from an MCP server.",
-      "parameters": {
-        "type": "object",
-        "properties": {
-          "server": {
-            "type": "string",
-            "description": "Configured MCP server name."
-          },
-          "cursor": {
-            "type": "string",
-            "description": "Continuation cursor returned by this server."
-          }
-        },
-        "required": [
-          "server"
-        ]
-      }
-    },
-    {
-      "name": "list_mcp_resources",
-      "description": "List resources available from an MCP server.",
-      "parameters": {
-        "type": "object",
-        "properties": {
-          "server": {
-            "type": "string",
-            "description": "Configured MCP server name."
-          },
-          "cursor": {
-            "type": "string",
-            "description": "Continuation cursor returned by this server."
-          }
-        },
-        "required": [
-          "server"
-        ]
-      }
-    },
-    {
-      "name": "mcp__playwright-mcp__browser_take_screenshot",
-      "description": "Take a screenshot of the current page. You can't perform actions based on the screenshot, use browser_snapshot for actions.",
-      "parameters": {
-        "type": "object",
-        "properties": {
-          "element": {
-            "description": "Human-readable element description used to obtain permission to interact with the element",
-            "type": "string"
-          },
-          "target": {
-            "description": "Exact target element reference from the page snapshot, or a unique element selector",
-            "type": "string"
-          },
-          "type": {
-            "description": "Image format for the screenshot. If unset, inferred from the filename extension, otherwise png.",
-            "type": "string",
-            "enum": [
-              "png",
-              "jpeg",
-              "webp"
-            ]
-          },
-          "filename": {
-            "description": "File name to save the screenshot to. Defaults to `page-{timestamp}.{png|jpeg|webp}` if not specified. Prefer relative file names to stay within the output directory.",
-            "type": "string"
-          },
-          "fullPage": {
-            "description": "When true, takes a screenshot of the full scrollable page, instead of the currently visible viewport. Cannot be used with element screenshots.",
-            "type": "boolean"
-          },
-          "scale": {
-            "default": "css",
-            "description": "Image resolution scale. \"css\" produces a screenshot sized in CSS pixels (smaller, consistent across devices). \"device\" produces a high-resolution screenshot using device pixels (larger, accounts for the device pixel ratio). Default is css.",
-            "type": "string",
-            "enum": [
-              "css",
-              "device"
-            ]
-          }
-        },
-        "required": [
-          "scale"
-        ],
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "additionalProperties": false
-      }
-    },
-    {
       "name": "read",
       "description": "Read a UTF-8 text file and return line-numbered content.",
       "parameters": {
@@ -388,27 +272,6 @@
         },
         "required": [
           "file_path"
-        ]
-      }
-    },
-    {
-      "name": "read_mcp_resource",
-      "description": "Read an MCP resource by URI from the named server. Use a listed URI or an expanded resource template.",
-      "parameters": {
-        "type": "object",
-        "properties": {
-          "server": {
-            "type": "string",
-            "description": "Configured MCP server name."
-          },
-          "uri": {
-            "type": "string",
-            "description": "Resource URI to read."
-          }
-        },
-        "required": [
-          "server",
-          "uri"
         ]
       }
     },
@@ -641,7 +504,7 @@
     },
     {
       "name": "workflow",
-      "description": "Run a JavaScript workflow script that orchestrates subagents at scale. Use this for work that fans out across many independent pieces — an audit over many files, a migration, multi-angle research, adversarial verification of findings — where you write the orchestration as a script instead of delegating turn by turn.\n\nScript-body hooks:\n- `agent(prompt, opts?): Promise<any>` — run one subagent to completion. Without `opts.schema` it resolves to the child's final text; with `opts.schema` (an object-rooted JSON Schema using ONLY type/properties/required/additionalProperties/items/enum/const/oneOf) it resolves to the validated object. Resolves `null` when the child fails (filter with `.filter(Boolean)`). Other opts: `label` (display), `phase` (progress group), and independent `provider`/`model` LLM target overrides.\n- `pipeline(items, ...stages): Promise<any[]>` — run each item through the stages independently with NO barrier between stages (prefer this for multi-stage work). Each stage receives `(prev, item, index)`. A stage throw drops that ITEM to `null` and skips its remaining stages.\n- `parallel(thunks): Promise<any[]>` — run zero-argument functions concurrently and await ALL of them (a barrier; use only when a stage genuinely needs every prior result together). A throwing thunk resolves to `null`.\n- `phase(title)` — start a progress phase; `log(message)` — narrate progress; `args` — the tool call's `args` input, verbatim.\n\nMisused hooks (bad arguments, unknown options, unsupported schemas, tripped caps) end the whole script instead of producing `null`. The script has no filesystem, network, timer, or Node.js APIs; the agents do the work.",
+      "description": "用 JavaScript workflow 脚本大规模编排子 agent。任务复杂、可以拆成多路独立工作时自行判断使用，不必等用户明确要求 workflow——例如跨很多文件审计、迁移、多角度调研、对抗式验证结论；用脚本写编排，而不是一轮一轮地派活。\n\nScript-body hooks:\n- `agent(prompt, opts?): Promise<any>` — run one subagent to completion. Without `opts.schema` it resolves to the child's final text; with `opts.schema` (an object-rooted JSON Schema using ONLY type/properties/required/additionalProperties/items/enum/const/oneOf) it resolves to the validated object. Resolves `null` when the child fails (filter with `.filter(Boolean)`). Other opts: `label` (display), `phase` (progress group), and independent `provider`/`model` LLM target overrides.\n- `pipeline(items, ...stages): Promise<any[]>` — run each item through the stages independently with NO barrier between stages (prefer this for multi-stage work). Each stage receives `(prev, item, index)`. A stage throw drops that ITEM to `null` and skips its remaining stages.\n- `parallel(thunks): Promise<any[]>` — run zero-argument functions concurrently and await ALL of them (a barrier; use only when a stage genuinely needs every prior result together). A throwing thunk resolves to `null`.\n- `phase(title)` — start a progress phase; `log(message)` — narrate progress; `args` — the tool call's `args` input, verbatim.\n\nMisused hooks (bad arguments, unknown options, unsupported schemas, tripped caps) end the whole script instead of producing `null`. The script has no filesystem, network, timer, or Node.js APIs; the agents do the work.",
       "parameters": {
         "type": "object",
         "properties": {

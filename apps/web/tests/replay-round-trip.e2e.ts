@@ -226,17 +226,17 @@ describe('web e2e: fresh round trip through the real assembly', () => {
     if (system === undefined) throw new Error('the settled Web request has no system prompt')
     const paragraphs = system.split('\n\n')
     expect(paragraphs.slice(0, 2)).toEqual([
-      'You are an AI agent powered by DeepSeek Harness.',
-      'You are a coding agent powered by the deepseek-v4-flash model.',
+      '你是一个由 DeepSeek Harness 驱动的 AI agent。',
+      '你是一个由 deepseek-v4-flash 模型驱动的编码 agent。',
     ])
     const cwd = agent.session.header.cwd
     if (cwd === undefined) throw new Error('the Web session has no working directory')
     expect(system).not.toContain(cwd)
     const userText = agent.session.deriveMessages().filter(message => message.role === 'user')
       .flatMap(message => message.content.flatMap(block => block.type === 'text' ? [block.text] : []))
-    expect(userText.some(text => text.includes(`Current working directory: ${JSON.stringify(cwd)}.`))).toBe(true)
+    expect(userText.some(text => text.includes(`当前工作目录：${JSON.stringify(cwd)}。`))).toBe(true)
     expect(system).not.toContain(scaffold.baseUrl)
-    expect(userText.some(text => text.includes(`Current DeepSeek Harness Web GUI URL: ${JSON.stringify(scaffold.baseUrl)}.`))).toBe(true)
+    expect(userText.some(text => text.includes(`当前 DeepSeek Harness Web GUI URL：${JSON.stringify(scaffold.baseUrl)}。`))).toBe(true)
     const suffix = paragraphs.slice(-2).join('\n\n')
       .split(REPO_ROOT).join('{{sourceRoot}}')
       .split(join(scaffold.workspaceCwd, 'workspace')).join('{{cwd}}')

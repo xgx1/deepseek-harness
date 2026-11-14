@@ -54,7 +54,7 @@ it('adds and removes CUA for existing and new PTC Agents without changing other 
   await expect.poll(() => ctx.tools.get('cua', existing.agent)).toBeDefined()
   expect(ctx.tools.get('cua', standard.agent)).toBeUndefined()
   expect((await ctx.systemPrompt.assemble({ scope: existing.agent })).sections)
-    .toContainEqual(expect.objectContaining({ name: 'computer-use:dsh-cua', text: 'Fixture CUA guidance\n\nMaximum click holdMs: 5000 ms.' }))
+    .toContainEqual(expect.objectContaining({ name: 'computer-use:dsh-cua', text: 'Fixture CUA guidance\n\n最大点击 holdMs：5000 ms。' }))
   await ctx.agentPresets.select(existing.agent, 'ptc')
   expect(ctx.tools.schemas(existing.agent).filter(tool => tool.name === 'cua')).toHaveLength(1)
   const fresh = await create('fresh', 'ptc')
@@ -118,6 +118,6 @@ it.each([
   const owner = await create('cua-runtime-guidance', 'ptc')
   const prompt = (await ctx.systemPrompt.assemble({ scope: owner.agent })).sections.find(section => section.name === 'computer-use:dsh-cua')?.text
   expect(prompt).toBeDefined()
-  expect(prompt?.includes('Persistent PTC initialization:')).toBe(runtime.retainsState)
+  expect(prompt?.includes('持久 PTC 初始化：')).toBe(runtime.retainsState)
   expect(prompt?.includes('var cua = connectCua(() => tools.cua, text => console.log(text));')).toBe(runtime.retainsState)
 })

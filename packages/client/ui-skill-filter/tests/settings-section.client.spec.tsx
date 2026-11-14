@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 /**
  * The settings page's behavior: the loaded personal and project rules become
- * editable rows, a catalog row switches one skill between allowed and denied,
- * and each save writes its own layer and reports the outcome.
+ * editable rows, a catalog row adds one skill to the allow list, and each save
+ * writes its own layer and reports the outcome.
  */
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
@@ -33,7 +33,7 @@ function props(overrides: Partial<SkillFilterFace> = {}): SkillFilterSettingsSec
   const face: SkillFilterFace = {
     loadPersonal: () => Promise.resolve({
       ok: true,
-      value: { exists: true, config: { allow: ['git-*'], deny: ['git-rebase'] } },
+      value: { exists: true, config: { allow: ['git-*'] } },
     }),
     savePersonal: config => Promise.resolve({ ok: true, value: { exists: true, config } }),
     loadProject: () => Promise.resolve({
@@ -43,7 +43,7 @@ function props(overrides: Partial<SkillFilterFace> = {}): SkillFilterSettingsSec
     saveProject: (_cwd, config) => Promise.resolve({ ok: true, value: { exists: true, config } }),
     loadEffective: () => Promise.resolve({
       ok: true,
-      value: { personalExists: true, projectExists: false, config: { allow: ['git-*'], deny: ['git-rebase'] } },
+      value: { personalExists: true, projectExists: false, config: { allow: ['git-*'] } },
     }),
     listSkills: () => Promise.resolve({
       ok: true,
@@ -68,7 +68,6 @@ describe('the skill-filter settings page', () => {
   it('renders the loaded personal rules as editable rows', async () => {
     render(<SkillFilterSettingsSection {...props()} />)
     expect(await screen.findByDisplayValue('git-*')).toBeDefined()
-    expect(screen.getByDisplayValue('git-rebase')).toBeDefined()
     expect(screen.getByText(zh['personal.present'])).toBeDefined()
   })
 
@@ -82,7 +81,7 @@ describe('the skill-filter settings page', () => {
     expect(hidden.length).toBe(1)
   })
 
-  it('adds one catalog skill to the allow list and drops it from the deny list', async () => {
+  it('adds one catalog skill to the allow list', async () => {
     render(<SkillFilterSettingsSection {...props()} />)
     expect(await screen.findByDisplayValue('git-*')).toBeDefined()
     const allow = screen.getAllByRole('button', { name: zh['action.allow'] })
@@ -112,7 +111,7 @@ describe('the skill-filter settings page', () => {
     await screen.findByText(zh['project.present'])
     fireEvent.click(screen.getAllByRole('button', { name: zh['action.save'] })[0] as HTMLElement)
     await waitFor(() => {
-      expect(savePersonal).toHaveBeenCalledWith({ allow: ['git-*'], deny: ['git-rebase'] })
+      expect(savePersonal).toHaveBeenCalledWith({ allow: ['git-*'] })
     })
     expect(await screen.findByText(zh['action.saved'])).toBeDefined()
   })

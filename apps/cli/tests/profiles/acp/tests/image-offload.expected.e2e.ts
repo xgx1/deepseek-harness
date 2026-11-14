@@ -140,13 +140,13 @@ it('pins Messages Files offload and inline fallback in assembled requests', asyn
     const fileImage = { type: 'image', source: { type: 'file', file_id: 'file-api-snapshot-1' } }
     const offloadedImage = `[image omitted to fit request image limits; ${attachmentId}.${normalizedAccess}]`
     const imageHandle = `Image ${attachmentId}; request preview 1x1px.${normalizedAccess}`
-    const runtimeContext = (cwd: string): string => 'Current runtime context. This snapshot supersedes earlier runtime-context snapshots.\n\n'
-      + `Current working directory: ${JSON.stringify(cwd)}.\n\n`
-      + 'Current DSH file policy: danger-full-access. The DSH file sandbox does not restrict file modifications by available operations.\n\n'
-      + 'Approval prompts are disabled in this session: actions that require approval are rejected automatically — do not request sandbox escalation (do not set `sandbox_permissions`).\n\n'
-      + 'You are the root agent. Your name is "lead".\n\n'
-      + 'To message other agents, use send_message({ agent: "<agent-name>", message: "..." }).\n'
-      + 'Use list_agents({}) to find your collaborator agents and their names.'
+    const runtimeContext = (cwd: string): string => '当前运行时上下文。本快照取代此前的运行时上下文快照。\n\n'
+      + `当前工作目录：${JSON.stringify(cwd)}。\n\n`
+      + '当前 DSH 文件策略：danger-full-access。DSH 文件沙箱不限制可用操作对文件的修改。\n\n'
+      + '本次会话已禁用审批提示：需要审批的操作会被自动拒绝——不要请求沙箱升级（不要设置 `sandbox_permissions`）。\n\n'
+      + '你是 root agent。你的名字是 "lead"。\n\n'
+      + '要给其它 agent 发消息，请使用 send_message({ agent: "<agent-name>", message: "..." })。\n'
+      + '要找到你的协作 agent 及其名字，请使用 list_agents({})。'
     const messages = requests[0]?.messages as { content?: unknown }[] | undefined
     const offloaded = messages?.find(message => JSON.stringify(message.content).includes('[image omitted'))
     expect(offloaded?.content).toEqual([

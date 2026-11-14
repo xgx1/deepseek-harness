@@ -14,15 +14,14 @@ describe('compileConfig', () => {
   it('compiles glob patterns to matchers', () => {
     const rules = compileConfig({ allow: ['dotnet-*'] })
     expect(rules.allow.length).toBe(1)
-    expect(rules.allow[0]?.matcher('dotnet-architecture')).toBe(true)
-    expect(rules.allow[0]?.matcher('unreal-ai-navigation')).toBe(false)
+    expect(rules.allow[0]?.('dotnet-architecture')).toBe(true)
+    expect(rules.allow[0]?.('unreal-ai-navigation')).toBe(false)
   })
 
-  it('treats patterns without glob metacharacters as specific names', () => {
+  it('matches a pattern without glob metacharacters against itself only', () => {
     const rules = compileConfig({ allow: ['teach'] })
-    expect(rules.allow[0]?.isSpecific).toBe(true)
-    expect(rules.allow[0]?.matcher('teach')).toBe(true)
-    expect(rules.allow[0]?.matcher('teach-advanced')).toBe(false)
+    expect(rules.allow[0]?.('teach')).toBe(true)
+    expect(rules.allow[0]?.('teach-advanced')).toBe(false)
   })
 
   it('compiles empty allow list to empty rule set', () => {
@@ -32,34 +31,14 @@ describe('compileConfig', () => {
 })
 
 describe('evalRuleSet', () => {
-  it('returns allow when only allow matches', () => {
+  it('returns allow when an allow rule matches', () => {
     const rules = compileConfig({ allow: ['dotnet-*'] })
     expect(evalRuleSet(rules, 'dotnet-architecture')).toBe('allow')
   })
 
-  it('returns deny when only deny matches', () => {
-    const rules = compileConfig({ allow: ['dotnet-*'], deny: ['unreal-*'] })
-    expect(evalRuleSet(rules, 'unreal-ai-navigation')).toBe('deny')
-  })
-
-  it('returns no-match when neither matches', () => {
-    const rules = compileConfig({ allow: ['dotnet-*'], deny: ['unreal-*'] })
-    expect(evalRuleSet(rules, 'self-dsh')).toBe('no-match')
-  })
-
-  it('specific deny wins over glob allow', () => {
-    const rules = compileConfig({ allow: ['dotnet-*'], deny: ['dotnet-architecture'] })
-    expect(evalRuleSet(rules, 'dotnet-architecture')).toBe('deny')
-  })
-
-  it('specific allow wins over glob deny', () => {
-    const rules = compileConfig({ allow: ['dotnet-architecture'], deny: ['dotnet-*'] })
-    expect(evalRuleSet(rules, 'dotnet-architecture')).toBe('allow')
-  })
-
-  it('glob tie resolves to deny (conservative)', () => {
-    const rules = compileConfig({ allow: ['*'], deny: ['dotnet-*'] })
-    expect(evalRuleSet(rules, 'dotnet-architecture')).toBe('deny')
+  it('returns no-match when no allow rule matches', () => {
+    const rules = compileConfig({ allow: ['dotnet-*'] })
+    expect(evalRuleSet(rules, 'unreal-ai-navigation')).toBe('no-match')
   })
 })
 
@@ -102,16 +81,16 @@ describe('filterSkill', () => {
     expect(result.reason).toBe('project-allow')
   })
 
-  it('personal allow survives a project deny (the layers union)', () => {
+  it('personal allow survives a project list that does not match (the layers union)', () => {
     const personalRules = compileConfig({ allow: ['dotnet-*'] })
-    const projectRules = compileConfig({ allow: [], deny: ['dotnet-*'] })
+    const projectRules = compileConfig({ allow: ['git-*'] })
     const result = filterSkill('dotnet-architecture', projectRules, personalRules, false)
     expect(result.visible).toBe(true)
     expect(result.reason).toBe('personal-allow')
   })
 
-  it('project allow overrides personal deny', () => {
-    const personalRules = compileConfig({ allow: [], deny: ['dotnet-*'] })
+  it('project allow makes a name visible when the personal list does not match', () => {
+    const personalRules = compileConfig({ allow: ['self-*'] })
     const projectRules = compileConfig({ allow: ['dotnet-*'] })
     const result = filterSkill('dotnet-architecture', projectRules, personalRules, false)
     expect(result.visible).toBe(true)
@@ -136,12 +115,12 @@ describe('filterSkill', () => {
     expect(filterSkill('dotnet-architecture', projectRules, undefined, false).visible).toBe(false)
   })
 
-  it('reports the project denial when neither layer allows the name', () => {
-    const personalRules = compileConfig({ allow: ['self-*'], deny: ['dotnet-*'] })
+  it('hides a name no layer allows, naming the whitelist default', () => {
+    const personalRules = compileConfig({ allow: ['self-*'] })
     const projectRules = compileConfig({ allow: ['git-*'] })
     const result = filterSkill('dotnet-architecture', projectRules, personalRules, false)
     expect(result.visible).toBe(false)
-    expect(result.reason).toBe('personal-deny')
+    expect(result.reason).toBe('no-allow-rule')
   })
 })
 
@@ -155,19 +134,7 @@ describe('readConfigFile', () => {
     }
   })
 
-  it('parses a valid config', async () => {
-    const dir = await mkdtemp(join(tmpdir(), 'skill-filter-'))
-    try {
-      const file = join(dir, 'config.yaml')
-      await writeFile(file, 'allow:\n  - "self-*"\ndeny:\n  - "dotnet-*"\n', 'utf-8')
-      const config = await readConfigFile(file)
-      expect(config).toEqual({ allow: ['self-*'], deny: ['dotnet-*'] })
-    } finally {
-      await rm(dir, { recursive: true, force: true })
-    }
-  })
-
-  it('accepts allow without deny', async () => {
+  it('parses an allow-only config', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'skill-filter-'))
     try {
       const file = join(dir, 'config.yaml')
@@ -179,7 +146,18 @@ describe('readConfigFile', () => {
     }
   })
 
-  it('throws when allow is missing (Q12: allow required)', async () => {
+  it('throws on a removed deny key instead of ignoring it', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'skill-filter-'))
+    try {
+      const file = join(dir, 'config.yaml')
+      await writeFile(file, 'allow:\n  - "self-*"\ndeny:\n  - "dotnet-*"\n', 'utf-8')
+      await expect(readConfigFile(file)).rejects.toThrow(/"deny" was removed/)
+    } finally {
+      await rm(dir, { recursive: true, force: true })
+    }
+  })
+
+  it('throws when allow is missing (allow required)', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'skill-filter-'))
     try {
       const file = join(dir, 'config.yaml')
@@ -211,10 +189,10 @@ describe('mergeConfigs', () => {
   })
 
   it('unions both layers when present', () => {
-    const personal: SkillFilterConfig = { allow: ['self-*'], deny: ['dotnet-*'] }
+    const personal: SkillFilterConfig = { allow: ['self-*'] }
     const project: SkillFilterConfig = { allow: ['git-*'] }
     const merged = mergeConfigs(personal, project)
-    expect(merged.config).toEqual({ allow: ['self-*', 'git-*'], deny: ['dotnet-*'] })
+    expect(merged.config).toEqual({ allow: ['self-*', 'git-*'] })
     expect(merged.personalExists).toBe(true)
     expect(merged.projectExists).toBe(true)
   })

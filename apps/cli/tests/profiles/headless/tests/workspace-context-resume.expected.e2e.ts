@@ -240,7 +240,7 @@ describe('agent-instructions resume snapshot', () => {
           && record.data.source.baseline === true)
         expect(baselines).toHaveLength(2)
         const replacement = JSON.stringify(baselines.at(-1)?.data?.content)
-        expect(replacement).toContain('replaces all earlier workspace instruction baselines')
+        expect(replacement).toContain('这份完整的工作区指令基线会取代此前所有工作区指令基线')
         expect(replacement.indexOf('Instructions from: AGENTS.md'))
           .toBeLessThan(replacement.indexOf('Instructions from: CLAUDE.md'))
       },

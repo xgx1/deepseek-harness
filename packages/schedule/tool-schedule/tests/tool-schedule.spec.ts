@@ -17,8 +17,8 @@ import * as ToolSchedule from '../src/index.ts'
 import { agentFor, boundTask, harness, mountToolSchedule, PromptRuntime, seedTasks } from './harness.ts'
 
 const TOOL_NAMES = ['schedule_create', 'schedule_edit', 'schedule_list', 'schedule_view']
-const AUTHORIZATION = 'Only create or modify scheduled tasks at the user\'s explicit request; '
-  + 'prior explicit user authorization for the running scheduled task remains valid.'
+const AUTHORIZATION = '只在用户明确要求时创建或修改定时任务，'
+  + '用户先前对正在运行的定时任务的明确授权仍然有效。'
 const NOW = '2026-09-16T00:00:00.000Z'
 const DAILY = 'DTSTART:20260916T010000Z\nRRULE:FREQ=DAILY'
 const TASK = { title: 'Queue check', prompt: 'Check the queue', rrule: DAILY, target: 'this_session' }

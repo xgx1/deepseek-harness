@@ -820,7 +820,7 @@ function verifyMcpResources(log: string, ptc: boolean): void {
   expect(normalizedSystemPrompts(log, contextOf([log])).join('\n'))
     .toContain('MCP_RESOURCE_INSTRUCTION: keep {{braces}} literal.')
   expect(normalizedSystemPrompts(log, contextOf([log])).join('\n'))
-    .toContain('server argument: ["catalog"]')
+    .toContain('作为 server 参数：["catalog"]')
 }
 
 function verifyMcpTemplateError(log: string, secret: string): void {
@@ -897,13 +897,13 @@ function verifyWorkingDirectory(log: string, cwd: string): void {
       .map(section => section.text)
   })
   expect(contexts).toEqual([cwd, join(cwd, 'selected'), join(cwd, 'second'), cwd]
-    .map(directory => `Current working directory: ${JSON.stringify(directory)}.`))
+    .map(directory => `当前工作目录：${JSON.stringify(directory)}。`))
   const notices = users.filter(message => (message.source as JsonObject).kind === 'working-directory')
     .map(message => (message.content as JsonObject[]).map(block => block.text).join(''))
   expect(notices).toEqual([
-    `The working directory changed from ${JSON.stringify(cwd)} to ${JSON.stringify(join(cwd, 'selected'))}.`,
-    `The working directory changed from ${JSON.stringify(join(cwd, 'selected'))} to ${JSON.stringify(join(cwd, 'second'))}.`,
-    `The working directory ${JSON.stringify(join(cwd, 'second'))} is unavailable. The working directory is now ${JSON.stringify(cwd)}.`,
+    `工作目录已从 ${JSON.stringify(cwd)} 改为 ${JSON.stringify(join(cwd, 'selected'))}。`,
+    `工作目录已从 ${JSON.stringify(join(cwd, 'selected'))} 改为 ${JSON.stringify(join(cwd, 'second'))}。`,
+    `工作目录 ${JSON.stringify(join(cwd, 'second'))} 已不可用。当前工作目录为 ${JSON.stringify(cwd)}。`,
   ])
 }
 

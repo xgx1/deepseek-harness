@@ -170,7 +170,7 @@ export class WorkingDirectoryService extends Service {
   }
 
   private contextText(session: Session): string {
-    return `Current working directory: ${JSON.stringify(this.get(session))}.`
+    return `当前工作目录：${JSON.stringify(this.get(session))}。`
   }
 
   private async directory(path: string, cwd: string, signal: AbortSignal): Promise<string> {
@@ -193,8 +193,8 @@ export class WorkingDirectoryService extends Service {
       content: [{
         type: 'text',
         text: recovered
-          ? `The working directory ${JSON.stringify(previous)} is unavailable. The working directory is now ${JSON.stringify(directory)}.`
-          : `The working directory changed from ${JSON.stringify(previous)} to ${JSON.stringify(directory)}.`,
+          ? `工作目录 ${JSON.stringify(previous)} 已不可用。当前工作目录为 ${JSON.stringify(directory)}。`
+          : `工作目录已从 ${JSON.stringify(previous)} 改为 ${JSON.stringify(directory)}。`,
       }],
       source: { kind: 'working-directory' },
     })

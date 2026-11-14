@@ -279,8 +279,8 @@ export function applyGrepTool(ctx: Context, caps: GrepToolCaps): void {
     order: ctx.systemPrompt.getSectionOrder('TOOL_GREP'),
     text: ({ scope }) => ctx.tools.get('grep', scope) === undefined
       ? ''
-      : 'Use the grep tool — not shell grep or rg — to search file contents.'
-        + (ctx.tools.get('read', scope) === undefined ? '' : ' Use read on a matched file when you need surrounding context.'),
+      : '用 grep 工具（而不是 shell grep 或 rg）搜索文件内容。'
+        + (ctx.tools.get('read', scope) === undefined ? '' : '需要看匹配处的上下文时，对匹配到的文件用 read。'),
   })
 
   const tool = defineTool({

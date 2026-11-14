@@ -13,7 +13,7 @@ import { Config } from './config.ts'
 import { PtcCalls } from './ptc-calls.ts'
 import { CodeResetFailedError } from './errors.ts'
 
-const PTC_ONLY_INSTRUCTION = `\`${RUN_CODE_NAME}\` is the only tool you can call directly — a tool call naming any other tool fails. Reach every tool the SDK declares below from inside the program.`
+const PTC_ONLY_INSTRUCTION = `\`${RUN_CODE_NAME}\` 是你唯一能直接调用的工具——工具调用里点名任何其他工具都会失败。SDK 里声明的所有工具都要在程序内部调用。`
 
 const SDK_RENDERERS = {
   typescript: renderToolsSdk,

@@ -117,19 +117,19 @@ kind: "package-reference"
 ##### Ask 策略贡献
 
 ```markdown
-Approval prompts are enabled in this session: operations that require approval may ask through the configured answerers; without an available answerer, the request fails closed.
+本次会话已启用审批提示：需要审批的操作可能会通过已配置的应答方发起询问；如果没有可用的应答方，请求会被拒绝（fail closed）。
 ```
 
 ##### Never 策略贡献
 
 ```markdown
-Approval prompts are disabled in this session: actions that require approval are rejected automatically — do not request sandbox escalation (do not set `sandbox_permissions`).
+本次会话已禁用审批提示：需要审批的操作会被自动拒绝——不要请求沙箱升级（不要设置 `sandbox_permissions`）。
 ```
 
 ##### 切换通知
 
 ```markdown
-The user changed the approval policy from "ask the user for approval" to "never ask the user for approval".
+用户已把审批策略从“询问用户是否批准”改为“从不询问用户是否批准”。
 ```
 
 #### Token 影响

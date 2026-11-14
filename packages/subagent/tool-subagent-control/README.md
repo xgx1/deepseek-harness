@@ -125,17 +125,17 @@ Prefix-stable; the schemas do not change at runtime, and a parent and its contin
 
 #### What the model sees
 
-Required `subagent:identity` runtime context identifies each agent by name. It is independent of Team mode and tool filtering. When the live root is available, identity context includes messaging and discovery instructions independently for each admitted standard tool. The root sees `You are the root agent. Your name is "lead".` followed by the same guidance. A missing live root is reported with the agent's Session id, without preventing independent work. Automatic result delivery remains owned by the subagent service. A child of the root named `reviewer`, with both tools admitted, sees:
+Required `subagent:identity` runtime context identifies each agent by name. It is independent of Team mode and tool filtering. When the live root is available, identity context includes messaging and discovery instructions independently for each admitted standard tool. The root sees `你是 root agent。你的名字是 "lead"。` followed by the same guidance. A missing live root is reported with the agent's Session id, without preventing independent work. Automatic result delivery remains owned by the subagent service. A child of the root named `reviewer`, with both tools admitted, sees:
 
 ##### Subagent identity
 
 ```markdown
-You are a subagent delegated by agent "lead".
-Your name is "reviewer".
-The root agent of your collaboration tree is "lead".
+你是由 agent "lead" 委派的 subagent。
+你的名字是 "reviewer"。
+你所在协作树的 root agent 是 "lead"。
 
-To message other agents, use send_message({ agent: "<agent-name>", message: "..." }).
-Use list_agents({}) to find your collaborator agents and their names.
+要给其它 agent 发消息，请使用 send_message({ agent: "<agent-name>", message: "..." })。
+要找到你的协作 agent 及其名字，请使用 list_agents({})。
 ```
 
 #### Token effect

@@ -213,7 +213,7 @@ Every in-process child's runtime-context snapshot carries the `subagent:delegati
 ##### The delegation-scope statement
 
 ```markdown
-You are a delegated subagent: your permission scope was fixed when you were started and cannot be widened from inside this session — operations that require approval are rejected automatically. When the job needs access beyond that scope, do not retry the denied operation; state the limitation in your reply so the delegating agent can handle it.
+你是一个被委派的 subagent：你的权限范围在启动时就已固定，无法从本会话内部扩大——需要审批的操作会被自动拒绝。当任务需要超出该范围的访问时，不要重试被拒绝的操作；请在回复中说明这一限制，以便委派你的 agent 处理。
 ```
 
 #### Token effect

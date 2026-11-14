@@ -1,5 +1,5 @@
 /**
- * One allow/deny rule list: an editable row per glob pattern, plus the add and
+ * One rule list: an editable row per glob pattern, plus the add and
  * remove controls. The list is a draft the caller owns; this component reports
  * every edit back and keeps no copy of its own.
  */

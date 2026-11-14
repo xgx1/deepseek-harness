@@ -3449,7 +3449,7 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
       {
         signature: '@Remote async setPersonal(config: SkillFilterConfigView): Promise<SkillFilterPersonalView>',
         description: 'Replace the personal (user-level) filter config.',
-        parameters: [{ name: 'config', description: 'the complete replacement; `allow` is required, `deny` optional.' }],
+        parameters: [{ name: 'config', description: 'the complete replacement; `allow` is required and must not be empty.' }],
         returns: 'the persisted config as re-read from disk.',
         throws: ['RemoteError `skill-filter/rejected` when the config is invalid or unwritable.'],
       },
@@ -9110,7 +9110,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'SkillFilterConfigView',
-    declaration: 'export interface SkillFilterConfigView {\n    readonly allow: readonly string[];\n    readonly deny?: readonly string[];\n}',
+    declaration: 'export interface SkillFilterConfigView {\n    readonly allow: readonly string[];\n}',
   },
   {
     name: 'SkillFilterConfigWrite',

@@ -48,7 +48,7 @@ const CODEX_PACKAGE_DIR = join(REPO_ROOT, 'packages/subagent/subagent-codex')
 const CLAUDE_CODE_PACKAGE_DIR = join(REPO_ROOT, 'packages/subagent/subagent-claude-code')
 /** The installation anchor whose dependency surface the runtime resolution mirrors. */
 const INSTALL_ANCHOR = join(REPO_ROOT, 'apps/cli/package.json')
-const MINIMAL_PROMPT = 'You are a helpful software engineer assistant.'
+const MINIMAL_PROMPT = '你是一个乐于助人的软件工程师助手。'
 /** Deterministic model responses for the shipped minimal compaction path. */
 class MinimalCompactionAdapter extends LlmAdapter {
   readonly requests: GenerateOptions[] = []
@@ -91,13 +91,13 @@ class MinimalImageAdapter extends LlmAdapter {
     yield { type: 'finish', reason: { kind: first ? 'tool-calls' : 'stop' } }
   }
 }
-const MINIMAL_BASH_DESCRIPTION = `Run commands in a bash shell
-* When invoking this tool, the contents of the "command" parameter does NOT need to be XML-escaped.
-* Network access depends on the task environment. Prefer configured mirrors/proxies when they are available.
-* State is persistent across command calls and discussions with the user.
-* To inspect a particular line range of a file, e.g. lines 10-25, try 'sed -n 10,25p /path/to/the/file'.
-* Please avoid commands that may produce a very large amount of output.
-* Please run long lived commands in the background, e.g. 'sleep 10 &' or start a server in the background.`
+const MINIMAL_BASH_DESCRIPTION = `在 bash shell 里运行命令
+* 调用本工具时，“command” 参数的内容不需要做 XML 转义。
+* 网络访问取决于任务环境。可用时优先使用已配置的镜像/代理。
+* 状态在多次命令调用和与用户的讨论之间保持持久。
+* 要查看文件的某个行区间（例如第 10-25 行），可试 'sed -n 10,25p /path/to/the/file'。
+* 请避免可能产生极大量输出的命令。
+* 请把长期运行的命令放到后台执行，例如 'sleep 10 &'，或在后台启动服务。`
 
 /**
  * Boot the shipped Web composition, minus the rows that would bind a port,

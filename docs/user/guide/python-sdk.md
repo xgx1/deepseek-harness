@@ -181,7 +181,7 @@ Create a new root Session and ask it to create and list a shared task. Its first
 
 | Property | Value |
 |---|---|
-| System prompt | `DSH_SYSTEM_PROMPT`, falling back to `You are a helpful software engineer assistant.` |
+| System prompt | `DSH_SYSTEM_PROMPT`, falling back to `你是一个乐于助人的软件工程师助手。` |
 | Model in `minimal.py` | `--model`, then `DSH_MODEL`, then `deepseek-v4-flash` |
 | Model-facing tools | Persistent `bash` on Linux/macOS or `pwsh` on Windows, `read_image`, and `working_directory` |
 | Shell timeout | 300 seconds |

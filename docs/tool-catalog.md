@@ -30,7 +30,7 @@ This table connects model-visible tool names to the plugin package and service s
 | `@deepseek-ai/dsh-tool-bash-persistent` | `bash` | `ctx.workingDirectory`, `ctx.tools`, `ctx.terminals`, `an owning Agent at execution time` | `tool/call`, `PTY shell state`, `tool/result` | - | One owner-isolated persistent bash tool; deployment composition supplies the PTY backend and may override the model-facing environment description. |
 | `@deepseek-ai/dsh-tool-pwsh-persistent` | `pwsh` | `ctx.workingDirectory`, `ctx.tools`, `ctx.terminals`, `an owning Agent at execution time` | `tool/call`, `PTY shell state`, `tool/result` | - | One owner-isolated persistent pwsh tool, the Windows counterpart of the persistent bash tool; deployment composition supplies a pwsh-dialect PTY backend and may override the model-facing environment description. |
 | `@deepseek-ai/dsh-tool-str-replace-editor` | `str_replace_editor` | `ctx.tools`, `ctx.fs` | `tool/call`, `fs/observed after view presence/absence, edit absence, or successful mutation`, `tool/result` | - | Standalone view/create/unique literal replace/line insert tool over the filesystem seam; it composes with any shell or terminal API. |
-| `@deepseek-ai/dsh-tool-fs` | `apply_patch`, `edit`, `read`, `read_image`, `write` | `ctx.workingDirectory`, `ctx.tools`, `ctx.fs`, `ctx.systemPrompt`, `ctx.attachments (image-tool registration)`, `ctx.llm + an image-capable route (image-tool execution)` | `tool/call`, `fs/write-intent, fs/edit-intent, or fs/delete-intent for mutations`, `fs/observed after read presence/absence or successful file operation`, `durable attachment (read_image)`, `tool/result` | - | The read-before-write/edit policy is added by `@deepseek-ai/dsh-fs-observation-policy` (an `fs/*` event-gate plugin, no schema change); the shipped compositions leave its row disabled, so mutations are unconditional unless a deployment enables it. The image tool is not registered without `ctx.attachments`; its schema is route-independent, and execution refuses unless the exact routed model declares image input. `apply_patch` registers only with `applyPatch: true`; the catalog sets it so the schema is documented. `dsh-base` and the Web `standard` preset enable it; the Web `ptc` and `cordis` presets and the PTC overlay state `applyPatch: false`. |
+| `@deepseek-ai/dsh-tool-fs` | `apply_patch`, `edit`, `read`, `read_image`, `write` | `ctx.workingDirectory`, `ctx.tools`, `ctx.fs`, `ctx.systemPrompt`, `ctx.attachments (image-tool registration)`, `ctx.llm + an image-capable route (image-tool execution)` | `tool/call`, `fs/write-intent, fs/edit-intent, or fs/delete-intent for mutations`, `fs/observed after read presence/absence or successful file operation`, `durable attachment (read_image)`, `tool/result` | - | The read-before-write/edit policy is added by `@deepseek-ai/dsh-fs-observation-policy` (an `fs/*` event-gate plugin, no schema change); the shipped compositions leave its row disabled, so mutations are unconditional unless a deployment enables it. The image tool is not registered without `ctx.attachments`; its schema is route-independent, and execution refuses unless the exact routed model declares image input. `apply_patch` registers only with `applyPatch: true`; the catalog sets it so the schema is documented. `dsh-base` and the Web `standard` preset enable it; the Web `ptc` and `@deepseek-ai/cordis` presets and the PTC overlay state `applyPatch: false`. |
 | `@deepseek-ai/dsh-tool-fs-search` | `glob`, `grep` | `ctx.workingDirectory`, `ctx.tools`, `ctx.subprocess`, `ctx.systemPrompt` | `tool/call`, `tool/result` | - | glob and grep are unconditional discovery tools that spawn the packaged ripgrep binary (`@vscode/ripgrep`) through ctx.subprocess as ordinary foreground calls (never background jobs) — no host `rg` install and no shell layer. The catalog uses `sampleOverCapGlobResults: true`; deployments must choose that behavior explicitly. Capped results save the complete formatted list through the optional ctx.spillStore backend; returned locators are follow-up-readable/searchable when the backend exposes local paths in co-located deployments. |
 | `@deepseek-ai/dsh-tool-terminal` | `terminal_close`, `terminal_list`, `terminal_open`, `terminal_read`, `terminal_send`, `terminal_signal` | `ctx.workingDirectory`, `ctx.tools`, `ctx.terminals`, `ctx.systemPrompt`, `ctx.jobs at call time for run_in_background` | `tool/call`, `tool/result` | - | The six terminal tools are opt-in and complement one-shot shell/filesystem tools. `terminal_send(run_in_background: true)` registers with `ctx.jobs`; TUI, named key sequences, BEL, resize, auto-start, and cross-agent sharing are absent from the schema. |
 | `@deepseek-ai/dsh-tool-goal` | `create_goal`, `get_goal`, `update_goal` | `ctx.tools`, `ctx.agents`, `ctx.goals`, `ctx.systemPrompt`, `a calling Agent in an authorized open turn` | `tool/call`, `goal/change for mutations`, `tool/result` | - | create, edit, pause, and resume require direct-human root authority; complete and blocked also accept the exact current goal round. The default blocked lower bound is three admitted rounds. |
@@ -257,7 +257,7 @@ Source: [`packages/mcp/mcp-resources/src/tools.ts`](../packages/mcp/mcp-resource
 
 ### `stagehand_act`
 
-Perform one natural-language browser action using the configured Stagehand model.
+用配置的 Stagehand 模型执行一个自然语言浏览器动作。
 
 ```json
 {
@@ -284,7 +284,7 @@ Source: [`packages/experimental/browser-use-stagehand-native/src/index.ts`](../p
 
 ### `stagehand_extract`
 
-Extract page data using the configured Stagehand model and an optional JSON Schema.
+用配置的 Stagehand 模型和可选 JSON Schema 提取页面数据。
 
 ```json
 {
@@ -353,7 +353,7 @@ Source: [`packages/experimental/browser-use-stagehand-native/src/index.ts`](../p
 
 ### `stagehand_navigate`
 
-Navigate a Stagehand browser tab to a URL.
+把 Stagehand 浏览器标签页导航到某个 URL。
 
 ```json
 {
@@ -380,7 +380,7 @@ Source: [`packages/experimental/browser-use-stagehand-native/src/index.ts`](../p
 
 ### `stagehand_observe`
 
-Find browser actions matching an instruction using the configured Stagehand model.
+用配置的 Stagehand 模型找出与指令匹配的浏览器动作。
 
 ```json
 {
@@ -407,7 +407,7 @@ Source: [`packages/experimental/browser-use-stagehand-native/src/index.ts`](../p
 
 ### `stagehand_screenshot`
 
-Capture a Stagehand tab screenshot for visual inspection.
+截取 Stagehand 标签页截图，用于目视检查。
 
 ```json
 {
@@ -434,7 +434,7 @@ Source: [`packages/experimental/browser-use-stagehand-native/src/index.ts`](../p
 
 ### `stagehand_tabs`
 
-List, create, select, or close a Stagehand browser tab.
+列出、创建、选择或关闭 Stagehand 浏览器标签页。
 
 ```json
 {
@@ -1174,7 +1174,7 @@ Create or fully replace a UTF-8 text file.
 
 Source: [`packages/fs/tool-fs/src/index.ts`](../packages/fs/tool-fs/src/index.ts)
 
-The read-before-write/edit policy is added by `@deepseek-ai/dsh-fs-observation-policy` (an `fs/*` event-gate plugin, no schema change); the shipped compositions leave its row disabled, so mutations are unconditional unless a deployment enables it. The image tool is not registered without `ctx.attachments`; its schema is route-independent, and execution refuses unless the exact routed model declares image input. `apply_patch` registers only with `applyPatch: true`; the catalog sets it so the schema is documented. `dsh-base` and the Web `standard` preset enable it; the Web `ptc` and `cordis` presets and the PTC overlay state `applyPatch: false`.
+The read-before-write/edit policy is added by `@deepseek-ai/dsh-fs-observation-policy` (an `fs/*` event-gate plugin, no schema change); the shipped compositions leave its row disabled, so mutations are unconditional unless a deployment enables it. The image tool is not registered without `ctx.attachments`; its schema is route-independent, and execution refuses unless the exact routed model declares image input. `apply_patch` registers only with `applyPatch: true`; the catalog sets it so the schema is documented. `dsh-base` and the Web `standard` preset enable it; the Web `ptc` and `@deepseek-ai/cordis` presets and the PTC overlay state `applyPatch: false`.
 
 <a id="deepseek-aidsh-tool-fs-search"></a>
 
@@ -1702,7 +1702,7 @@ The lsp tool keeps provider selection and language-server subprocesses behind ct
 
 ### `ralph`
 
-Run a foreground fresh-agent Ralph loop toward one immutable objective. Use only when the direct human explicitly asks for Ralph or fresh-agent iteration. Each round opens a new child with no parent conversation or prior child session; the shared workspace is long-term memory, and only a bounded structured report crosses rounds. The call returns when a worker reports completion or a concrete blocker, or at the round limit. Ordinary long-running same-session work belongs to goal tools.
+前台跑一个 fresh-agent 的 Ralph 循环，朝一个不可变目标迭代。任务复杂、需要多轮迭代逼近目标时自行判断使用，不必等用户点名 Ralph。每轮都新开一个没有父对话、没有历史子会话的 agent；共享工作区是长期记忆，只有一份受限的结构化报告跨轮传递。worker 报告完成、报告具体阻塞，或到达轮数上限时返回。普通的长时间同会话工作交给 goal 工具。
 
 ```json
 {
@@ -2540,7 +2540,7 @@ Enabled through the Change requests & worktrees bundle on Web and Desktop; other
 
 ### `workflow`
 
-Run a JavaScript workflow script that orchestrates subagents at scale. Use this for work that fans out across many independent pieces — an audit over many files, a migration, multi-angle research, adversarial verification of findings — where you write the orchestration as a script instead of delegating turn by turn.
+用 JavaScript workflow 脚本大规模编排子 agent。任务复杂、可以拆成多路独立工作时自行判断使用，不必等用户明确要求 workflow——例如跨很多文件审计、迁移、多角度调研、对抗式验证结论；用脚本写编排，而不是一轮一轮地派活。
 
 Script-body hooks:
 - `agent(prompt, opts?): Promise<any>` — run one subagent to completion. Without `opts.schema` it resolves to the child's final text; with `opts.schema` (an object-rooted JSON Schema using ONLY type/properties/required/additionalProperties/items/enum/const/oneOf) it resolves to the validated object. Resolves `null` when the child fails (filter with `.filter(Boolean)`). Other opts: `label` (display), `phase` (progress group), and independent `provider`/`model` LLM target overrides.

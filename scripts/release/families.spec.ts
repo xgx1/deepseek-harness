@@ -54,7 +54,6 @@ describe('release families', () => {
       '@deepseek-ai/dsh-experimental-auto-review',
       '@deepseek-ai/dsh-experimental-badge-skill-bundle',
       '@deepseek-ai/dsh-experimental-browser-use-chrome-devtools-mcp',
-      '@deepseek-ai/dsh-experimental-browser-use-playwright-mcp',
       '@deepseek-ai/dsh-experimental-browser-use-runtime',
       '@deepseek-ai/dsh-experimental-browser-use-stagehand-native',
       '@deepseek-ai/dsh-experimental-claude-code-mods',

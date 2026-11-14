@@ -91,7 +91,7 @@ describe('web e2e: plan review takeover round trip', () => {
     const firstPrompt = sessionEvents.find(event => event.type === 'system/message')
     expect(firstHeader?.data.header.tools?.map(tool => tool.name)).toContain('exit_plan_mode')
     expect(firstPrompt?.data.message.content.filter(block => block.type === 'text').map(block => block.text).join('\n'))
-      .toContain('You are in plan mode.')
+      .toContain('你处于计划模式。')
     const clock = sessionEvents.find(event => event.type === 'user/message' && event.data.source.kind === 'time-context')
     expect(clock?.seq).toBeLessThan(firstHeader!.seq)
     // The plan-review request must NOT land on the generic question flow.

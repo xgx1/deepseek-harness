@@ -251,7 +251,7 @@ export function apply(ctx: Context, config: Config = {}): void {
   ctx.systemPrompt.section({
     name: 'tool:bash',
     order: ctx.systemPrompt.getSectionOrder('TOOL_BASH'),
-    text: 'Check the [exit code: N] marker on every bash result; investigate failures before moving on.',
+    text: '每条 bash 结果都要看 [exit code: N] 标记；先查明失败再继续。',
   })
 
   /**

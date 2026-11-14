@@ -153,8 +153,8 @@ describe('parent-only override inheritance snapshot', () => {
         const policyContexts = [...runtimeContexts(parent), ...runtimeContexts(child)]
         expect(policyContexts).toHaveLength(2)
         for (const context of policyContexts) {
-          expect(context).toContain('Any available operation enforced by the DSH file sandbox cannot modify files in the standing mode.')
-          expect(context).toContain('Do not refuse a required modification from this policy alone')
+          expect(context).toContain('由 DSH 文件沙箱强制执行的任何可用操作，在现行模式下都不能修改文件。')
+          expect(context).toContain('不要仅凭此策略就拒绝一项必需的修改')
           expect(context).not.toContain('write and edit tools')
           expect(context).not.toContain('one-shot bash commands')
           expect(context).not.toContain('terminal sessions')

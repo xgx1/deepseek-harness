@@ -207,7 +207,7 @@ describe('Python SDK dsh profile keyless smoke', () => {
         expect(toolNames.includes('str_replace_editor')).toBe(editorEnabled)
         expect(toolNames).not.toContain('list_subagent_models')
       }
-      for (const text of ['Tokens prefixed with @', 'Prefer showing the primary results',
+      for (const text of ['带 @ 前缀的 token', 'Prefer showing the primary results',
         'Time sampled while preparing']) {
         expect(requestText.includes(text), text).toBe(true)
       }

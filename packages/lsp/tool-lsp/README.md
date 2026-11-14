@@ -105,7 +105,7 @@ One system-prompt section (first-party order 2200) positions LSP as a precision 
 ##### Verbatim guidance
 
 ```markdown
-Use search/read for ordinary navigation. Use lsp when textual matches are ambiguous or before a change requires precise definitions, implementations, or references. Positions are one-based line and character (UTF-16) at the cursor; an off-symbol position may return no results. findReferences always includes the declaration.
+日常导航用 search/read。文本匹配有歧义时、或改动前需要精确定义、实现或引用时，用 lsp。位置是以光标为基准的行号与字符列号，从 1 开始计数（UTF-16），落在符号外的位置可能返回空结果。findReferences 总是包含声明本身。
 ```
 
 #### Token effect

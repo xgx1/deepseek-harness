@@ -320,7 +320,7 @@ export function renderContextSnapshot(assembly: PromptAssembly): string {
 export function joinContextSections(sections: readonly ContextSnapshotSection[]): string {
   const body = sections.map(section => section.text).join('\n\n')
   if (body.length === 0) return ''
-  return `Current runtime context. This snapshot supersedes earlier runtime-context snapshots.\n\n${body}`
+  return `当前运行时上下文。本快照取代此前的运行时上下文快照。\n\n${body}`
 }
 
 /**
@@ -456,7 +456,7 @@ export class SystemPrompt extends Service {
       this.section({
         name: 'harness:identity',
         order: this.getSectionOrder('HARNESS_IDENTITY'),
-        text: 'You are an AI agent powered by DeepSeek Harness.',
+        text: '你是一个由 DeepSeek Harness 驱动的 AI agent。',
       })
     }
     this.section({

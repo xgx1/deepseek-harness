@@ -63,7 +63,7 @@ No runtime invariant companion is published because the service reads its only d
 
 #### What the model sees
 
-The current value is `Current working directory: <JSON-quoted absolute path>.` Each committed change, including automatic recovery, attempts to queue a user-context notice through the ordinary Agent inbox. Cancellation or disposal may discard unadmitted notices; the durable directory remains available to the next request. Directory context stays outside the system prompt and remains enabled when optional runtime context is disabled.
+The current value is `当前工作目录：<JSON-quoted absolute path>。` Each committed change, including automatic recovery, attempts to queue a user-context notice through the ordinary Agent inbox. Cancellation or disposal may discard unadmitted notices; the durable directory remains available to the next request. Directory context stays outside the system prompt and remains enabled when optional runtime context is disabled.
 
 #### Token effect
 

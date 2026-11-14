@@ -166,7 +166,7 @@ export interface CuaBackend {
  */
 export function installCua(ctx: Context, config: CuaConfig, backend: CuaBackend): void {
   const { helperPath } = backend
-  const guidance = `${backend.guidance}\n\nMaximum click holdMs: ${config.maxClickHoldMs} ms.`
+  const guidance = `${backend.guidance}\n\n最大点击 holdMs：${config.maxClickHoldMs} ms。`
   const native: NativeClientConfig = {
     helperPath, cwd: process.cwd(), timeoutMs: config.timeoutMs, axTimeoutMs: config.axTimeoutMs,
     connectTimeoutMs: config.connectTimeoutMs, screenshotTimeoutMs: config.screenshotTimeoutMs,
@@ -337,7 +337,7 @@ export function installCua(ctx: Context, config: CuaConfig, backend: CuaBackend)
         const runtime = ctx.get('ptcRuntime')
         return !runtime?.retainsState ? guidance : `${guidance}
 
-Persistent PTC initialization:
+持久 PTC 初始化：
 
 \`\`\`ts
 var { connectCua } = await import(${JSON.stringify(new URL('../lib/bridge.js', import.meta.url).href)});

@@ -94,7 +94,7 @@ describe('minimal agent preset', () => {
       ? [event.data.content.flatMap(block => block.type === 'text' ? [block.text] : []).join('')]
       : [])
     expect(runtimeContexts).toEqual([
-      `Current runtime context. This snapshot supersedes earlier runtime-context snapshots.\n\nCurrent working directory: ${JSON.stringify(agentHandle.agent.session.header.cwd)}.`,
+      `当前运行时上下文。本快照取代此前的运行时上下文快照。\n\n当前工作目录：${JSON.stringify(agentHandle.agent.session.header.cwd)}。`,
     ])
     expect(scaffold.ctx.agentPresets.serviceFor(agentHandle.agent, 'fs')).toBeUndefined()
     expect(scaffold.ctx.agentPresets.serviceFor(agentHandle.agent, 'compaction')).toBeDefined()
@@ -134,7 +134,7 @@ describe('minimal agent preset', () => {
         "bash": "PERSISTED:{{cwd}}/persistent-state
       [Command finished with exit code 0]",
         "goalCommand": false,
-        "prompt": "You are a helpful software engineer assistant.",
+        "prompt": "你是一个乐于助人的软件工程师助手。",
         "tools": [
           "bash",
           "read_image",

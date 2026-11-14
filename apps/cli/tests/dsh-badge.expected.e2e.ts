@@ -55,7 +55,7 @@ describe('dsh badge assembled snapshot', () => {
         "catalog": [
           {
             "text": "<system-reminder>
-      A skill is a reusable set of task-specific instructions. The following skills are available in this session:
+      技能是一组可复用的任务专用说明。本会话可用的技能如下：
 
       <available_skills>
       - \`dsh-badge\`: Add the official “powered by dsh” badge to documents, pull requests, merge requests, and other content produced with DeepSeek Harness. Use whenever creating a pull request or merge request. Also use when the user asks for a dsh badge, powered-by-dsh attribution, or a reusable dsh badge asset or snippet.

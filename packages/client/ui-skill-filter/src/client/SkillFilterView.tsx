@@ -61,7 +61,6 @@ export function SkillFilterView(props: SkillFilterViewProps) {
   }, [listSkills, sessionId, reload])
 
   const allowSet = useMemo(() => new Set(project.allow), [project.allow])
-  const denySet = useMemo(() => new Set(project.deny), [project.deny])
   const skills = catalog.status === 'ready' ? catalog.skills : undefined
   const total = skills?.length ?? 0
   const visible = skills?.filter(skill => skill.modelInvocable).length ?? 0
@@ -99,14 +98,8 @@ export function SkillFilterView(props: SkillFilterViewProps) {
           query={query}
           onQueryChange={setQuery}
           isAllowed={name => allowSet.has(name)}
-          isDenied={name => denySet.has(name)}
           onAllow={(name) => {
             project.setAllow(toggleName(project.allow, name, allowSet.has(name)))
-            project.setDeny(project.deny.filter(pattern => pattern !== name))
-          }}
-          onDeny={(name) => {
-            project.setDeny(toggleName(project.deny, name, denySet.has(name)))
-            project.setAllow(project.allow.filter(pattern => pattern !== name))
           }}
         />
         <div className={css.stack}>

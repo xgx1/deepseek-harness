@@ -79,7 +79,7 @@ export function applyEditTool(ctx: Context, sandbox: FsSandboxController): void 
     order: ctx.systemPrompt.getSectionOrder('TOOL_EDIT'),
     text: ({ scope }) => ctx.tools.get('edit', scope) === undefined
       ? ''
-      : 'Read a file before editing it unless you just created or edited it in this session.',
+      : '改文件前先读它，除非这个文件是你本会话刚创建或刚改过的。',
   })
 
   ctx.tools.register(defineTool({

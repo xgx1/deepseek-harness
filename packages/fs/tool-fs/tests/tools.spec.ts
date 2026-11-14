@@ -214,9 +214,9 @@ describe('registration', () => {
   it('registers prompt sections for each tool', async () => {
     const { ctx } = await setup()
     const prompt = renderPrompt(await ctx.systemPrompt.assemble())
-    expect(prompt).toContain('Use the read tool')
-    expect(prompt).toContain('before overwriting it with write')
-    expect(prompt).toContain('before editing it')
+    expect(prompt).toContain('用 read 工具')
+    expect(prompt).toContain('覆盖已有文件前先读它')
+    expect(prompt).toContain('改文件前先读它')
   })
 
   it('stays pending until ctx.fs exists (inject)', async () => {
@@ -1154,9 +1154,9 @@ async function guidanceScope(ctx: Context) {
 }
 
 const originalGuidance = {
-  read: 'Use the read tool — not shell commands like cat, sed, head, or tail — to inspect text files. Use offset and limit to read a line range or continue a large file.',
-  write: 'Read an existing file before overwriting it with write and prefer edit for targeted changes.',
-  edit: 'Read a file before editing it unless you just created or edited it in this session.',
+  read: '用 read 工具查看文本文件，不要用 cat、sed、head、tail 之类的 shell 命令。要读某段行范围或继续读大文件时用 offset 和 limit。',
+  write: '用 write 覆盖已有文件前先读它；局部修改优先用 edit。',
+  edit: '改文件前先读它，除非这个文件是你本会话刚创建或刚改过的。',
 }
 
 describe('scope-aware filesystem guidance', () => {
@@ -1172,7 +1172,7 @@ describe('scope-aware filesystem guidance', () => {
       const assembly = await ctx.systemPrompt.assemble({ scope: key })
       expect(assembly.tools.map(tool => tool.name)).toEqual([...allow].sort())
       const expected = withPersona(...allow.map(name => name === 'write' && !allow.includes('edit')
-        ? originalGuidance.write.replace(' and prefer edit for targeted changes', '')
+        ? originalGuidance.write.replace('；局部修改优先用 edit', '')
         : originalGuidance[name]))
       expect(renderPrompt(assembly)).toBe(expected)
       expect(renderPrompt(await ctx.systemPrompt.assemble())).toBe(baseline)
@@ -1197,7 +1197,7 @@ describe('scope-aware filesystem guidance', () => {
       const assembly = await ctx.systemPrompt.assemble({ scope: key })
       expect(assembly.tools.map(tool => tool.name)).toEqual(['read', 'write'])
       expect(renderPrompt(assembly)).toBe(withPersona(originalGuidance.read,
-        originalGuidance.write.replace(' and prefer edit for targeted changes', '')))
+        originalGuidance.write.replace('；局部修改优先用 edit', '')))
     } finally {
       await scope.dispose()
     }
@@ -1206,7 +1206,7 @@ describe('scope-aware filesystem guidance', () => {
 
 /** Preserve the default persona and exact section separators in the oracle. */
 function withPersona(...sections: string[]): string {
-  return ['You are an AI agent powered by DeepSeek Harness.', ...sections].join('\n\n')
+  return ['你是一个由 DeepSeek Harness 驱动的 AI agent。', ...sections].join('\n\n')
 }
 
 /** Schema assembly only: these cases never execute user code. */
