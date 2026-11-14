@@ -41,7 +41,7 @@ Choose this package when a surface must read or persist the skill-filter rules. 
 | `setProject` | `{ cwd, config }` | The persisted project config |
 | `getEffective` | `{ cwd }` | Which layers exist and the merged config |
 
-`allow` is required on every write and must be a non-empty array of strings; `deny` is optional. A refused write reports the Remote failure code `skill-filter/rejected` with the reason, and no file is touched.
+`allow` is required on every write and must be a non-empty array of strings; it is the whole config, so a write that carries extra keys still persists an allow list only. A refused write reports the Remote failure code `skill-filter/rejected` with the reason, and no file is touched.
 
 ### Minimal composition
 

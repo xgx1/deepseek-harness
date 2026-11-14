@@ -60,10 +60,6 @@ const repoRoot = fileURLToPath(new URL('../../', import.meta.url))
 const snapshotsRoot = fileURLToPath(new URL('./', import.meta.url))
 const dshBin = join(repoRoot, 'apps/cli/src/bin.ts')
 const tsconfigPath = join(repoRoot, 'tsconfig.json')
-const editingCordisSkill = join(
-  repoRoot,
-  'packages/preset/agent-preset/skills/editing-cordis-compositions/SKILL.md',
-)
 
 type SnapshotMode = 'replay' | 'record' | 'refresh'
 
@@ -521,6 +517,9 @@ const workspaceSetups: Record<string, (cwd: string) => Promise<void>> = {
     await symlink(join(source, 'node_modules'), join(target, 'node_modules'), 'dir')
     await copyFile(join(repoRoot, `packages/experimental/cua-macos/${guidanceDirectory}/guidance.${extension}`), join(target, `guidance.${extension}`))
   },
+  async 'dsh-doc-resources'(cwd) {
+    await cp(join(repoRoot, 'packages/preset/agent-preset/skills/dsh-doc'), join(cwd, '.dsh/skills/dsh-doc'), { recursive: true })
+  },
   async 'windows-acl-skill'(cwd) {
     const target = join(cwd, '.dsh', 'skills', 'diagnose-windows-sandbox-acl', 'SKILL.md')
     await mkdir(dirname(target), { recursive: true })
@@ -528,13 +527,12 @@ const workspaceSetups: Record<string, (cwd: string) => Promise<void>> = {
   },
   async 'office-skills'(cwd) {
     await cp(join(repoRoot, 'packages/skill/skill-office/assets'), join(cwd, 'office-skills'), { recursive: true })
-    // A copied macOS Node binary cannot find its adjacent libnode.dylib.
-    const nodePath = process.execPath.replaceAll("'", "'\\''")
-    await writeFile(join(cwd, 'office-node'), `#!/bin/sh\nexec '${nodePath}' "$@"\n`, { mode: 0o755 })
-    await copyFile(join(repoRoot, 'packages/skill/skill-office/node_modules/@deepseek-ai/libreoffice-kit/lib/cli.js'), join(cwd, 'office-cli.js'))
   },
   async 'office-retired-ptc'(cwd) {
     await workspaceSetups['office-skills']!(cwd)
+    // A copied macOS Node binary cannot find its adjacent libnode.dylib.
+    const nodePath = process.execPath.replaceAll("'", "'\\''")
+    await writeFile(join(cwd, 'office-node'), `#!/bin/sh\nexec '${nodePath}' "$@"\n`, { mode: 0o755 })
     // Keep the removed-tool error without process-specific stack locations.
     await writeFile(join(cwd, 'office-ptc-node'), '#!/bin/sh\nexec "$(dirname "$0")/office-node" --stack-trace-limit=0 "$@"\n', { mode: 0o755 })
   },
@@ -550,13 +548,10 @@ const workspaceSetups: Record<string, (cwd: string) => Promise<void>> = {
     await writeFile(join(cwd, 'tracked.txt'), 'DIRTY SOURCE\n')
     await writeFile(join(cwd, 'local.txt'), 'UNTRACKED SOURCE\n')
   },
-  async 'editing-cordis-skill'(cwd) {
+  async 'skill-root-isolation'(cwd) {
     const target = join(cwd, '.dsh', 'skills', 'editing-cordis-compositions', 'SKILL.md')
     await mkdir(dirname(target), { recursive: true })
-    await copyFile(editingCordisSkill, target)
-  },
-  async 'skill-root-isolation'(cwd) {
-    await workspaceSetups['editing-cordis-skill']!(cwd)
+    await copyFile(join(snapshotsRoot, 'skill-load/workspace/.dsh/skills/editing-cordis-compositions/SKILL.md'), target)
     // A symlink loop produces a real, non-absence read error without relying on chmod or root privileges.
     await symlink('broken-skills', join(cwd, 'broken-skills'))
   },
@@ -820,7 +815,7 @@ function verifyMcpResources(log: string, ptc: boolean): void {
   expect(normalizedSystemPrompts(log, contextOf([log])).join('\n'))
     .toContain('MCP_RESOURCE_INSTRUCTION: keep {{braces}} literal.')
   expect(normalizedSystemPrompts(log, contextOf([log])).join('\n'))
-    .toContain('server argument: ["catalog"]')
+    .toContain('作为 server 参数：["catalog"]')
 }
 
 function verifyMcpTemplateError(log: string, secret: string): void {
@@ -897,13 +892,13 @@ function verifyWorkingDirectory(log: string, cwd: string): void {
       .map(section => section.text)
   })
   expect(contexts).toEqual([cwd, join(cwd, 'selected'), join(cwd, 'second'), cwd]
-    .map(directory => `Current working directory: ${JSON.stringify(directory)}.`))
+    .map(directory => `当前工作目录：${JSON.stringify(directory)}。`))
   const notices = users.filter(message => (message.source as JsonObject).kind === 'working-directory')
     .map(message => (message.content as JsonObject[]).map(block => block.text).join(''))
   expect(notices).toEqual([
-    `The working directory changed from ${JSON.stringify(cwd)} to ${JSON.stringify(join(cwd, 'selected'))}.`,
-    `The working directory changed from ${JSON.stringify(join(cwd, 'selected'))} to ${JSON.stringify(join(cwd, 'second'))}.`,
-    `The working directory ${JSON.stringify(join(cwd, 'second'))} is unavailable. The working directory is now ${JSON.stringify(cwd)}.`,
+    `工作目录已从 ${JSON.stringify(cwd)} 改为 ${JSON.stringify(join(cwd, 'selected'))}。`,
+    `工作目录已从 ${JSON.stringify(join(cwd, 'selected'))} 改为 ${JSON.stringify(join(cwd, 'second'))}。`,
+    `工作目录 ${JSON.stringify(join(cwd, 'second'))} 已不可用。当前工作目录为 ${JSON.stringify(cwd)}。`,
   ])
 }
 
@@ -1520,7 +1515,15 @@ describe('headless recorded-session snapshots', () => {
             if (scenario.name.startsWith('office-progressive-')) {
               const log = actualLogs[0]!.content
               const results = parseSessionLog(log).flatMap(event => event.type === 'tool/result' ? [event.data.message] : [])
-              expect(results).toHaveLength(4)
+              if (scenario.name === 'office-progressive-native') {
+                // office_render refuses a render for a model route without image input.
+                const render = results.pop()
+                expect(render?.isError).toBe(true)
+                expect(render?.content).toEqual([{
+                  type: 'text', text: expect.stringMatching(/^Error: cannot render ".+[\\/]report\.docx": model "deepseek-v4-flash" does not accept images$/u),
+                }])
+              }
+              expect(results).toHaveLength(2)
               expect(results.every(result => result.isError === false)).toBe(true)
               expect(log).toContain('# Office task routing')
             }

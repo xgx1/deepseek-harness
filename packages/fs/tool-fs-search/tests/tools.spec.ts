@@ -17,7 +17,7 @@ import { describe, expect, it } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
 import { createScope, type Scope } from '@deepseek-ai/dsh-scope'
 import { join, sep } from 'node:path'
-import { createUserMessage, ToolCallId } from '@deepseek-ai/dsh-llm'
+import { createUserMessage, type ToolCallId } from '@deepseek-ai/dsh-llm'
 import type { ContextFormed } from '@deepseek-ai/dsh-llm'
 import SystemPrompt, { renderPrompt } from '@deepseek-ai/dsh-system-prompt'
 import ToolRuntime, { TOOL_ABORTED_BEFORE_DISPATCH, type ToolExecution, type ToolExecutionToken } from '@deepseek-ai/dsh-tools'
@@ -25,9 +25,10 @@ import { SubprocessRuntime } from '@deepseek-ai/dsh-subprocess'
 import type { SubprocessCollectedOutputs, SubprocessHandle, SubprocessOutcome, SubprocessOutputRead, SubprocessOutputReader, SubprocessSpawnSpec } from '@deepseek-ai/dsh-subprocess'
 import { MAX_TIMER_DELAY_MS } from '@deepseek-ai/dsh-timeout'
 import { rgPath } from '@vscode/ripgrep'
-import { SpillLocator, SpillStore } from '@deepseek-ai/dsh-spill'
+import { type SpillLocator, SpillStore } from '@deepseek-ai/dsh-spill'
 import type { SaveTextSpill, SpillRef } from '@deepseek-ai/dsh-spill'
 import * as ToolFsSearch from '@deepseek-ai/dsh-tool-fs-search'
+import { brandString } from '@deepseek-ai/dsh-brand'
 import {
   buildGlobCommand,
   buildGrepCommand,
@@ -185,7 +186,7 @@ class FakeSpill extends SpillStore {
     if (this.failWith) return Promise.reject(this.failWith)
     this.saves.push(input)
     return Promise.resolve({
-      locator: SpillLocator(`/spill/${input.suggestedName}`),
+      locator: brandString<SpillLocator>(`/spill/${input.suggestedName}`),
       bytes: Buffer.byteLength(input.content, 'utf8'),
       retrievalHint: 'Use the fake retrieval hint.',
     })
@@ -227,7 +228,7 @@ function call(
 ) {
   return executeToolFixture(ctx, {
     signal: testToolSignal,
-    callId: ToolCallId(`call-${++callCounter}`),
+    callId: brandString<ToolCallId>(`call-${++callCounter}`),
     name,
     arguments: args,
     ...options.agent ? { agent: options.agent as never } : {},
@@ -253,10 +254,16 @@ describe('registration', () => {
     expect(subprocess.spawns).toHaveLength(0)
     expect(ctx.tools.schemas().map(s => s.name).sort()).toEqual(['glob', 'grep'])
     const prompt = renderPrompt(await ctx.systemPrompt.assemble())
-    expect(prompt).toContain('Use the glob tool')
-    expect(prompt).toContain('Use the grep tool')
+    expect(prompt).toContain('用 glob 工具')
+    expect(prompt).toContain('用 grep 工具')
     const glob = ctx.tools.schemas().find(schema => schema.name === 'glob')
     expect(glob?.description).toContain('sampled across top-level entries')
+  })
+
+  it('declares glob and grep parallel-safe', async () => {
+    const { ctx } = await setup()
+    expect(ctx.tools.get('glob')?.isConcurrencySafe?.({ pattern: '*.ts' })).toBe(true)
+    expect(ctx.tools.get('grep')?.isConcurrencySafe?.({ pattern: 'x' })).toBe(true)
   })
 
   it('stays pending until ctx.subprocess exists (inject)', async () => {
@@ -482,7 +489,11 @@ describe('workdir derivation and signal forwarding', () => {
     const { ctx } = await setup()
     const controller = new AbortController()
     controller.abort()
-    const exec = { signal: controller.signal, name: 'glob', callId: ToolCallId('direct-pre-abort') } as unknown as ToolExecution
+    const callId = brandString<ToolCallId>('direct-pre-abort')
+    const exec: ToolExecution = {
+      signal: controller.signal, name: 'glob', callId, rootCallId: callId,
+      arguments: {}, token: Symbol('direct-pre-abort') as ToolExecutionToken,
+    }
     await expect(runRipgrep(ctx, exec, 'glob', ['--files'], 1_000_000, 3_000, 64 * 1024)).rejects
       .toMatchObject({ name: 'SearchError', code: 'SEARCH_ABORTED' })
   })
@@ -754,8 +765,14 @@ describe('glob results', () => {
 
   it('validates arguments (blank pattern, blank path)', async () => {
     const { ctx } = await setup()
-    expect(text(await call(ctx, 'glob', { pattern: '  ' }))).toContain('pattern must be a non-empty string')
-    expect(text(await call(ctx, 'glob', { pattern: '*', path: ' ' }))).toContain('path must be a non-empty string')
+    for (const [args, message] of [
+      [{ pattern: '  ' }, 'pattern must be a non-empty string'],
+      [{ pattern: '*', path: ' ' }, 'path must be a non-empty string'],
+    ] as const) {
+      const result = await call(ctx, 'glob', args)
+      expect(text(result)).toContain(message)
+      expect(result.error?.info).toEqual({ name: 'ToolArgsError', code: 'INVALID_ARGS' })
+    }
   })
 
   it('threads a valid path through to the spawn as the plain search root element', async () => {
@@ -1100,16 +1117,23 @@ describe('grep results', () => {
     const result = await call(ctx, 'grep', args)
     expect(result.isError).toBe(true)
     expect(text(result)).toContain(message)
+    expect(result.error?.info).toEqual({ name: 'ToolArgsError', code: 'INVALID_ARGS' })
     expect(subprocess.spawns).toHaveLength(0)
   })
 
   it('validates arguments (empty pattern, blank path, bad include)', async () => {
     const { ctx } = await setup()
-    expect(text(await call(ctx, 'grep', { pattern: '' }))).toContain('pattern must be a non-empty string')
-    expect(text(await call(ctx, 'grep', { pattern: 'x', path: '  ' }))).toContain('path must be a non-empty string')
-    expect(text(await call(ctx, 'grep', { pattern: 'x', include: '  ' }))).toContain('include must be a non-empty glob')
-    expect(text(await call(ctx, 'grep', { pattern: 'x', include: '!*.ts' }))).toContain('negated patterns')
-    expect(text(await call(ctx, 'grep', { pattern: 'x', include: '*.ts,*.js' }))).toContain('comma-separated list')
+    for (const [args, message] of [
+      [{ pattern: '' }, 'pattern must be a non-empty string'],
+      [{ pattern: 'x', path: '  ' }, 'path must be a non-empty string'],
+      [{ pattern: 'x', include: '  ' }, 'include must be a non-empty glob'],
+      [{ pattern: 'x', include: '!*.ts' }, 'negated patterns'],
+      [{ pattern: 'x', include: '*.ts,*.js' }, 'comma-separated list'],
+    ] as const) {
+      const result = await call(ctx, 'grep', args)
+      expect(text(result)).toContain(message)
+      expect(result.error?.info).toEqual({ name: 'ToolArgsError', code: 'INVALID_ARGS' })
+    }
   })
 
   it('accepts a whitespace-only pattern (a legitimate regex) and brace alternation in include', async () => {
@@ -1280,8 +1304,8 @@ async function guidanceScope(ctx: Context) {
 }
 
 const originalSearchGuidance = {
-  glob: 'Use the glob tool — not shell find — to discover files by path pattern.',
-  grep: 'Use the grep tool — not shell grep or rg — to search file contents. Use read on a matched file when you need surrounding context.',
+  glob: '用 glob 工具（而不是 shell find）按路径模式查找文件。',
+  grep: '用 grep 工具（而不是 shell grep 或 rg）搜索文件内容。需要看匹配处的上下文时，对匹配到的文件用 read。',
 }
 
 describe('scope-aware search guidance', () => {
@@ -1294,7 +1318,7 @@ describe('scope-aware search guidance', () => {
       expect(assembly.tools.map(tool => tool.name)).toEqual([...allow].sort())
       expect(renderPrompt(assembly)).toBe(withPersona(...allow.map(name => name === 'glob'
         ? originalSearchGuidance.glob
-        : originalSearchGuidance.grep.replace(' Use read on a matched file when you need surrounding context.', ''))))
+        : originalSearchGuidance.grep.replace('需要看匹配处的上下文时，对匹配到的文件用 read。', ''))))
     } finally {
       await scope.dispose()
     }
@@ -1313,7 +1337,7 @@ describe('scope-aware search guidance', () => {
         .toBe(withPersona(originalSearchGuidance.glob, originalSearchGuidance.grep))
       scope.ctx.tools.restrict({ deny: ['read'] })
       expect(renderPrompt(await ctx.systemPrompt.assemble({ scope: key })))
-        .toBe(withPersona(originalSearchGuidance.glob, originalSearchGuidance.grep.split(' Use read')[0]!))
+        .toBe(withPersona(originalSearchGuidance.glob, originalSearchGuidance.grep.split('需要看匹配处')[0]!))
     } finally {
       await scope.dispose()
     }
@@ -1322,5 +1346,5 @@ describe('scope-aware search guidance', () => {
 
 /** Preserve the default persona and exact section separators in the oracle. */
 function withPersona(...sections: string[]): string {
-  return ['You are an AI agent powered by DeepSeek Harness.', ...sections].join('\n\n')
+  return ['你是一个由 DeepSeek Harness 驱动的 AI agent。', ...sections].join('\n\n')
 }

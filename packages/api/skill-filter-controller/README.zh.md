@@ -41,7 +41,7 @@ kind: "package-reference"
 | `setProject` | `{ cwd, config }` | The persisted project config |
 | `getEffective` | `{ cwd }` | Which layers exist and the merged config |
 
-每次写的 `allow` 必填且必须是非空字符串数组；`deny` 可选。被拒绝的写返回 Remote 失败码 `skill-filter/rejected` 并带上原因，且不落盘。
+每次写的 `allow` 必填且必须是非空字符串数组；它就是整份配置，因此写入时携带的多余键最终也只落一份允许清单。被拒绝的写返回 Remote 失败码 `skill-filter/rejected` 并带上原因，且不落盘。
 
 ### 最小组合
 

@@ -29,7 +29,7 @@ kind: "package-reference"
 
 ### 调用工具
 
-模型提交 `{ objective, maxRounds? }`，调用会阻塞到整个运行结算。部署配置中的 `maxRounds` 既是默认值，也是调用覆盖值的上限。终态结果为 `complete`、`blocked` 或 `budget-limited`，携带最后一份有界报告与已启动的 Round 数量；普通子 agent 失败会返回错误，其中标明失败的 Round，并在存在时保留上一次成功交接。
+模型提交 `{ objective, maxRounds? }`，调用会阻塞到整个运行结算。部署配置中的 `maxRounds` 既是默认值，也是调用覆盖值的上限。终态结果为 `complete`、`blocked` 或 `budget-limited`，携带最后一份有界报告与已启动的 Round 数量；普通子 agent 失败会返回错误，其中标明失败的 Round，并在存在时保留上一次成功交接。失败携带 `RalphError`，其 code 为封闭集合：子 agent Round 结束时没有结构化报告为 `RALPH_ROUND_FAILED`，workflow 出错或被调用方以外的原因取消为 `RALPH_WORKFLOW_FAILED`，其中包括在 workflow 内校验失败的子 agent 报告，因为 workflow 只以文本返回错误，workflow 返回值格式错误为 `RALPH_INVALID_RESULT`，提供方路由不符合要求为 `RALPH_PROVIDER_UNAVAILABLE` 或 `RALPH_PROVIDER_UNSUPPORTED`。空目标或超出范围的 `maxRounds` 是 `ToolArgsError`，调用方取消是 `AbortError`。
 
 ### 每个 Round 看到什么
 
@@ -112,7 +112,7 @@ kind: "package-reference"
 ##### Ralph 指导
 
 ```markdown
-Use the ralph tool ONLY when the direct human explicitly asks for a Ralph loop or fresh-agent iterative execution. Each Ralph round starts a fresh child with no conversation seed and uses the shared workspace as durable memory. Completion and blockers are worker reports, not independent evaluation. Use same-session goal tools for ordinary long-running objectives, and plain subagents or workflows for bounded delegation and fan-out.
+任务复杂、需要多轮迭代逼近目标时，自行判断是否使用 ralph 工具，不必等用户点名。每一轮都新开一个不带对话种子的全新子 agent，共享工作区承载长期记忆。完成与阻塞是 worker 的报告，不是独立评估。普通的长时间同会话目标交给 goal 工具，有界的委派与扇出用普通 subagent 或 workflow。
 ```
 
 #### Token 影响

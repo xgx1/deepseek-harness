@@ -9,6 +9,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   ESCALATION_TARGETS,
+  SandboxEscalationError,
   WIDER_MODES,
   approveEscalation,
   escalationHintMarker,
@@ -16,7 +17,20 @@ import {
   sandboxPermissionsDescription,
   validateEscalationArgs,
 } from '@deepseek-ai/dsh-sandbox'
-import type { EscalationApprover, EscalationOutcome } from '@deepseek-ai/dsh-sandbox'
+import type { EscalationApprover, EscalationOutcome, SandboxEscalationErrorCode } from '@deepseek-ai/dsh-sandbox'
+
+/** The structured identity a failed escalation records on `tool/result`. */
+const escalationError = (code: SandboxEscalationErrorCode): unknown => expect.objectContaining({ name: 'SandboxEscalationError', code })
+
+/** The synchronous failure `run` throws. */
+function thrown(run: () => void): unknown {
+  try {
+    run()
+  } catch (error: unknown) {
+    return error
+  }
+  throw new Error('expected a throw')
+}
 
 describe('the strictly-wider ladder', () => {
   it('read-only escalates to either wider mode; workspace-write only to full access', () => {
@@ -40,6 +54,11 @@ describe('validateEscalationArgs', () => {
     expect(() => { validateEscalationArgs('workspace-write', undefined) }).toThrow(/requires a justification/)
     expect(() => { validateEscalationArgs(undefined, 'orphan reason') }).toThrow(/only valid together with sandbox_permissions/)
     expect(() => { validateEscalationArgs('workspace-write', '   ') }).toThrow(/non-empty sentence/)
+    for (const [mode, justification] of [['workspace-write', undefined], [undefined, 'orphan reason'], ['workspace-write', '   ']] as const) {
+      const error = thrown(() => { validateEscalationArgs(mode, justification) })
+      expect(error).toBeInstanceOf(SandboxEscalationError)
+      expect(error).toEqual(escalationError('SANDBOX_ESCALATION_INVALID_ARGUMENT'))
+    }
   })
 })
 
@@ -50,8 +69,8 @@ describe('the model-facing markers', () => {
   })
 
   it('the sandbox_permissions description names the family subject', () => {
-    expect(sandboxPermissionsDescription('command')).toBe('The narrowest wider sandbox mode for a one-shot retry of the exact command the sandbox just denied; the retry asks the user for approval.')
-    expect(sandboxPermissionsDescription('operation')).toBe('The narrowest wider sandbox mode for a one-shot retry of the exact operation the sandbox just denied; the retry asks the user for approval.')
+    expect(sandboxPermissionsDescription('command')).toBe('对被沙箱刚刚拒绝的那次 command 做一次性重试时，可用的最窄的更宽沙箱模式；重试会请求用户批准。')
+    expect(sandboxPermissionsDescription('operation')).toBe('对被沙箱刚刚拒绝的那次 operation 做一次性重试时，可用的最窄的更宽沙箱模式；重试会请求用户批准。')
   })
 
   it('the hint marker names the family subject', () => {
@@ -113,12 +132,16 @@ describe('approveEscalation', () => {
       .rejects.toThrow(/not strictly wider/)
     await expect(approveEscalation(req({ requestedMode: 'unknown-mode' }), spy))
       .rejects.toThrow(/not strictly wider/)
+    await expect(approveEscalation(req({ requestedMode: 'unknown-mode' }), spy))
+      .rejects.toEqual(escalationError('SANDBOX_ESCALATION_INVALID_ARGUMENT'))
     expect(seen).toEqual([])
   })
 
   it('a missing approval service and an agent-less call each fail closed with distinct text', async () => {
     await expect(approveEscalation(req(), ingredients({ approver: undefined }))).rejects.toThrow(/no approval service is composed/)
     await expect(approveEscalation(req(), ingredients({ agent: undefined }))).rejects.toThrow(/no agent to route it through/)
+    await expect(approveEscalation(req(), ingredients({ approver: undefined }))).rejects.toEqual(escalationError('SANDBOX_ESCALATION_UNAVAILABLE'))
+    await expect(approveEscalation(req(), ingredients({ agent: undefined }))).rejects.toEqual(escalationError('SANDBOX_ESCALATION_UNAVAILABLE'))
   })
 
   it('maps each non-grant outcome to its distinct verbatim text (subject in the rejection)', async () => {
@@ -128,6 +151,23 @@ describe('approveEscalation', () => {
       .rejects.toThrow('approval for escalating to "workspace-write" was cancelled')
     await expect(approveEscalation(req(), ingredients({ approver: approver('unavailable') })))
       .rejects.toThrow('no approval channel is available')
+  })
+
+  it('codes each non-grant outcome', async () => {
+    await expect(approveEscalation(req(), ingredients({ approver: approver('rejected') })))
+      .rejects.toEqual(escalationError('SANDBOX_ESCALATION_REJECTED'))
+    await expect(approveEscalation(req(), ingredients({ approver: approver('cancelled') })))
+      .rejects.toEqual(escalationError('SANDBOX_ESCALATION_CANCELLED'))
+    await expect(approveEscalation(req(), ingredients({ approver: approver('unavailable') })))
+      .rejects.toEqual(escalationError('SANDBOX_ESCALATION_UNAVAILABLE'))
+  })
+
+  it('a cancelled approval for an aborted call rethrows the call\'s cancellation', async () => {
+    const controller = new AbortController()
+    const reason = new DOMException('caller stopped', 'AbortError')
+    controller.abort(reason)
+    await expect(approveEscalation(req(), ingredients({ approver: approver('cancelled'), signal: controller.signal })))
+      .rejects.toBe(reason)
   })
 
   it('an outcome outside the closed union trips the exhaustiveness guard (defensive)', async () => {

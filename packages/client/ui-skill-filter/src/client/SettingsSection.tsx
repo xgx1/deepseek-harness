@@ -1,6 +1,6 @@
 /**
  * The skill-filter settings page: the personal and project rule layers, the
- * suggested prefix groups, and the session's catalog with one allow/deny switch
+ * suggested prefix groups, and the session's catalog with one allow switch
  * per skill.
  *
  * Both layers are drafts owned by their hooks — the same ones the Conversation
@@ -71,7 +71,6 @@ export function SkillFilterSettingsSection(props: SkillFilterSettingsSectionProp
   }, [listSkills, sessionId, reload])
 
   const allowSet = useMemo(() => new Set(personal.allow), [personal.allow])
-  const denySet = useMemo(() => new Set(personal.deny), [personal.deny])
   const skills = catalog.status === 'ready' ? catalog.skills : undefined
 
   const groups = useMemo(() => {
@@ -125,14 +124,8 @@ export function SkillFilterSettingsSection(props: SkillFilterSettingsSectionProp
         query={query}
         onQueryChange={setQuery}
         isAllowed={name => allowSet.has(name)}
-        isDenied={name => denySet.has(name)}
         onAllow={(name) => {
           personal.setAllow(toggleName(personal.allow, name, allowSet.has(name)))
-          personal.setDeny(personal.deny.filter(pattern => pattern !== name))
-        }}
-        onDeny={(name) => {
-          personal.setDeny(toggleName(personal.deny, name, denySet.has(name)))
-          personal.setAllow(personal.allow.filter(pattern => pattern !== name))
         }}
       />
 

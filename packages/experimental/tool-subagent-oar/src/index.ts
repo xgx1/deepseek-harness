@@ -2,8 +2,8 @@
 
 import type { Context } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
-import { defineTool } from '@deepseek-ai/dsh-tools'
-import type {} from '@deepseek-ai/dsh-subagent'
+import { defineTool, ToolContextUnavailableError } from '@deepseek-ai/dsh-tools'
+import { SubagentError } from '@deepseek-ai/dsh-subagent'
 
 export const name = 'experimental-tool-subagent-oar'
 export const inject = ['tools', 'subagents']
@@ -53,8 +53,8 @@ export function apply(ctx: Context, config: Config): void {
       },
       name: {
         type: 'string',
-        description: 'Optional short name for the subagent, unique among the subagents you create: lower-case letters, '
-          + 'digits, and hyphens, starting with a letter, at most 32 characters; lead is reserved for the root agent. Omitted names default to agent-1, agent-2, and so on.',
+        description: '可选的 subagent 短名，在你创建的 subagent 中唯一：小写字母、'
+          + '数字与连字符，以字母开头，最长 32 个字符；lead 留给 root agent。省略时默认为 agent-1、agent-2 等。',
       },
       prompt: {
         type: 'string',
@@ -63,7 +63,7 @@ export function apply(ctx: Context, config: Config): void {
       },
       cwd: {
         type: 'string',
-        description: 'Initial child working directory. Relative paths use your current directory; omission inherits it.',
+        description: '子 agent 的初始工作目录。相对路径基于当前目录；省略则继承。',
       },
     },
     /* jscpd:ignore-start -- External and local delegation share the canonical
@@ -84,12 +84,12 @@ export function apply(ctx: Context, config: Config): void {
     isConcurrencySafe: () => true,
     async execute(args, exec) {
       const parent = exec.agent
-      if (parent === undefined) throw new Error('subagent_oar requires a calling agent')
+      if (parent === undefined) throw new ToolContextUnavailableError('subagent_oar requires a calling agent')
       // The parameter enum admits only keys from this immutable configuration.
       const providerName = providers.get(args.runtime) as string
       const provider = ctx.subagents.getProvider(providerName)
       if (provider !== undefined && (provider.prepareContinuable !== undefined || provider.inheritsParentContext)) {
-        throw new Error('subagent_oar requires a one-shot provider with independent conversation context')
+        throw new SubagentError('subagent_oar requires a one-shot provider with independent conversation context', 'UNSUPPORTED_CAPABILITY')
       }
       const activation = await ctx.subagents.startActivation({
         provider: providerName,

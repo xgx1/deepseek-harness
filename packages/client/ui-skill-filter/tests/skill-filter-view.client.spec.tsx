@@ -6,21 +6,32 @@
  */
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { SessionId } from '@deepseek-ai/dsh-session'
 import type { SkillFilterFace } from '../src/client/face.ts'
 import type { SkillFilterViewProps } from '../src/client/SkillFilterView.tsx'
 import { SkillFilterView } from '../src/client/SkillFilterView.tsx'
 import { zh } from '../src/client/locales.ts'
 
-const SESSION = 'session-1'
+const SESSION = SessionId('session-1')
 
 /** A translate seat that resolves this package's own Chinese dictionary. */
 const t = ((key: keyof typeof zh) => zh[key]) as SkillFilterViewProps['t']
 
+/** The session-list state the view's selector hook receives. */
+type SessionsState = Parameters<Parameters<SkillFilterViewProps['useSessions']>[0]>[0]
+
 /** A session-list selector hook over one fixture session. */
-function useSessions<T>(select: (state: {
-  byId: Record<string, { id: string; cwd: string }>
-}) => T): T {
-  return select({ byId: { [SESSION]: { id: SESSION, cwd: '/repo' } } })
+function useSessions<T>(select: (state: SessionsState) => T): T {
+  return select({
+    ids: [SESSION],
+    byId: {
+      [SESSION]: {
+        id: SESSION, displayTitle: 'session-1', cwd: '/repo', running: false, retainedBy: {}, blank: false, updatedAt: 0,
+      },
+    },
+    phase: 'ready',
+    projectionsBySession: {},
+  })
 }
 
 function props(overrides: Partial<SkillFilterFace> = {}): SkillFilterViewProps {
@@ -42,12 +53,13 @@ function props(overrides: Partial<SkillFilterFace> = {}): SkillFilterViewProps {
     }),
     ...overrides,
   }
+  // Sibling view specs stub only the props the component reads and cast the literal.
   return {
     sessionId: SESSION,
     t,
     useSessions,
     ...face,
-  } as unknown as SkillFilterViewProps
+  } as SkillFilterViewProps
 }
 
 afterEach(cleanup)

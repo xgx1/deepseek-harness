@@ -5,6 +5,7 @@ import {
   isContextWindowExceededError,
   isQuotaExceededError,
   QUOTA_EXCEEDED_CODE,
+  type BuiltinLlmFailureCode,
 } from '@deepseek-ai/dsh-llm'
 
 /** Provider error fields both DeepSeek protocols read from an error envelope. */
@@ -40,7 +41,7 @@ export function providerErrorText(fields: ProviderErrorFields): string {
  * @param fields - provider error code, type, and message text.
  * @returns the stable machine-routable failure code for that error body.
  */
-export function inBandProviderErrorCode(fields: ProviderErrorFields): string {
+export function inBandProviderErrorCode(fields: ProviderErrorFields): BuiltinLlmFailureCode {
   if (fields.type === 'authentication_error' || fields.type === 'permission_error') return 'AUTH'
   const detail = providerErrorText(fields)
   if (/\b429\b/.test(detail) || fields.type === 'rate_limit_error' || /\brate.?limit\b/i.test(detail)) return 'RATE_LIMIT'

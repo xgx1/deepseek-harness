@@ -5,13 +5,17 @@
 
 import type { Context } from '@deepseek-ai/cordis'
 import Schema from '@deepseek-ai/schemastery'
-import { ComputerUseProviderName } from '@deepseek-ai/dsh-computer-use/brand'
+import { brandString } from '@deepseek-ai/dsh-brand'
+import type { ComputerUseProviderName } from '@deepseek-ai/dsh-computer-use/types'
 import { createMcpToolDefinition } from '@deepseek-ai/dsh-mcp-client'
 import { z } from 'zod'
 import type { CuaDriver as NativeDriver } from '@trycua/cua-driver'
 import type {} from '@deepseek-ai/dsh-computer-use'
 import type {} from '@deepseek-ai/dsh-system-prompt'
 import type {} from '@deepseek-ai/dsh-tools'
+import { CuaDriverError } from './error.ts'
+
+export { CuaDriverError, type CuaDriverErrorCode } from './error.ts'
 
 /** Cordis plugin identity for the native Cua Driver provider. */
 export const name = 'experimental-computer-use-cua-driver-native'
@@ -34,11 +38,11 @@ const ToolCatalog = z.object({
 /** DeepSeek's function-name alphabet and maximum length are protocol constants. */
 const TOOL_NAME = /^[A-Za-z0-9_-]{1,64}$/u
 
-const GUIDANCE = `Cua Driver native computer-use tools operate the host desktop. Discover the exact app and window, then get a fresh window snapshot before acting. Use element_token from that snapshot, or coordinates from its screenshot. A new snapshot of that window invalidates its earlier element tokens. Select either target or the legacy pid/window_id fields; do not combine them.
+const GUIDANCE = `Cua Driver 的 native computer-use 工具操作宿主机桌面。先确认精确的应用与窗口，再取新的窗口快照，然后动手。用快照里的 element_token，或用截图上的坐标；同一窗口的新快照会让旧的 element token 失效。target 与遗留的 pid/window_id 二选一，不要同时给。
 
-Prefer background delivery. A refusal does not authorize a foreground retry. Verify the requested outcome from fresh state after an action; a delivered click alone does not prove the outcome. After cancellation, inspect current state before retrying because completed input is not rolled back. Other sessions and applications may change the same desktop.
+优先后台投递。被拒绝不授权改前台重试。动作之后要从新状态验证结果——点了不代表生效。取消之后先看当前状态再重试，因为已完成的输入不会回滚。其他会话与应用可能改动同一桌面。
 
-On macOS, cursor-overlay operations may return facility_unavailable even when screenshots and input work.`
+在 macOS 上，即使截图与输入可用，光标叠加类操作也可能返回 facility_unavailable。`
 
 /**
  * Own one native runtime and expose its catalog through the MCP result adapter.
@@ -57,7 +61,7 @@ export async function apply(ctx: Context): Promise<void> {
   }, { global: true })
   let ready: Promise<void> = Promise.resolve()
   const dispose = ctx.effect(function* () {
-    yield ctx.computerUse.register(ComputerUseProviderName('cua-driver-native'))
+    yield ctx.computerUse.register(brandString<ComputerUseProviderName>('cua-driver-native'))
     yield async () => {
       lifetime.abort()
       // apply() reports startup failure; teardown still owns its native handle.
@@ -93,7 +97,10 @@ export async function apply(ctx: Context): Promise<void> {
     const catalog = ToolCatalog.parse(JSON.parse(await activeDriver.listToolsJson({ signal: lifetime.signal })))
     lifetime.signal.throwIfAborted()
     const names = new Set<string>()
+    // 浏览器控制交给 ego-browser；跳过 CUA 的浏览器工具，避免两套栈冲突
+    const BROWSER_TOOL = /^(browser_|get_browser_state$|page$)/u
     for (const tool of catalog.tools) {
+      if (BROWSER_TOOL.test(tool.name)) continue
       const publicName = `cua_driver_native__${tool.name}`
       if (!TOOL_NAME.test(publicName)) {
         throw new Error(`Cua Driver tool "${tool.name}" exceeds the supported function-name format`)
@@ -109,9 +116,16 @@ export async function apply(ctx: Context): Promise<void> {
         async call(args, execution) {
           const combined = AbortSignal.any([execution.signal, lifetime.signal])
           combined.throwIfAborted()
-          const result = await activeDriver.callTool(tool.name, JSON.stringify(args), { signal: combined })
+          const result = await activeDriver.callTool(tool.name, JSON.stringify(args), { signal: combined }).catch((error: unknown) => {
+            combined.throwIfAborted()
+            throw new CuaDriverError(error instanceof Error ? error.message : String(error), 'CUA_DRIVER_FAILED', { cause: error })
+          })
           combined.throwIfAborted()
-          return JSON.parse(result.rawJson) as unknown
+          try {
+            return JSON.parse(result.rawJson) as unknown
+          } catch (error) {
+            throw new CuaDriverError(`Cua Driver tool "${tool.name}" returned a result that is not JSON`, 'CUA_DRIVER_INVALID_RESULT', { cause: error })
+          }
         },
       })
       inner.tools.register(definition)

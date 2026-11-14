@@ -1,6 +1,7 @@
 /** Deterministic keyless Agent Teams adapter shared by profile snapshot and CLI e2e. */
 
-import { ToolCallId, LlmAdapter } from '@deepseek-ai/dsh-llm'
+import { brandString } from '@deepseek-ai/dsh-brand'
+import { LlmAdapter } from '@deepseek-ai/dsh-llm'
 
 let nextCall = 0
 
@@ -42,7 +43,8 @@ function latestToolText(messages) {
 function toolChunks(specs) {
   const chunks = []
   for (const [index, spec] of specs.entries()) {
-    const id = ToolCallId(`team-fixture-${++nextCall}`)
+    /** @type {import('@deepseek-ai/dsh-llm/types').ToolCallId} */
+    const id = brandString(`team-fixture-${++nextCall}`)
     const args = JSON.stringify(spec.args)
     chunks.push(
       { type: 'block-start', index, blockType: 'tool-call' },
@@ -194,7 +196,7 @@ class TeamFixtureAdapter extends LlmAdapter {
     const context = options.messages.findLast(message => message.source?.kind === 'runtime-context')
     const section = name => context?.source.sections?.find(candidate => candidate.name === name)?.text
     const role = section('subagent:identity')
-    const parentId = role?.match(/You are a subagent delegated by agent "([^"]+)"/u)?.[1]
+    const parentId = role?.match(/你是由 agent "([^"]+)" 委派的 subagent/u)?.[1]
     const task = initial?.content.filter(block => block.type === 'text').map(block => block.text).join('\n')
     if (!workflowChild && (!tools.includes('subagent') || !tools.includes('workflow') || !tools.includes('team_task_create'))) {
       throw new Error('Team profile is missing delegation, workflow, or task tools')
@@ -203,7 +205,7 @@ class TeamFixtureAdapter extends LlmAdapter {
     if (workflowChild) chunks = textChunks('Fresh workflow child complete.')
     else if (task?.startsWith('RESEARCHER_MARK:')) chunks = researcher(options.messages)
     else if (task?.startsWith('IMPLEMENTER_MARK:')) chunks = implementer(options.messages, parentId)
-    else if (role?.startsWith('You are the root agent. Your name is')) chunks = lead(options.messages)
+    else if (role?.startsWith('你是 root agent。')) chunks = lead(options.messages)
     else throw new Error('Team runtime context is missing a recognized identity')
     for (const chunk of chunks) {
       options.signal?.throwIfAborted()

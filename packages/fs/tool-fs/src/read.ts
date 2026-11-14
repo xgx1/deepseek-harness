@@ -5,7 +5,7 @@
  */
 
 import type { Context } from '@deepseek-ai/cordis'
-import { defineTool } from '@deepseek-ai/dsh-tools'
+import { ToolArgsError, defineTool } from '@deepseek-ai/dsh-tools'
 import type { GenericCallView, ReadResultView, ToolResult } from '@deepseek-ai/dsh-tools'
 import type {} from '@deepseek-ai/dsh-fs'
 import { buildWindow, formatReadOutput, langFromPath, readMetaFromMeta } from './read-render.ts'
@@ -41,7 +41,7 @@ interface ReadInput {
 
 function parsePositiveInteger(value: number, name: string): number {
   if (!Number.isFinite(value) || !Number.isInteger(value) || value < 1) {
-    throw new Error(`${name} must be a positive integer`)
+    throw new ToolArgsError([`${name} must be a positive integer`])
   }
   return value
 }
@@ -53,10 +53,10 @@ function parsePositiveInteger(value: number, name: string): number {
  * @returns the validated input with `offset` defaulted to 1 and `limit` to `maxLimit`.
  */
 export function parseReadArgs(args: { file_path: string; offset?: number; limit?: number }, maxLimit: number): ReadInput {
-  if (args.file_path.trim().length === 0) throw new Error('file_path must be a non-empty string')
+  if (args.file_path.trim().length === 0) throw new ToolArgsError(['file_path must be a non-empty string'])
   const offset = args.offset === undefined ? 1 : parsePositiveInteger(args.offset, 'offset')
   const limit = args.limit === undefined ? maxLimit : parsePositiveInteger(args.limit, 'limit')
-  if (limit > maxLimit) throw new Error(`limit must be less than or equal to ${maxLimit}`)
+  if (limit > maxLimit) throw new ToolArgsError([`limit must be less than or equal to ${maxLimit}`])
   return { filePath: args.file_path, offset, limit }
 }
 
@@ -71,7 +71,7 @@ export function applyReadTool(ctx: Context, caps: ReadToolCaps): void {
     order: ctx.systemPrompt.getSectionOrder('TOOL_READ'),
     text: ({ scope }) => ctx.tools.get('read', scope) === undefined
       ? ''
-      : 'Use the read tool — not shell commands like cat, sed, head, or tail — to inspect text files. Use offset and limit to read a line range or continue a large file.',
+      : '用 read 工具查看文本文件，不要用 cat、sed、head、tail 之类的 shell 命令。要读某段行范围或继续读大文件时用 offset 和 limit。',
   })
 
   ctx.tools.register(defineTool({
@@ -79,8 +79,8 @@ export function applyReadTool(ctx: Context, caps: ReadToolCaps): void {
     description: 'Read a UTF-8 text file and return line-numbered content.',
     parameters: {
       file_path: { type: 'string', required: true, description: 'Path to read, resolved by the filesystem backend.' },
-      offset: { type: 'number', description: '1-based first line to return. Defaults to 1.' },
-      limit: { type: 'number', description: `Maximum number of lines to return. Defaults to ${caps.limit}.` },
+      offset: { type: 'number', description: '要返回的起始行，从 1 开始。默认为 1。' },
+      limit: { type: 'number', description: `返回的最大行数。默认为 ${caps.limit}。` },
     },
     output: {
       schema: {

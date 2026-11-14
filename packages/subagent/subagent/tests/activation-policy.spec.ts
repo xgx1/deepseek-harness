@@ -15,12 +15,13 @@ import { mountAgentLoopTestDependencies } from '@deepseek-ai/dsh-agent-loop-test
 import SandboxedFileSystem from '@deepseek-ai/dsh-fs-sandbox'
 import type { ContentBlock } from '@deepseek-ai/dsh-llm'
 import SandboxPolicyService, { setSandboxMode } from '@deepseek-ai/dsh-sandbox-policy'
-import { Session, SessionId, type SessionEvent } from '@deepseek-ai/dsh-session'
+import { Session, type SessionId, type SessionEvent } from '@deepseek-ai/dsh-session'
 import * as ToolFs from '@deepseek-ai/dsh-tool-fs'
 import ApprovalService from '@deepseek-ai/dsh-user-approval'
 import { MockAdapter, textResponse, toolCallResponse } from '../../../core/agent-loop/tests/mock-adapter.ts'
 import SubagentRuntime from '@deepseek-ai/dsh-subagent'
 import { mountLocalActivations, startPreparedActivation } from './local-activation.ts'
+import { brandString } from '@deepseek-ai/dsh-brand'
 
 type Script = ConstructorParameters<typeof MockAdapter>[0]
 
@@ -50,7 +51,7 @@ async function setupWalled(script: Script): Promise<{ ctx: Context; parent: Agen
   await ctx.plugin(AgentLoop, { agents: [] })
   ctx.llm.registerAdapter(['mock'], new MockAdapter(script))
   const parent = await ctx.agentLoop.create(
-    SessionId('parent'),
+    brandString<SessionId>('parent'),
     { provider: 'mock', model: 'mock' },
     { cwd: workspace },
   )
@@ -181,10 +182,10 @@ describe('in-process policy inheritance', () => {
         .filter((block): block is Extract<ContentBlock, { type: 'text' }> => block.type === 'text')
         .map(block => block.text)
         .join('\n')
-      expect(contextText).toContain('Current DSH file policy: read-only')
-      expect(contextText).toContain('Approval prompts are disabled')
+      expect(contextText).toContain('当前 DSH 文件策略：read-only')
+      expect(contextText).toContain('本次会话已禁用审批提示')
       // The statement rides runtime context; the system node (surface node 0) stays uniform.
-      expect(contextText).toContain('You are a delegated subagent')
+      expect(contextText).toContain('你是一个被委派的 subagent')
       const systemHead = child.session.deriveMessages()[0]
       if (systemHead?.role !== 'system') throw new Error('child surface node 0 is not a system message')
       expect(child.session.surface.nodes[0]).toBe(systemNode.seq)
@@ -192,8 +193,8 @@ describe('in-process policy inheritance', () => {
         .filter((block): block is Extract<ContentBlock, { type: 'text' }> => block.type === 'text')
         .map(block => block.text)
         .join('\n')
-      expect(systemText).not.toContain('Approval prompts are disabled')
-      expect(systemText).not.toContain('You are a delegated subagent')
+      expect(systemText).not.toContain('本次会话已禁用审批提示')
+      expect(systemText).not.toContain('你是一个被委派的 subagent')
       expect(parent.session.snapshotEvents().filter(event => event.type !== 'subagent/catalog')).toHaveLength(parentLogLength)
     } finally {
       await run.dispose()

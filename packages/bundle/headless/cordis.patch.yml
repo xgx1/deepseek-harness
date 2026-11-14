@@ -9,7 +9,7 @@
 - id: system-prompt
   config:
     personaPrefix: >-
-      You are a coding agent powered by the {{model}} model.
+      你是一个由 {{model}} 模型驱动的编码 agent。
 
 - insert:
     - id: headless-startup

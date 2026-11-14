@@ -14,6 +14,7 @@ import type { Context } from '@deepseek-ai/cordis'
 import type { ToolSchema } from '@deepseek-ai/dsh-llm'
 import type { ToolExecution, ToolRunContext } from '@deepseek-ai/dsh-tools'
 import { ToolArgsError, validateJsonSchemaValue, type ObjectJsonSchema } from '@deepseek-ai/dsh-tools'
+import { SubagentError } from './error.ts'
 
 /** The model-facing tool name a structured child must call to finish. */
 export const STRUCTURED_OUTPUT_TOOL = 'structured_output'
@@ -24,9 +25,9 @@ export const STRUCTURED_OUTPUT_TOOL = 'structured_output'
  * tool, as ordinary prompt state of exactly one agent.
  */
 export const STRUCTURED_OUTPUT_INSTRUCTION
-  = 'When you have your final answer, you MUST report it by calling the '
-    + `\`${STRUCTURED_OUTPUT_TOOL}\` tool with arguments matching its parameter schema exactly. `
-    + 'Do not finish with a plain text answer: only the tool call counts as your result.'
+  = '当你得出最终答案时，必须调用 '
+    + `\`${STRUCTURED_OUTPUT_TOOL}\` 工具上报，参数严格符合它的参数 schema。`
+    + '不要用纯文本答案收尾：只有这次工具调用才算你的结果。'
 
 /** One structured run's live handle: read the captured value once the child settles. */
 export interface StructuredAttachment {
@@ -96,7 +97,9 @@ export function attachStructuredRuntime(
       // ToolArgsError → isError result with INVALID_ARGS: the model retries
       // within the same turn, exactly like a schema-validated defineTool call.
       if (violations.length > 0) throw new ToolArgsError(violations)
-      if (!canComplete()) throw new Error('Process pending messages before submitting structured output.')
+      if (!canComplete()) {
+        throw new SubagentError('Process pending messages before submitting structured output.', 'STRUCTURED_OUTPUT_PENDING_INPUT')
+      }
       // Two-phase commit, keyed by THIS execution: later transformable
       // waterfalls may still turn the success into an error. ToolRuntime has
       // already frozen model-bound arguments at the actual input boundary.

@@ -49,7 +49,7 @@ kind: "package-reference"
 
 ### 失败与恢复
 
-该工具要求 Agent Session；非 Agent 调用会在任何查询前以 `LSP_WORKSPACE_REQUIRED` 失败。工作目录服务提供并校验当前根目录。当没有提供方处理该文件扩展名时，查询以 `LSP_UNAVAILABLE` 失败；格式错误的提供方载荷仍保持为结构化 `LSP_MALFORMED_RESPONSE` 错误。这些会呈现为模型可读、可路由的错误工具结果。
+未知操作、空白 `file_path` 或不是正整数的坐标会在任何查询前以 `ToolArgsError` `INVALID_ARGS` 失败。该工具要求 Agent Session；非 Agent 调用会在任何查询前以 `LSP_WORKSPACE_REQUIRED` 失败。工作目录服务提供并校验当前根目录。当没有提供方处理该文件扩展名时，查询以 `LSP_UNAVAILABLE` 失败；格式错误的提供方载荷仍保持为结构化 `LSP_MALFORMED_RESPONSE` 错误。这些失败以及所有提供方失败都会呈现为保留失败 `name` 与 `code` 的错误工具结果；[LSP 导航子系统](../../../docs/subsystems/lsp.zh.md#failures)列出了这些错误码。
 
 -----
 
@@ -105,7 +105,7 @@ kind: "package-reference"
 ##### 逐字指引
 
 ```markdown
-Use search/read for ordinary navigation. Use lsp when textual matches are ambiguous or before a change requires precise definitions, implementations, or references. Positions are one-based line and character (UTF-16) at the cursor; an off-symbol position may return no results. findReferences always includes the declaration.
+日常导航用 search/read。文本匹配有歧义时、或改动前需要精确定义、实现或引用时，用 lsp。位置是以光标为基准的行号与字符列号，从 1 开始计数（UTF-16），落在符号外的位置可能返回空结果。findReferences 总是包含声明本身。
 ```
 
 #### Token 影响

@@ -1,14 +1,16 @@
 /** Normalize HTTP and in-band Messages errors into provider-neutral failures. */
 
+import { brandString } from '@deepseek-ai/dsh-brand'
 import {
   codeForHttpStatus,
   CONTEXT_WINDOW_EXCEEDED_CODE,
   isContextWindowExceededError,
   isQuotaExceededError,
   LlmError,
-  ProviderRequestId,
   QUOTA_EXCEEDED_CODE,
+  type ProviderRequestId,
 } from '@deepseek-ai/dsh-llm'
+import type { BuiltinLlmFailureCode } from '@deepseek-ai/dsh-llm'
 import { inBandProviderErrorCode, providerErrorText } from './provider-error.ts'
 
 /** Read only provider error fields used by bounded Files recovery.
@@ -35,7 +37,7 @@ export function providerError(raw: unknown, status: number | undefined, headers?
   const type = typeof error.type === 'string' ? error.type : ''
   const providerCode = typeof error.code === 'string' ? error.code : undefined
   const detail = providerErrorText({ ...providerCode === undefined ? {} : { code: providerCode }, type, message })
-  let code: string
+  let code: BuiltinLlmFailureCode
   // An in-band event has no status: the provider's own error fields are the
   // only routing facts, and every failure the server reported but did not
   // classify further stays retryable as SERVER.
@@ -56,7 +58,7 @@ export function providerError(raw: unknown, status: number | undefined, headers?
   const id = headers?.get('request-id') ?? headers?.get('x-request-id') ?? headers?.get('x-deepseek-request-id')
   return new LlmError(message, code, {
     ...status === undefined ? {} : { status },
-    ...id ? { requestId: ProviderRequestId(id) } : {},
+    ...id ? { requestId: brandString<ProviderRequestId>(id) } : {},
     ...Number.isFinite(delay) && delay > 0 ? { providerRetryAfterMs: delay } : {},
   })
 }

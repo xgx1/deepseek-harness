@@ -6,8 +6,8 @@
 
 import type { Context } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
-import { GoalId } from '@deepseek-ai/dsh-goal'
-import type { GoalRef, GoalView } from '@deepseek-ai/dsh-goal'
+import { brandString } from '@deepseek-ai/dsh-brand'
+import type { GoalId, GoalRef, GoalView } from '@deepseek-ai/dsh-goal/types'
 import { boundContextSummary, createUserMessage, HarnessError } from '@deepseek-ai/dsh-llm'
 import type { ContextFormed } from '@deepseek-ai/dsh-llm'
 declare module '@deepseek-ai/dsh-llm' {
@@ -113,13 +113,13 @@ const GOAL_VALUE_SCHEMA = {
 
 /** Render policy guidance with its deployment-selected blocked threshold. */
 function guidance(blockedAfter: number): string {
-  return 'create_goal may infer goal intent from a direct human request in any language. '
-    + 'After session resume or fork, an active goal is disarmed: when '
-    + 'a human asks to continue or resume in any wording or language, use update_goal action '
-    + 'resume to rearm it. Mark complete only when the objective is actually achieved. Mark '
-    + `blocked only after the same blocking condition persists for at least ${blockedAfter} `
-    + 'consecutive goal rounds, and report that concrete condition in blocked_reason; difficulty, uncertainty, '
-    + 'or useful remaining work is not blocked.'
+  return 'create_goal 可以从任何语言的人类直接请求中推断目标意图。'
+    + '会话恢复或分叉后，活动目标处于未武装状态：当人类用任何措辞、任何语言'
+    + '要求继续或恢复时，用 update_goal 的 resume 动作重新武装它。'
+    + '只有目标真正达成时才标记 complete。只有同一阻塞条件持续至少 '
+    + `${blockedAfter} 个连续目标轮次`
+    + '后，才标记 blocked，并在 blocked_reason 中报告那个具体条件；'
+    + '难度、不确定性与仍有用的待办工作都不算 blocked。'
 }
 
 /** Validate config even when apply is called directly outside Loader normalization. */
@@ -150,7 +150,7 @@ function goalRef(goalId: string, revision: number): GoalRef {
       'GOAL_TOOL_INVALID_UPDATE',
     )
   }
-  return { id: GoalId(goalId), revision }
+  return { id: brandString<GoalId>(goalId), revision }
 }
 
 /** Stable compact model result; activation is an observation, not replay state. */

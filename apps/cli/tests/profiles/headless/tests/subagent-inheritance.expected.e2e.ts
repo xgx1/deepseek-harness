@@ -15,8 +15,9 @@ import {
   type NormalizeContext,
 } from '@deepseek-ai/dsh-session-snapshot'
 import { LOADER_SMOKE_TEST_TIMEOUT_MS, runLoaderSmoke } from '@deepseek-ai/dsh-loader-smoke'
-import { createMessage, createUserMessage, ReasoningEffortId } from '@deepseek-ai/dsh-llm'
-import { SessionSeq, SESSION_FORMAT_VERSION, SessionId, type SessionEvent, type SessionHeader } from '@deepseek-ai/dsh-session'
+import { brandString } from '@deepseek-ai/dsh-brand'
+import { createMessage, createUserMessage, type ReasoningEffortId } from '@deepseek-ai/dsh-llm'
+import { SessionSeq, SESSION_FORMAT_VERSION, type SessionId, type SessionEvent, type SessionHeader } from '@deepseek-ai/dsh-session'
 import * as JsonlSessionPersistence from '@deepseek-ai/dsh-session-persistence-jsonl'
 import { describe, expect, it } from 'vitest'
 
@@ -30,7 +31,7 @@ const childExpected = join(fixtureDir, 'child.expected.jsonl')
 const configPath = fileURLToPath(new URL('../subagent-inheritance-snapshot.patch.yml', import.meta.url))
 const binScript = fileURLToPath(new URL('../../../../../../packages/test-support/loader-smoke/tests/fixtures/headless-driver.ts', import.meta.url))
 const tsconfigPath = fileURLToPath(new URL('../../../../../../tsconfig.json', import.meta.url))
-const sessionId = SessionId('subagent-inheritance-parent')
+const sessionId = brandString<SessionId>('subagent-inheritance-parent')
 const refreshing = process.env.DSH_SNAPSHOT === 'refresh'
 const task = 'Delegate the write probe to a subagent.'
 
@@ -75,7 +76,7 @@ async function seedReadOnlyParent(root: string, cwd: string): Promise<void> {
           config: {
             provider: 'deepseek-official',
             model: 'deepseek-v4-flash',
-            reasoningEffort: ReasoningEffortId('low'),
+            reasoningEffort: brandString<ReasoningEffortId>('low'),
           },
         },
         reason: 'initial',
@@ -153,8 +154,8 @@ describe('parent-only override inheritance snapshot', () => {
         const policyContexts = [...runtimeContexts(parent), ...runtimeContexts(child)]
         expect(policyContexts).toHaveLength(2)
         for (const context of policyContexts) {
-          expect(context).toContain('Any available operation enforced by the DSH file sandbox cannot modify files in the standing mode.')
-          expect(context).toContain('Do not refuse a required modification from this policy alone')
+          expect(context).toContain('由 DSH 文件沙箱强制执行的任何可用操作，在现行模式下都不能修改文件。')
+          expect(context).toContain('不要仅凭此策略就拒绝一项必需的修改')
           expect(context).not.toContain('write and edit tools')
           expect(context).not.toContain('one-shot bash commands')
           expect(context).not.toContain('terminal sessions')

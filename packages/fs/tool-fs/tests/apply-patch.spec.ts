@@ -10,9 +10,10 @@ import { executeModelToolFixture, executeToolFixture } from '@deepseek-ai/dsh-to
 import type { PtcRunRequest, PtcRunSpec } from '@deepseek-ai/dsh-ptc-runtime'
 import { add, move, patch, remove, setup, update } from './patch/harness.ts'
 
-const guidance = 'Prefer apply_patch over separate edit calls for changes across files or separated regions. '
-  + 'Give every hunk enough surrounding context lines to match one place in the current file. '
-  + 'The whole patch is checked first (syntax, hunk matching, missing files) and a rejected patch changes nothing; once applying starts, operations run in order, stop at the first failure, and are not rolled back, so re-read affected files before retrying when needed.'
+const guidance = '跨文件或被拆开的多个区域有改动时，优先用 apply_patch，而不是多次单独的 edit 调用。'
+  + '给每个 hunk 足够的上下文行，让它在当前文件里只匹配到一处。'
+  + '整块补丁先整体检查（语法、hunk 匹配、缺失文件），被拒绝的补丁不产生任何改动；'
+  + '一旦开始应用，操作按顺序执行，遇到第一个失败即停止，且不回滚，所以必要时先重新读取受影响的文件再重试。'
 
 type Fixture = Awaited<ReturnType<typeof setup>>
 function call(t: Fixture, text: string) {
@@ -163,7 +164,7 @@ class PatchPtcRuntime extends PtcRuntime {
     return { ...request, cwd: request.cwd ?? process.cwd(), timeoutMs: request.timeoutMs ?? 120_000 }
   }
   async run(request: PtcRunSpec) {
-    return { logs: [], value: await request.bindings[0]!.functions.apply_patch!({ input: this.patch }) }
+    return { output: [{ type: 'text' as const, text: JSON.stringify(await request.bindings[0]!.functions.apply_patch!({ input: this.patch })) }] }
   }
 }
 
@@ -179,10 +180,10 @@ it('dispatches native and PTC patch calls with identical values', async () => {
   await t.file('a', 'old\n')
   const ptc = await executeModelToolFixture(p.ctx, {
     signal: p.exec.signal, callId: p.exec.callId, agent: { ctx: p.ctx, session: { header: { cwd: t.workspace }, append() {} } } as never,
-    name: 'run_code', arguments: { code: 'return await tools.apply_patch({patch})', description: 'Apply the fixture patch' },
+    name: 'run_code', arguments: { code: 'inspect(JSON.stringify(await tools.apply_patch({patch})))', description: 'Apply the fixture patch' },
   })
   if (ptc.isError) throw new Error(JSON.stringify(ptc))
-  expect(ptc.value).toEqual({ logs: [], result: native.value })
+  expect(ptc.value).toEqual({ logs: [JSON.stringify(native.value)] })
   expect(await t.bytes('a')).toBe('new\n')
 })
 

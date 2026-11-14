@@ -18,10 +18,10 @@ export function applyApplyPatchTool(ctx: Context, sandbox: FsSandboxController):
   ctx.systemPrompt.section({
     name: 'tool:apply_patch', order: ctx.systemPrompt.getSectionOrder('TOOL_APPLY_PATCH'),
     text: ({ scope }) => ctx.tools.get('apply_patch', scope) === undefined ? ''
-      : 'Prefer apply_patch over separate edit calls for changes across files or separated regions. '
-        + 'Give every hunk enough surrounding context lines to match one place in the current file. '
-        + 'The whole patch is checked first (syntax, hunk matching, missing files) and a rejected patch changes nothing; '
-        + 'once applying starts, operations run in order, stop at the first failure, and are not rolled back, so re-read affected files before retrying when needed.',
+      : '跨文件或被拆开的多个区域有改动时，优先用 apply_patch，而不是多次单独的 edit 调用。'
+        + '给每个 hunk 足够的上下文行，让它在当前文件里只匹配到一处。'
+        + '整块补丁先整体检查（语法、hunk 匹配、缺失文件），被拒绝的补丁不产生任何改动；'
+        + '一旦开始应用，操作按顺序执行，遇到第一个失败即停止，且不回滚，所以必要时先重新读取受影响的文件再重试。',
   })
   ctx.tools.register(defineTool({
     name: 'apply_patch',

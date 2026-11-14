@@ -82,7 +82,6 @@ export function SkillFilterBody(props: SkillFilterBodyProps) {
   }, [listSkills, sessionId, reload])
 
   const allowSet = useMemo(() => new Set(layer.allow), [layer.allow])
-  const denySet = useMemo(() => new Set(layer.deny), [layer.deny])
   const merged = effective.status === 'ready' ? effective.view : undefined
   const skills = catalog.status === 'ready' ? catalog.skills : undefined
 
@@ -104,11 +103,6 @@ export function SkillFilterBody(props: SkillFilterBodyProps) {
             <p className={css.mergedPatterns}>
               {t('effective.allow')}: {merged.config.allow.join(', ')}
             </p>
-            {merged.config.deny !== undefined && merged.config.deny.length > 0 && (
-              <p className={css.mergedPatterns}>
-                {t('effective.deny')}: {merged.config.deny.join(', ')}
-              </p>
-            )}
           </>
         )}
       </div>
@@ -124,14 +118,8 @@ export function SkillFilterBody(props: SkillFilterBodyProps) {
         query={query}
         onQueryChange={setQuery}
         isAllowed={name => allowSet.has(name)}
-        isDenied={name => denySet.has(name)}
         onAllow={(name) => {
           layer.setAllow(toggleName(layer.allow, name, allowSet.has(name)))
-          layer.setDeny(layer.deny.filter(pattern => pattern !== name))
-        }}
-        onDeny={(name) => {
-          layer.setDeny(toggleName(layer.deny, name, denySet.has(name)))
-          layer.setAllow(layer.allow.filter(pattern => pattern !== name))
         }}
       />
     </div>

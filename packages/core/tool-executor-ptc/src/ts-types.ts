@@ -9,6 +9,7 @@
 import type { ToolSchema } from '@deepseek-ai/dsh-llm'
 import type { PtcProgramFormat } from '@deepseek-ai/dsh-ptc-runtime'
 import { assertSupportedJsonSchema } from '@deepseek-ai/dsh-tools'
+import { ZH_DESCRIPTIONS } from './zh-descriptions.ts'
 import type { JsonSchemaNode, JsonSchemaScalar } from '@deepseek-ai/dsh-tools'
 /** Internal PTC mode projection: the model-facing schema plus the canonical output schema. */
 export interface ToolSdkSchema extends Readonly<ToolSchema> {
@@ -35,7 +36,9 @@ function docLines(description: unknown, indent: number): string[] {
   // Collapse prose to stable one-line docs and escape comment closers so a
   // schema description cannot terminate generated JSDoc.
   const collapsed = description.replace(/\s+/g, ' ').trim()
-  return [`${pad(indent)}/** ${collapsed.replaceAll('*/', String.raw`*\/`)} */`]
+  // The SDK section is Chinese: known descriptions render from the generated map.
+  const text = ZH_DESCRIPTIONS[collapsed] ?? collapsed
+  return [`${pad(indent)}/** ${text.replaceAll('*/', String.raw`*\/`)} */`]
 }
 
 /** Render one scalar already validated by the unified schema boundary. */
@@ -250,26 +253,24 @@ export function jsonSchemaToTs(schema: unknown, indent = 0): string {
 /** Render the argument and call instructions for the selected execution syntax. */
 function renderSdkInstructions(programFormat: PtcProgramFormat): string {
   const programDescription = programFormat === 'function-body'
-    ? 'the body of an async TypeScript function (erasable syntax only — no `enum` or namespaces; type annotations are advisory, the code runs type-stripped)'
-    : 'the program to execute'
-  return `## Writing code for run_code
+    ? '异步 TypeScript 函数的函数体（只接受可擦除语法——不能有 `enum` 或 namespace；类型标注仅供参考，执行时会剥离）'
+    : '要执行的程序'
+  return `## run_code 的写法
 
-\`run_code\` takes two required arguments: \`code\`, ${programDescription}, and \`description\`, a short summary of what the program does. The declarations below are SDK bindings for this program. A declaration does not make its name a directly callable tool; only names supplied as separate tool schemas may be called directly.`
+\`run_code\` 有两个必填参数：\`code\`，${programDescription}；\`description\`，一句话说明这个程序做什么。下面声明的类型是这个程序的 SDK 绑定；声明本身不会让名字变成可直接调用的工具，只有另外以工具 schema 形式提供的名字才能直接调用。`
 }
 
 /** Render tool execution and output instructions for the selected execution syntax. */
-function renderSdkProgramInstructions(programFormat: PtcProgramFormat): string {
-  const outputInstruction = programFormat === 'function-body'
-    ? 'Emit results with `return` and/or `console.log(...)`. Only what you print or return is program output.'
-    : 'Only values emitted as program output enter the conversation.'
-  return `Inside the program:
+function renderSdkProgramInstructions(): string {
+  return `在程序内部：
 
-- Call tools as \`await tools.name(args)\` — quoted access for exotic names: \`tools["my-tool"](args)\`. Every call resolves to the tool's typed canonical JSON value. Tool arguments must be lossless JSON.
-- A FAILED tool call rejects with \`ToolCallError\`, whose \`toolName\` identifies the failed tool and whose \`message\` is human-readable — \`try/catch\` it to handle and continue.
-- Independent read-only calls MAY overlap under \`Promise.all\` (safe calls run concurrently; mutating calls run alone, in submission order). Sequence dependent work with \`await\`.
-- ${outputInstruction} A successful tool result containing an image is attached after the run so you can inspect it on the next step; every other intermediate result stays out of the conversation, so extract just what you need.
+- 用 \`await tools.name(args)\` 调用工具——名字含特殊字符时用带引号的写法：\`tools["my-tool"](args)\`。每次调用都返回该工具声明的值，可能是一个 Image 对象；工具参数必须是无损 JSON。
+- 工具调用失败会抛出 \`ToolCallError\`，\`toolName\` 指出失败的工具，\`message\` 是给人看的说明——用 \`try/catch\` 接住并继续。
+- 相互独立的只读调用可以放在 \`Promise.all\` 里并发（只读调用并发执行，写调用单独执行、按提交顺序）；有依赖的步骤用 \`await\` 串起来。
+- 用 \`inspect(...values)\` 显示选中的值和图片；其余中间结果都不进对话，只取你需要的部分。
+- 能一起做的调用尽量放进同一个程序批量发起，省 token 和上下文；不要一个调用跑一次程序。
 
-Program-only SDK bindings:`
+仅存在于程序里的 SDK 绑定：`
 }
 
 /** Whether one string schema accepts the literal used by the bash example. */
@@ -280,7 +281,7 @@ function acceptsExampleString(schema: JsonSchemaNode | undefined, value: string)
 }
 
 /** Render the bash example only when its literal arguments satisfy the current parameter schema. */
-function renderBashExample(schemas: ToolSdkSchema[], programFormat: PtcProgramFormat): string {
+function renderBashExample(schemas: ToolSdkSchema[]): string {
   const bash = schemas.find(schema => schema.name === 'bash')
   if (bash === undefined) return ''
   const parameters = bash.parameters as JsonSchemaNode
@@ -291,10 +292,8 @@ function renderBashExample(schemas: ToolSdkSchema[], programFormat: PtcProgramFo
   const needsDescription = required.includes('description')
   if (needsDescription && !acceptsExampleString(parameters.properties?.description, 'Show current directory')) return ''
   const description = needsDescription ? "description: 'Show current directory', " : ''
-  const program = programFormat === 'function-body'
-    ? `return await tools.bash({ ${description}command: 'pwd' })`
-    : `console.log(await tools.bash({ ${description}command: 'pwd' }))`
-  return ` When no separate \`bash\` schema is supplied, invoke a declared \`bash\` binding inside \`run_code\`:\n\n\`run_code({ code: "${program}", description: "Show current directory" })\``
+  const program = `inspect(await tools.bash({ ${description}command: 'pwd' }))`
+  return ` 当没有单独提供 \`bash\` 工具 schema 时，在 \`run_code\` 里调用声明的 \`bash\` 绑定：\n\n\`run_code({ code: "${program}", description: "Show current directory" })\``
 }
 
 /**
@@ -317,11 +316,16 @@ export function renderToolsSdk(schemas: readonly ToolSdkSchema[], programFormat:
   for (const schema of sorted) {
     argsMembers.push(...docLines(schema.description, 1))
     argsMembers.push(`${pad(1)}${renderKey(schema.name)}: ${jsonSchemaToTs(schema.parameters, 1)};`)
-    outputMembers.push(`${pad(1)}${renderKey(schema.name)}: ${jsonSchemaToTs(schema.output, 1)};`)
+    // FIXME: Derive program return types from tool-declared adaptations, together with the binding adapter in ptc.ts.
+    const output = schema.name === 'read_image' ? 'Image'
+      : `${schema.name === 'cua' ? 'Image | ' : ''}${jsonSchemaToTs(schema.output, 1)}`
+    outputMembers.push(`${pad(1)}${renderKey(schema.name)}: ${output};`)
   }
   const argsMap = `interface ToolArgsMap {${argsMembers.length > 0 ? `\n${argsMembers.join('\n')}\n` : ''}}`
   const outputMap = `interface ToolOutputMap {${outputMembers.length > 0 ? `\n${outputMembers.join('\n')}\n` : ''}}`
   const declaration = [
+    'declare class Image { private constructor(); readonly attachmentId: string; readonly path: string; readonly width: number; readonly height: number; }',
+    'declare function inspect(...values: unknown[]): void;',
     argsMap,
     outputMap,
     'type ToolName = keyof ToolOutputMap',
@@ -330,6 +334,6 @@ export function renderToolsSdk(schemas: readonly ToolSdkSchema[], programFormat:
   ].join('\n\n')
   const jsonValue = 'type JsonValue = null | boolean | number | string | JsonValue[] | { [key: string]: JsonValue }'
   const instructions = renderSdkInstructions(programFormat)
-  const programInstructions = renderSdkProgramInstructions(programFormat)
-  return `${instructions}${renderBashExample(sorted, programFormat)}\n\n${programInstructions}\n\n\`\`\`ts\n${jsonValue}\n\n${declaration}\n\`\`\``
+  const programInstructions = renderSdkProgramInstructions()
+  return `${instructions}${renderBashExample(sorted)}\n\n${programInstructions}\n\n\`\`\`ts\n${jsonValue}\n\n${declaration}\n\`\`\``
 }

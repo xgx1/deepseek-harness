@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-Browser surfaces for the skill-filter rules: a Conversation view with the Session's catalog beside the personal and project allow and deny lists, a Settings page offering the same lists, and a right-Sidebar tab showing the merged rules in force plus the project override.
+Browser surfaces for the skill-filter rules: a Conversation view with the Session's catalog beside the personal and project allow lists, a Settings page offering the same lists, and a right-Sidebar tab showing the merged rules in force plus the project override.
 
 ## Table of Contents
 
@@ -33,7 +33,7 @@ Choose this package when the question is how a user edits the rules. The rule en
 
 ### What each surface shows
 
-The Conversation tab sets the catalog beside both layers: a header counts the skills and how many are visible, the catalog's switches write the project draft, and two cards hold the project and personal lists with a Save each. The Settings page lists the personal allow and deny patterns as editable rows, mounts the same project panel for the Session's working directory, groups the Session's catalog by name prefix so a whole family can be allowed at once, and lists every skill with its current visibility and an allow/deny switch per name — those switches write the personal layer here. The Sidebar tab shows the merged rules the Host reports for the project, marks which layer exists, and edits the project lists through the same panel; without a project config the project draft starts from the rules in force.
+The Conversation tab sets the catalog beside both layers: a header counts the skills and how many are visible, the catalog's switches write the project draft, and two cards hold the project and personal lists with a Save each. The Settings page lists the personal allow patterns as editable rows, mounts the same project panel for the Session's working directory, groups the Session's catalog by name prefix so a whole family can be allowed at once, and lists every skill with its current visibility and an allow switch per name — that switch writes the personal layer here. The Sidebar tab shows the merged rules the Host reports for the project, marks which layer exists, and edits the project lists through the same panel; without a project config the project draft starts from the rules in force.
 
 ### Minimal composition
 

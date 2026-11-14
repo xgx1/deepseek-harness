@@ -261,7 +261,7 @@ def test_mock_model_serves_native_messages_events() -> None:
 
 @pytest.mark.parametrize("directory", ["/fixture/workspace", r"C:\fixture\workspace"])
 def test_minimal_snapshot_pins_quoted_working_directory(directory: str) -> None:
-    context = f"Current working directory: {json.dumps(directory)}."
+    context = f"当前工作目录：{json.dumps(directory)}。"
     other = json.dumps(r"C:\another\directory")
     files = SMOKE["build_minimal_snapshot_files"]([{
         "system": [],
@@ -271,7 +271,7 @@ def test_minimal_snapshot_pins_quoted_working_directory(directory: str) -> None:
     message = json.loads(files["model-visible.json"])[0]["messages"][0]
     assert message == {
         "role": "user",
-        "content": [{"type": "text", "text": 'Current working directory: "{{cwd}}".\n' + other}],
+        "content": [{"type": "text", "text": '当前工作目录："{{cwd}}"。\n' + other}],
     }
 
 

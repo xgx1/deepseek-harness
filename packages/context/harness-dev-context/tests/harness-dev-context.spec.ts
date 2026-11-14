@@ -8,20 +8,21 @@ import {
   createUserMessage, LlmAdapter,
   type GenerateOptions, type LlmResolvedModelInfo, type StreamChunk, type SystemPromptUpdate,
 } from '@deepseek-ai/dsh-llm'
-import { SessionId, type Session } from '@deepseek-ai/dsh-session'
+import type { SessionId, Session } from '@deepseek-ai/dsh-session'
 import { renderContextSnapshot, renderPrompt } from '@deepseek-ai/dsh-system-prompt'
 import * as HarnessDevContext from '../src/index.ts'
+import { brandString } from '@deepseek-ai/dsh-brand'
 
-const SOURCE_PROMPT = 'The runtime context names the DeepSeek Harness implementation checkout. The checkout location and current working directory are separate values and may differ; never infer the working directory from the checkout path. Use pwd to determine the current working directory. Use this checkout only to inspect or extend DSH itself.'
-const WEB_GUIDANCE = 'When the user refers to "this page", "this GUI", or "this app" without naming another target, they mean this GUI. '
-  + 'The browser provides no implicit DOM, route, or screenshot context. '
-  + 'The client-plugin HMR receiver is active, but client-plugin changes reload without a refresh only while '
-  + '`pnpm run dev:web` is also running from this same checkout to rebuild their bundles; verify that watcher before promising automatic updates. '
-  + 'Every other change — the apps/web shell and plain packages — requires rebuilding the affected Web artifacts and verifying this existing URL after a page refresh. '
-  + 'Starting another server does not update this GUI. '
-  + 'The apps/web Vite entry builds the shell but is not a standalone application because only dsh web injects window.__DSH_BOOT__. '
-  + 'Do not start a replacement server unless the user asks; if one is needed, use a managed background job and verify its exact URL.'
-const WEB_PROMPT = `You are interacting with the user through the DeepSeek Harness Web GUI whose URL the runtime context names. ${WEB_GUIDANCE}`
+const SOURCE_PROMPT = '运行时上下文会给出 DeepSeek Harness 的实现检出目录。检出目录与当前工作目录是两个不同的值，可能并不一致；不要从检出路径推断工作目录。用 pwd 确定当前工作目录。只有在需要检查或扩展 DSH 本身时才使用这个检出。'
+const WEB_GUIDANCE = '当用户说“这个页面”“这个 GUI”或“这个应用”而没有指定其它目标时，指的就是本 GUI。'
+  + '浏览器不会提供任何隐式的 DOM、路由或截图上下文。 '
+  + '客户端插件的 HMR 接收器是启用的，但只有在同一检出里同时运行 '
+  + '`pnpm run dev:web` 重建其 bundle 时，客户端插件改动才会免刷新生效；在承诺自动更新之前先确认那个 watcher。 '
+  + '其它一切改动——apps/web 外壳与普通包——都需要重建受影响的 Web 产物，并在刷新页面后验证这个既有 URL。 '
+  + '另起一个服务不会更新本 GUI。 '
+  + 'apps/web 的 Vite 入口只构建外壳，不是独立应用，因为只有 dsh web 会注入 window.__DSH_BOOT__。 '
+  + '除非用户要求，不要另起替代服务；确实需要时用受管的后台任务，并验证它的确切 URL。'
+const WEB_PROMPT = `你正通过 DeepSeek Harness Web GUI 与用户交互，其 URL 由运行时上下文给出。${WEB_GUIDANCE}`
 
 /** The value-bearing paragraphs earlier releases rendered. */
 const LEGACY_SOURCE = 'The DeepSeek Harness implementation checkout is at /old/checkout/. The checkout location and current working directory are separate values and may differ; never infer the working directory from this path. Use pwd to determine the current working directory. Use this checkout only to inspect or extend DSH itself.'
@@ -84,7 +85,7 @@ async function promptLoop(systemPromptUpdate: SystemPromptUpdate | undefined) {
   const harness = await mountAgentLoopTestHarness(ctx)
   /** Resume the Session's complete log under a new Agent, as a restarted process does. */
   const resume = async (session: Session, id: string): Promise<Agent> => (await ctx.agents.create({
-    sessionId: SessionId(id), agentOptions: ROUTE, seed: [...session.snapshotEvents()],
+    sessionId: brandString<SessionId>(id), agentOptions: ROUTE, seed: [...session.snapshotEvents()],
   })).agent
   /** One turn under an earlier release: the given paragraphs and no value contexts. */
   const earlierSession = async (source = LEGACY_SOURCE, web = LEGACY_WEB): Promise<Agent> => {
@@ -97,7 +98,7 @@ async function promptLoop(systemPromptUpdate: SystemPromptUpdate | undefined) {
         contexts: assembly.contexts.filter(entry => entry.name !== 'harness:source' && entry.name !== 'app:web-surface'),
       }
     })
-    const agent = await harness.create(SessionId('earlier'), ROUTE)
+    const agent = await harness.create(brandString<SessionId>('earlier'), ROUTE)
     await send(agent, 'before the upgrade')
     earlierRelease()
     return agent
@@ -142,8 +143,8 @@ describe('harness-dev-context', () => {
       .map(entry => entry.text)).toEqual([SOURCE_PROMPT, WEB_PROMPT])
     expect(renderPrompt(assembly)).not.toContain('127.0.0.1')
     expect(renderContextSnapshot(assembly).split('\n\n').slice(1)).toEqual([
-      expect.stringMatching(/^Current DeepSeek Harness implementation checkout: ".+"\.$/u),
-      'Current DeepSeek Harness Web GUI URL: "http://127.0.0.1:4567".',
+      expect.stringMatching(/^当前 DeepSeek Harness 实现检出目录：".+"。$/u),
+      '当前 DeepSeek Harness Web GUI URL："http://127.0.0.1:4567"。',
     ])
 
     await fiber.dispose()
@@ -171,8 +172,8 @@ describe('harness-dev-context', () => {
       expect(systemPrompts(resumed.session)).toEqual(logged)
       expect(requestSystemPrompts(h.adapter.requests.at(-1))).toEqual(logged)
       expect(latestRuntimeContext(resumed.session))
-        .toContain(`Current DeepSeek Harness Web GUI URL: "http://127.0.0.1:${String(port)}".`)
-      expect(latestRuntimeContext(resumed.session)).toContain('Current DeepSeek Harness implementation checkout: "')
+        .toContain(`当前 DeepSeek Harness Web GUI URL："http://127.0.0.1:${String(port)}"。`)
+      expect(latestRuntimeContext(resumed.session)).toContain('当前 DeepSeek Harness 实现检出目录："')
       session = resumed.session
     }
   })
@@ -212,19 +213,19 @@ describe('harness-dev-context', () => {
 
   it('keeps a new Session system prompt free of process values across ports', async () => {
     const h = await promptLoop(undefined)
-    const agent = await h.harness.create(SessionId('fresh'), ROUTE)
+    const agent = await h.harness.create(brandString<SessionId>('fresh'), ROUTE)
     await send(agent, 'first')
     const logged = systemPrompts(agent.session)
     expect(logged).toHaveLength(1)
     expect(logged[0]).toContain(SOURCE_PROMPT)
     expect(logged[0]).toContain(WEB_PROMPT)
     expect(logged[0]).not.toContain('127.0.0.1')
-    expect(latestRuntimeContext(agent.session)).toContain('Current DeepSeek Harness Web GUI URL: "http://127.0.0.1:4567".')
+    expect(latestRuntimeContext(agent.session)).toContain('当前 DeepSeek Harness Web GUI URL："http://127.0.0.1:4567"。')
 
     h.listener.port = 4568
     const resumed = await h.resume(agent.session, 'fresh-on-4568')
     await send(resumed, 'second')
     expect(systemPrompts(resumed.session)).toEqual(logged)
-    expect(latestRuntimeContext(resumed.session)).toContain('Current DeepSeek Harness Web GUI URL: "http://127.0.0.1:4568".')
+    expect(latestRuntimeContext(resumed.session)).toContain('当前 DeepSeek Harness Web GUI URL："http://127.0.0.1:4568"。')
   })
 })

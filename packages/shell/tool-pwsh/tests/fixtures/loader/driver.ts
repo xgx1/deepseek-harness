@@ -9,7 +9,8 @@ import { executeToolFixture } from '@deepseek-ai/dsh-tool-testkit'
 
 import { writeFile } from 'node:fs/promises'
 import { boot, resolveConfigPath } from '@deepseek-ai/dsh-app-boot'
-import { ToolCallId } from '@deepseek-ai/dsh-llm'
+import type { ToolCallId } from '@deepseek-ai/dsh-llm'
+import { brandString } from '@deepseek-ai/dsh-brand'
 
 const configPath = process.argv[2]
 if (configPath === undefined) throw new Error('tool-pwsh driver requires a config path')
@@ -22,7 +23,7 @@ try {
 
   const foreground = await executeToolFixture(ctx, {
     signal: new AbortController().signal,
-    callId: ToolCallId('loader-fg'),
+    callId: brandString<ToolCallId>('loader-fg'),
     name: 'pwsh',
     arguments: { command: 'Write-Output loader-ok', description: 'loader foreground' },
   })
@@ -30,7 +31,7 @@ try {
 
   const background = await executeToolFixture(ctx, {
     signal: new AbortController().signal,
-    callId: ToolCallId('loader-bg'),
+    callId: brandString<ToolCallId>('loader-bg'),
     name: 'pwsh',
     arguments: {
       command: 'Start-Sleep -Milliseconds 200; Write-Output loader-bg-ok',
@@ -47,7 +48,7 @@ try {
   while (Date.now() < deadline) {
     const read = await executeToolFixture(ctx, {
       signal: new AbortController().signal,
-      callId: ToolCallId('loader-bg-read'),
+      callId: brandString<ToolCallId>('loader-bg-read'),
       name: 'job_output',
       arguments: { job_id: jobId },
     })
@@ -58,7 +59,7 @@ try {
 
   await writeFile('./pwsh-loader-report.json', JSON.stringify({
     schemaHasRunInBackground: Object.hasOwn(schema.parameters.properties as object, 'run_in_background'),
-    promptHasMarkerSection: prompt?.text.includes('Non-zero exits are reported as `[exit code: N]` markers') === true,
+    promptHasMarkerSection: prompt?.text.includes('非零退出会以 `[exit code: N]` 标记报告') === true,
     // Normalize PowerShell's platform line endings (CRLF on Windows, LF elsewhere).
     foregroundText: foregroundText.replace(/\r\n/g, '\n'),
     foregroundCwd: (foreground.value as { cwd: string }).cwd,

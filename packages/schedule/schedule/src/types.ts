@@ -4,7 +4,7 @@
  */
 
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
-import type { MessageId } from '@deepseek-ai/dsh-llm/brand'
+import type { MessageId } from '@deepseek-ai/dsh-llm/types'
 import type { Branded } from '@deepseek-ai/dsh-brand'
 import type {} from '@deepseek-ai/dsh-typert-protocol'
 // Type-only: the Workspace registry's archive-admission family map this plugin merges `schedule` into.
@@ -476,7 +476,7 @@ export type ScheduleCatalogEntry = ScheduleRecord & {
 
 /** Host task creation request. */
 export interface ScheduleCreateRequest {
-  /** Task name of at most 120 characters, non-empty after trimming. */
+  /** 任务名，最长 120 个字符，去掉首尾空白后非空。 */
   readonly title: string
   /** Instruction sent at each occurrence; non-empty after trimming. */
   readonly prompt: string

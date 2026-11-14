@@ -1,8 +1,9 @@
 /**
  * Whitelist-based skill visibility filter plugin.
  *
- * Wraps a `FileSystemSkillProvider` with personal + project allow/deny rules.
- * The verdict is one gate for both surfaces: a denied skill has BOTH invocation
+ * Wraps a `FileSystemSkillProvider` with personal + project allow rules, so the
+ * allow lists are the whole catalogue: a skill no layer allows is hidden.
+ * The verdict is one gate for both surfaces: a hidden skill has BOTH invocation
  * flags cleared, so it leaves the model catalog, leaves the `/name` gesture, and
  * is never injected as instructions context. An allowed skill restores
  * `modelInvocable` even when its own frontmatter denied it (ADR-0002).
@@ -98,7 +99,7 @@ export function apply(ctx: Context, config: Config = {}): void {
 /**
  * SkillProvider that wraps an internal filesystem provider with whitelist filtering.
  */
-export class FilteredSkillProvider implements SkillProvider {
+class FilteredSkillProvider implements SkillProvider {
   readonly name: string
   /** This registration's lifecycle and invalidation capability. */
   readonly control: SkillProviderControl
@@ -217,7 +218,7 @@ function isProjectLocal(source: SkillSource): boolean {
 
 /**
  * Project one verdict onto a skill's invocation policy.
- * A denial clears both flags, so no surface may advertise or load the skill. An
+ * A hidden verdict clears both flags, so no surface may advertise or load the skill. An
  * allow restores `modelInvocable` (a config allow overrides the skill's own
  * frontmatter deny, ADR-0002) and leaves `userInvocable` as the frontmatter
  * declared it, so the filter never grants an invocation the skill withheld.

@@ -10,7 +10,7 @@
 
 import type { Context } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
-import { defineTool } from '@deepseek-ai/dsh-tools'
+import { defineTool, ToolContextUnavailableError } from '@deepseek-ai/dsh-tools'
 import type { ContentBlock } from '@deepseek-ai/dsh-llm'
 import { ROOT_AGENT_NAME } from '@deepseek-ai/dsh-subagent'
 import type {} from '@deepseek-ai/dsh-system-prompt'
@@ -43,18 +43,18 @@ export function apply(ctx: Context, config: Config = {}): void {
   const sendMessage = defineTool({
     name: 'send_message',
     description:
-      'Send a message to an agent. A working agent receives it at its next step; an idle agent starts a new turn with it. '
-      + 'Returns delivery confirmation.',
+      '给一个 agent 发消息。工作中的 agent 会在下一步收到它；空闲的 agent 会用它开启新一轮。'
+      + '返回投递确认。',
     parameters: {
       agent: {
         type: 'string',
         required: true,
-        description: 'The name of another agent in your subagent tree, as shown by list_agents.',
+        description: '你的 subagent 树中另一个 agent 的名字，由 list_agents 显示。',
       },
       message: {
         type: 'string',
         required: true,
-        description: 'The message to deliver to the agent.',
+        description: '要投递给该 agent 的消息。',
       },
     },
     output: {
@@ -73,7 +73,7 @@ export function apply(ctx: Context, config: Config = {}): void {
     async execute(args, exec) {
       const sender = exec.agent
       if (!sender) {
-        throw new Error('send_message requires a calling agent (exec.agent was undefined)')
+        throw new ToolContextUnavailableError('send_message requires a calling agent (exec.agent was undefined)')
       }
       const message: ContentBlock[] = [{ type: 'text', text: args.message }]
       const targetId = await ctx.subagents.resolveName(sender, args.agent, exec.signal)
@@ -92,16 +92,16 @@ export function apply(ctx: Context, config: Config = {}): void {
       try {
         const names = ctx.subagents.namesOf(agent)
         let identity = names.parent === undefined
-          ? `You are the root agent. Your name is ${JSON.stringify(names.self)}.`
-          : `You are a subagent delegated by agent ${JSON.stringify(names.parent)}.\n`
-            + `Your name is ${JSON.stringify(names.self)}.\n`
-            + `The root agent of your collaboration tree is ${JSON.stringify(ROOT_AGENT_NAME)}.`
+          ? `你是 root agent。你的名字是 ${JSON.stringify(names.self)}。`
+          : `你是由 agent ${JSON.stringify(names.parent)} 委派的 subagent。\n`
+            + `你的名字是 ${JSON.stringify(names.self)}。\n`
+            + `你所在协作树的 root agent 是 ${JSON.stringify(ROOT_AGENT_NAME)}。`
         const guidance: string[] = []
         if (ctx.tools.get(sendMessage.name, scope, toolSet) === sendMessage) {
-          guidance.push('To message other agents, use send_message({ agent: "<agent-name>", message: "..." }).')
+          guidance.push('要给其它 agent 发消息，请使用 send_message({ agent: "<agent-name>", message: "..." })。')
         }
         if (ctx.tools.get(listAgents.name, scope, toolSet) === listAgents) {
-          guidance.push('Use list_agents({}) to find your collaborator agents and their names.')
+          guidance.push('要找到你的协作 agent 及其名字，请使用 list_agents({})。')
         }
         if (guidance.length > 0) identity += '\n\n' + guidance.join('\n')
         return identity
@@ -110,8 +110,8 @@ export function apply(ctx: Context, config: Config = {}): void {
           && 'name' in error && error.name === 'SubagentError'
           && 'code' in error && error.code === 'UNAUTHORIZED'
         if (!rootUnavailable) throw error
-        return `Your agent id is ${JSON.stringify(agent.id)}. Your subagent tree root is unavailable. `
-          + 'Continue independent work; subagent discovery and messaging require an active root.'
+        return `你的 agent id 是 ${JSON.stringify(agent.id)}。你的 subagent 树根当前不可用。`
+          + '继续独立工作；subagent 的发现与消息发送需要一个活跃的根。'
       }
     },
   })
@@ -146,7 +146,7 @@ export function apply(ctx: Context, config: Config = {}): void {
       const caller = exec.agent
       if (!caller) {
         // Ancestor authority requires an exact live calling agent.
-        throw new Error('interrupt_agent requires a calling agent (exec.agent was undefined)')
+        throw new ToolContextUnavailableError('interrupt_agent requires a calling agent (exec.agent was undefined)')
       }
       const targetId = await ctx.subagents.resolveName(caller, args.agent, exec.signal)
       // The service authorizes the exact live caller against the target's

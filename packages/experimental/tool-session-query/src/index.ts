@@ -49,9 +49,9 @@ const TEXT_OUTPUT = {
 }
 
 const PROMPT_TEXT =
-  'Use session_search to find relevant work from prior sessions, or session_event_search to search earlier '
-  + 'events in one session. Search results are cursor-free and workspace-scoped. Follow a useful hit with '
-  + 'session_trace, session_event_trace, or session_event_read when you need lineage, relationships, or exact data.'
+  '用 session_search 查找以前会话里的相关工作，或用 session_event_search 搜索单个会话中更早的'
+  + '事件。搜索结果不带游标、限定在当前工作区。命中之后如需血缘、关系或精确数据，'
+  + '再用 session_trace、session_event_trace 或 session_event_read。'
 
 /** Register all five tools and their shared model guidance. */
 export function apply(ctx: Context, config: Config): void {

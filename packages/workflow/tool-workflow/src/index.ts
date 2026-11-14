@@ -7,23 +7,25 @@
  * become tool errors. `run_in_background: true` instead registers the run as an owned `ctx.jobs` job
  * and returns its id immediately — the job's output ring streams live progress, and the run's value
  * arrives with the job's completion notice. Presentation is an args-only generic card
- * titled from `meta.name`. Explicit-ask usage guidance is registered as the tool's own prompt
+ * titled from `meta.name`. Usage guidance is registered as the tool's own prompt
  * section rather than deployment persona prose.
  * @module @deepseek-ai/dsh-tool-workflow
  */
 
 import type { Context } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
-import { defineTool } from '@deepseek-ai/dsh-tools'
+import { defineTool, ToolArgsError, ToolContextUnavailableError } from '@deepseek-ai/dsh-tools'
 import type { ToolCallView, ToolResultView } from '@deepseek-ai/dsh-tools'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import type { ContentBlock } from '@deepseek-ai/dsh-llm'
 import type { JobId, JobOutcome, JobToolCall } from '@deepseek-ai/dsh-jobs'
 import type { Session, SessionEventMap } from '@deepseek-ai/dsh-session'
 import type { JsonValue } from '@deepseek-ai/dsh-util-values'
+import { WorkflowError } from '@deepseek-ai/dsh-workflow'
 import type {
-  WorkflowResult, WorkflowRun, WorkflowRunId, WorkflowStopReason,
+  WorkflowResult, WorkflowRun, WorkflowStopReason,
 } from '@deepseek-ai/dsh-workflow'
+import type { WorkflowRunId } from '@deepseek-ai/dsh-workflow/types'
 import { createWorkflowRecordMirror } from './record.ts'
 import type { WorkflowRecordMirror } from './record.ts'
 import type {
@@ -155,7 +157,7 @@ function createWorkflowRecorder(ctx: Context): WorkflowRecorder {
  * their exact semantics, and the supported schema subset. Parameter-level
  * rules live in the parameter descriptions.
  */
-const DESCRIPTION = `Run a JavaScript workflow script that orchestrates subagents at scale. Use this for work that fans out across many independent pieces — an audit over many files, a migration, multi-angle research, adversarial verification of findings — where you write the orchestration as a script instead of delegating turn by turn.
+const DESCRIPTION = `用 JavaScript workflow 脚本大规模编排子 agent。任务复杂、可以拆成多路独立工作时自行判断使用，不必等用户明确要求 workflow——例如跨很多文件审计、迁移、多角度调研、对抗式验证结论；用脚本写编排，而不是一轮一轮地派活。
 
 Script-body hooks:
 - \`agent(prompt, opts?): Promise<any>\` — run one subagent to completion. Without \`opts.schema\` it resolves to the child's final text; with \`opts.schema\` (an object-rooted JSON Schema using ONLY type/properties/required/additionalProperties/items/enum/const/oneOf) it resolves to the validated object. Resolves \`null\` when the child fails (filter with \`.filter(Boolean)\`). Other opts: \`label\` (display), \`phase\` (progress group), and independent \`provider\`/\`model\` LLM target overrides.
@@ -194,17 +196,17 @@ function presentWorkflowResult(args: WorkflowCallArgs, result: { content: Conten
 }
 
 /** A non-`completed` stop reason means the script did not finish cleanly. */
-function stopReasonError(result: WorkflowResult): string | undefined {
+function stopReasonError(result: WorkflowResult): WorkflowError | undefined {
   switch (result.stopReason) {
     case 'completed':
       return undefined
     case 'cancelled':
-      return `workflow run was cancelled${result.error !== undefined ? ` (${result.error})` : ''}`
+      return new WorkflowError(`workflow run was cancelled${result.error !== undefined ? ` (${result.error})` : ''}`, 'CANCELLED')
     case 'error':
-      return `workflow run failed: ${result.error ?? 'unknown error'}`
+      return new WorkflowError(`workflow run failed: ${result.error ?? 'unknown error'}`, result.errorCode ?? 'RUN_FAILED')
     /* v8 ignore start -- defensive: WorkflowStopReason is a closed union, exhaustive by construction; a future variant fails here loudly */
     default:
-      return `workflow run ended abnormally (${String(result.stopReason satisfies never)})`
+      return new WorkflowError(`workflow run ended abnormally (${String(result.stopReason satisfies never)})`, 'RUN_FAILED')
     /* v8 ignore stop */
   }
 }
@@ -270,7 +272,7 @@ function startBackgroundRun(
 ): { kind: 'background'; jobId: JobId; runId: WorkflowRunId } {
   const jobs = ctx.get('jobs')
   if (jobs === undefined) {
-    throw new Error('background jobs unavailable: load @deepseek-ai/dsh-jobs and @deepseek-ai/dsh-tool-jobs')
+    throw new ToolContextUnavailableError('background jobs unavailable: load @deepseek-ai/dsh-jobs and @deepseek-ai/dsh-tool-jobs')
   }
   let run!: WorkflowRun
   const jobId = jobs.start({
@@ -326,7 +328,7 @@ export function apply(ctx: Context, config: Config): void {
   ctx.systemPrompt.section({
     name: `tool:${toolName}`,
     order: ctx.systemPrompt.getSectionOrder('TOOL_WORKFLOW'),
-    text: `Use the ${toolName} tool ONLY when the user explicitly asks for a workflow or for large multi-agent orchestration: you write a JavaScript script (the tool description documents the exact format) that fans work out across many subagents with phases and structured results. For one or two delegations, prefer plain subagent calls.`,
+    text: `任务复杂、可拆成多路相互独立的工作时，自行判断是否使用 ${toolName} 工具，不必等用户点名：你写一个 JavaScript 脚本（工具描述里有确切的格式），把工作按阶段扇出到多个子 agent，并汇总结构化结果。只委派一两件事时，用普通的 subagent 调用即可。`,
   })
   ctx.tools.register(defineTool({
     name: toolName,
@@ -412,11 +414,12 @@ export function apply(ctx: Context, config: Config): void {
         // The loop sets `exec.agent` for every model-driven call; its absence
         // means a non-agent caller invoked the tool directly, which has no
         // parent to attribute the children to. Fail loud rather than guess.
-        throw new Error('workflow tool requires a calling agent (exec.agent was undefined)')
+        throw new ToolContextUnavailableError('workflow tool requires a calling agent (exec.agent was undefined)')
       }
       if (args.run_in_background === true) {
         if (!enableRunInBackground) {
-          throw new Error('run_in_background is disabled for this tool')
+          // The schema omits the field when disabled, so the model corrects by omitting it.
+          throw new ToolArgsError(['run_in_background is disabled for this tool'])
         }
         // No pre-abort check here, unlike bash/pwsh: ToolRuntime re-reads the
         // caller signal right before execute(), and this branch reaches
@@ -455,9 +458,11 @@ export function apply(ctx: Context, config: Config): void {
         result = await run.result
         const error = stopReasonError(result)
         if (error !== undefined) {
-          // Map a non-clean finish to an isError result (the registry turns a
-          // throw into an isError). Report the reason, not partial output.
-          throw new Error(error)
+          // Caller cancellation keeps the registry's AbortError identity; any
+          // other non-clean finish becomes a coded isError result. Report the
+          // reason, not partial output.
+          exec.signal.throwIfAborted()
+          throw error
         }
         return {
           kind: 'foreground' as const,
@@ -473,7 +478,7 @@ export function apply(ctx: Context, config: Config): void {
           await run.dispose()
           if (recordsRun) {
             /* v8 ignore next -- WorkflowRun.result never rejects by contract, so result is assigned before finally. */
-            if (result === undefined) throw new Error('workflow run settled without a result')
+            if (result === undefined) throw new WorkflowError('workflow run settled without a result', 'RUN_FAILED')
             recorder.finish(run.id, result.stopReason)
           }
         } finally {

@@ -29,7 +29,7 @@ The `ralph` tool runs a fixed foreground loop: one fresh child per round works o
 
 ### Calling the tool
 
-The model submits `{ objective, maxRounds? }` and the call blocks until the whole run settles. The deployment config's `maxRounds` is both the default and a ceiling on a call override. The terminal result is `complete`, `blocked`, or `budget-limited`, carrying the last bounded report and the number of rounds started; an ordinary child failure returns an error naming the failed round and retaining the last successful handoff when one exists.
+The model submits `{ objective, maxRounds? }` and the call blocks until the whole run settles. The deployment config's `maxRounds` is both the default and a ceiling on a call override. The terminal result is `complete`, `blocked`, or `budget-limited`, carrying the last bounded report and the number of rounds started; an ordinary child failure returns an error naming the failed round and retaining the last successful handoff when one exists. Failures carry `RalphError` with a closed code: `RALPH_ROUND_FAILED` for a child round that ends without a structured report, `RALPH_WORKFLOW_FAILED` for a workflow that errors or is cancelled by something other than the caller, including a child report that fails validation inside the workflow because the workflow returns its errors only as text, `RALPH_INVALID_RESULT` for a malformed workflow value, and `RALPH_PROVIDER_UNAVAILABLE` or `RALPH_PROVIDER_UNSUPPORTED` for a provider route violation. An empty objective or an out-of-range `maxRounds` is a `ToolArgsError`, and caller cancellation is an `AbortError`.
 
 ### What each round sees
 
@@ -112,7 +112,7 @@ Every parent request in this plugin's registration scope receives the fixed rout
 ##### Ralph guidance
 
 ```markdown
-Use the ralph tool ONLY when the direct human explicitly asks for a Ralph loop or fresh-agent iterative execution. Each Ralph round starts a fresh child with no conversation seed and uses the shared workspace as durable memory. Completion and blockers are worker reports, not independent evaluation. Use same-session goal tools for ordinary long-running objectives, and plain subagents or workflows for bounded delegation and fan-out.
+任务复杂、需要多轮迭代逼近目标时，自行判断是否使用 ralph 工具，不必等用户点名。每一轮都新开一个不带对话种子的全新子 agent，共享工作区承载长期记忆。完成与阻塞是 worker 的报告，不是独立评估。普通的长时间同会话目标交给 goal 工具，有界的委派与扇出用普通 subagent 或 workflow。
 ```
 
 #### Token effect

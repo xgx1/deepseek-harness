@@ -10,10 +10,11 @@ import { join, resolve, sep } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
 import type { Agent } from '@deepseek-ai/dsh-agent'
-import { SESSION_FORMAT_VERSION, Session, SessionId } from '@deepseek-ai/dsh-session'
+import { SESSION_FORMAT_VERSION, Session, type SessionId } from '@deepseek-ai/dsh-session'
 import SandboxPolicyService, { SANDBOX_MODES, setSandboxMode } from '@deepseek-ai/dsh-sandbox-policy'
 import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
 import SystemPrompt, { renderContextSnapshot, renderPrompt } from '@deepseek-ai/dsh-system-prompt'
+import { brandString } from '@deepseek-ai/dsh-brand'
 
 async function mounted(config: { mode?: 'read-only' | 'workspace-write' | 'danger-full-access'; workspaceRoot?: string; additionalWritableRoots?: string[] } = {}) {
   const ctx = new Context()
@@ -23,7 +24,7 @@ async function mounted(config: { mode?: 'read-only' | 'workspace-write' | 'dange
 }
 
 function session(id: string, cwd?: string): Session {
-  const sessionId = SessionId(id)
+  const sessionId = brandString<SessionId>(id)
   return Session.create(sessionId, undefined, {
     version: SESSION_FORMAT_VERSION,
     id: sessionId,
@@ -67,6 +68,20 @@ describe('SandboxPolicyService', () => {
     }
   })
 
+  it('rejects a session cwd containing a NUL byte with SANDBOX_INVALID_ROOT', async () => {
+    const cwd = '/invalid\0session'
+    const ctx = await mounted({ mode: 'workspace-write', workspaceRoot: '/ws' })
+    try {
+      expect(() => ctx.sandboxPolicy.resolve({ session: session('sess-invalid-cwd', cwd) })).toThrow(expect.objectContaining({
+        name: 'SandboxInvalidRootError',
+        code: 'SANDBOX_INVALID_ROOT',
+        message: `Invalid sandbox workspace root ${JSON.stringify(cwd)}: the Session working directory must be an absolute execution-world path without NUL bytes`,
+      }))
+    } finally {
+      await ctx.fiber.dispose()
+    }
+  })
+
   it('resolves the deployment policy for an agentless call', async () => {
     const ctx = await mounted({ mode: 'workspace-write', workspaceRoot: '/fallback' })
     expect(ctx.sandboxPolicy.resolve()).toEqual({
@@ -90,7 +105,7 @@ describe('SandboxPolicyService', () => {
     try {
       await ctx.plugin(SessionProjectionRegistry)
       await expect(ctx.plugin(SandboxPolicyService, { additionalWritableRoots: ['relative/extra'] }))
-        .rejects.toThrow('sandbox-policy: additionalWritableRoots entries must be absolute execution-world paths')
+        .rejects.toThrow('sandbox-policy: writable directories must be absolute execution-world paths without NUL bytes')
       expect(ctx.get('sandboxPolicy')).toBeUndefined()
     } finally {
       await ctx.fiber.dispose()
@@ -182,6 +197,84 @@ describe('SandboxPolicyService', () => {
   })
 })
 
+describe('session writable-root registrations', () => {
+  it('isolates live Sessions, preserves configured roots, and detaches resolved policies', async ({ onTestFinished }) => {
+    const ctx = await mounted({ mode: 'workspace-write', additionalWritableRoots: ['/shared'] })
+    onTestFinished(() => ctx.fiber.dispose())
+    const first = session('first', '/workspace')
+    const second = session('second', '/workspace')
+    const before = ctx.sandboxPolicy.resolve({ session: first })
+    const remove = ctx.sandboxPolicy.registerWritableRoot(first, '/memory')
+    const granted = ctx.sandboxPolicy.resolve({ session: first })
+
+    expect(granted.additionalWritableRoots).toEqual(['/shared', '/memory'])
+    expect(Object.isFrozen(granted.additionalWritableRoots)).toBe(true)
+    expect(before.additionalWritableRoots).toEqual(['/shared'])
+    expect(ctx.sandboxPolicy.resolve({ session: second }).additionalWritableRoots).toEqual(['/shared'])
+    expect(ctx.sandboxPolicy.resolve().additionalWritableRoots).toEqual(['/shared'])
+    const resumed = Session.create(first.id, first.snapshotEvents(), first.header)
+    expect(ctx.sandboxPolicy.resolve({ session: resumed }).additionalWritableRoots).toEqual(['/shared'])
+
+    remove()
+    expect(ctx.sandboxPolicy.resolve({ session: first }).additionalWritableRoots).toEqual(['/shared'])
+    expect(granted.additionalWritableRoots).toEqual(['/shared', '/memory'])
+  })
+
+  it('keeps duplicate grants independently owned across plugin unload and explicit disposal', async ({ onTestFinished }) => {
+    const ctx = await mounted({ mode: 'workspace-write', additionalWritableRoots: ['/shared'] })
+    onTestFinished(() => ctx.fiber.dispose())
+    const active = session('duplicates')
+    const fiber = await ctx.plugin({
+      inject: ['sandboxPolicy'],
+      apply(scope: Context) {
+        scope.sandboxPolicy.registerWritableRoot(active, '/memory')
+        scope.sandboxPolicy.registerWritableRoot(active, '/plugin-only')
+        scope.sandboxPolicy.registerWritableRoot(active, '/shared')
+      },
+    })
+    const remove = ctx.sandboxPolicy.registerWritableRoot(active, '/memory')
+    expect(ctx.sandboxPolicy.resolve({ session: active }).additionalWritableRoots).toEqual(['/shared', '/memory', '/plugin-only'])
+    await fiber.dispose()
+    expect(ctx.sandboxPolicy.resolve({ session: active }).additionalWritableRoots).toEqual(['/shared', '/memory'])
+    remove()
+    const replacement = ctx.sandboxPolicy.registerWritableRoot(active, '/replacement')
+    remove()
+    expect(ctx.sandboxPolicy.resolve({ session: active }).additionalWritableRoots).toEqual(['/shared', '/replacement'])
+    replacement()
+    expect(ctx.sandboxPolicy.resolve({ session: active }).additionalWritableRoots).toEqual(['/shared'])
+  })
+
+  it.each(['relative/memory', '/memory\0invalid'])('rejects an invalid directory without installing a grant: %j', async (directory) => {
+    const ctx = await mounted()
+    try {
+      const active = session('invalid')
+      expect(() => ctx.sandboxPolicy.registerWritableRoot(active, directory)).toThrow('absolute execution-world paths')
+      expect(ctx.sandboxPolicy.resolve({ session: active }).additionalWritableRoots).toBeUndefined()
+    } finally {
+      await ctx.fiber.dispose()
+    }
+  })
+
+  it('updates request context without changing read-only policy or the stable prompt', async ({ onTestFinished }) => {
+    const ctx = await mounted({ mode: 'workspace-write' })
+    onTestFinished(() => ctx.fiber.dispose())
+    await ctx.plugin(SystemPrompt)
+    const active = session('context', '/workspace')
+    const before = await ctx.systemPrompt.assemble({ agent: agentFor(active) })
+    const remove = ctx.sandboxPolicy.registerWritableRoot(active, '/memory')
+    const after = await ctx.systemPrompt.assemble({ agent: agentFor(active) })
+    expect(renderPrompt(after)).toBe(renderPrompt(before))
+    expect(renderContextSnapshot(after)).toContain('额外可写目录：["/memory"]')
+    setSandboxMode(active, 'read-only')
+    expect(ctx.sandboxPolicy.resolve({ session: active }).mode).toBe('read-only')
+    expect(await policyContext(ctx, active)).not.toContain('/memory')
+    setSandboxMode(active, 'workspace-write')
+    remove()
+    expect(ctx.sandboxPolicy.resolve({ session: active }).additionalWritableRoots).toBeUndefined()
+    expect(await policyContext(ctx, active)).not.toContain('/memory')
+  })
+})
+
 describe('sandbox:policy request context', () => {
   async function promptMounted(config: { mode?: 'read-only' | 'workspace-write' | 'danger-full-access'; workspaceRoot?: string; additionalWritableRoots?: string[] } = {}): Promise<Context> {
     const ctx = new Context()
@@ -195,9 +288,9 @@ describe('sandbox:policy request context', () => {
     const ctx = await promptMounted({ mode, workspaceRoot: '/fallback' })
     const workspaceRoot = '/projects/../projects/current'
     const expected = {
-      'read-only': 'Current DSH file policy: read-only. Any available operation enforced by the DSH file sandbox cannot modify files in the standing mode. Do not refuse a required modification from this policy alone: try an available tool normally and follow any denial and escalation guidance it returns.',
-      'workspace-write': `Current DSH file policy: workspace-write. Any available operation enforced by the DSH file sandbox may modify files under the session workspace: ${JSON.stringify(workspaceRoot)}. Some platform temporary areas may also be writable.`,
-      'danger-full-access': 'Current DSH file policy: danger-full-access. The DSH file sandbox does not restrict file modifications by available operations.',
+      'read-only': '当前 DSH 文件策略：read-only。由 DSH 文件沙箱强制执行的任何可用操作，在现行模式下都不能修改文件。不要仅凭此策略就拒绝一项必需的修改：照常尝试可用的工具，并遵循它返回的拒绝与升级指引。',
+      'workspace-write': `当前 DSH 文件策略：workspace-write。由 DSH 文件沙箱强制执行的任何可用操作，都可以修改会话工作区（${JSON.stringify(workspaceRoot)}）下的文件。部分平台临时区域也可能可写。`,
+      'danger-full-access': '当前 DSH 文件策略：danger-full-access。DSH 文件沙箱不限制可用操作对文件的修改。',
     } as const
 
     expect(await policyContext(ctx, session(`sess-${mode}`, '/projects/../projects/current'))).toBe(expected[mode])
@@ -210,7 +303,7 @@ describe('sandbox:policy request context', () => {
       additionalWritableRoots: ['/projects/shared/.git', '/projects/shared/worktrees'],
     })
     expect(await policyContext(ctx, session('sess-extra', '/projects/current'))).toBe(
-      `Current DSH file policy: workspace-write. Any available operation enforced by the DSH file sandbox may modify files under the session workspace: ${JSON.stringify('/projects/current')}. Additional writable directories: ["/projects/shared/.git","/projects/shared/worktrees"]. Some platform temporary areas may also be writable.`,
+      `当前 DSH 文件策略：workspace-write。由 DSH 文件沙箱强制执行的任何可用操作，都可以修改会话工作区（${JSON.stringify('/projects/current')}）下的文件。额外可写目录：["/projects/shared/.git","/projects/shared/worktrees"]。在 Windows 上，这些额外授权只适用于文件工具，不适用于沙箱中的进程。部分平台临时区域也可能可写。`,
     )
   })
 
@@ -221,7 +314,7 @@ describe('sandbox:policy request context', () => {
       additionalWritableRoots: ['/projects/shared/.git'],
     })
     expect(await policyContext(ctx, session('sess-readonly-extra', '/projects/current'))).toBe(
-      'Current DSH file policy: read-only. Any available operation enforced by the DSH file sandbox cannot modify files in the standing mode. Do not refuse a required modification from this policy alone: try an available tool normally and follow any denial and escalation guidance it returns.',
+      '当前 DSH 文件策略：read-only。由 DSH 文件沙箱强制执行的任何可用操作，在现行模式下都不能修改文件。不要仅凭此策略就拒绝一项必需的修改：照常尝试可用的工具，并遵循它返回的拒绝与升级指引。',
     )
   })
 
@@ -253,11 +346,11 @@ describe('sandbox:policy request context', () => {
 
     setSandboxMode(active, 'danger-full-access')
     const danger = await policyContext(ctx, active)
-    expect(danger).toBe('Current DSH file policy: danger-full-access. The DSH file sandbox does not restrict file modifications by available operations.')
+    expect(danger).toBe('当前 DSH 文件策略：danger-full-access。DSH 文件沙箱不限制可用操作对文件的修改。')
     expect(await policyContext(ctx, active)).toBe(danger)
 
     setSandboxMode(active, 'workspace-write')
-    expect(await policyContext(ctx, active)).toBe(`Current DSH file policy: workspace-write. Any available operation enforced by the DSH file sandbox may modify files under the session workspace: ${JSON.stringify('/projects/current')}. Some platform temporary areas may also be writable.`)
+    expect(await policyContext(ctx, active)).toBe(`当前 DSH 文件策略：workspace-write。由 DSH 文件沙箱强制执行的任何可用操作，都可以修改会话工作区（${JSON.stringify('/projects/current')}）下的文件。部分平台临时区域也可能可写。`)
   })
 
   it('reconstructs resumed policy from the session log and omits diagnostics without an agent', async () => {
@@ -278,7 +371,7 @@ describe('the sandbox/mode session kit', () => {
 
   it('the sandboxMode projection folds to the last switch, or null without one', async () => {
     const ctx = await mounted()
-    const session = Session.create(SessionId('sess-fold'))
+    const session = Session.create(brandString<SessionId>('sess-fold'))
     expect(ctx.sessionProjections.checkpoint(session).sandboxMode?.val).toBeNull()
     setSandboxMode(session, 'workspace-write')
     setSandboxMode(session, 'read-only')
@@ -286,7 +379,7 @@ describe('the sandbox/mode session kit', () => {
   })
 
   it('setSandboxMode appends exactly one sandbox/mode event per switch', () => {
-    const session = Session.create(SessionId('sess-write'))
+    const session = Session.create(brandString<SessionId>('sess-write'))
     setSandboxMode(session, 'danger-full-access')
     const modeEvents = session.snapshotEvents().filter(e => e.type === 'sandbox/mode')
     expect(modeEvents).toHaveLength(1)

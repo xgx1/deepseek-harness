@@ -8,6 +8,7 @@
 
 import type { Branded } from '@deepseek-ai/dsh-brand'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
+import type { WorkflowErrorCode } from './index.ts'
 
 /** Identifies one workflow run. */
 export type WorkflowRunId = Branded<'WorkflowRunId'>
@@ -32,7 +33,7 @@ export interface WorkflowPhase {
   detail?: string
   /** Optional provider override this phase is expected to use (informational). */
   provider?: string
-  /** Optional model override this phase is expected to use (informational). */
+  /** 本阶段预期使用的可选模型覆盖（仅作提示）。 */
   model?: string
 }
 
@@ -46,9 +47,9 @@ export interface WorkflowPhase {
 export interface WorkflowMeta {
   /** Short kebab-case workflow name (display + persistence key). */
   name: string
-  /** One-line description of what the workflow does. */
+  /** 一句话说明这个 workflow 做什么。 */
   description: string
-  /** Optional guidance on when this workflow applies (shown in listings). */
+  /** 可选的适用场景说明（显示在列表中）。 */
   whenToUse?: string
   /** Optional phase declarations matched by `phase()` calls. */
   phases?: WorkflowPhase[]
@@ -76,6 +77,11 @@ export interface WorkflowResult {
   stopReason: WorkflowStopReason
   /** The failure message (present iff `stopReason` is not `completed`). */
   error?: string
+  /**
+   * The code of the fatal {@link WorkflowError} that ended an `error` run;
+   * absent when the script's own exception or the engine runtime ended it.
+   */
+  errorCode?: WorkflowErrorCode
   /**
    * How many `agent()` calls the run accepted over its whole lifetime. On a
    * graceful settlement this is the script-side count (calls still queued for
@@ -126,6 +132,8 @@ export interface WorkflowResultInfo {
   stopReason: WorkflowStopReason
   /** The failure message (present iff `stopReason` is not `completed`). */
   error?: string
+  /** The fatal code that ended an `error` run (see {@link WorkflowResult.errorCode}). */
+  errorCode?: WorkflowErrorCode
   /** How many `agent()` calls the run accepted (see {@link WorkflowResult.agentsStarted}). */
   agentsStarted: number
 }

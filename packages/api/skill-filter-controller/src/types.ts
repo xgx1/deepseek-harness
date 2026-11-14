@@ -1,11 +1,9 @@
 /** Browser-safe vocabulary of the `skillFilter` Remote namespace. */
 
-/** One allow/deny glob list pair, as stored in a skill-filter YAML config. */
+/** The allow glob list, as stored in a skill-filter YAML config. */
 export interface SkillFilterConfigView {
   /** Glob patterns that allow skills to be model-visible. */
   readonly allow: readonly string[]
-  /** Glob patterns that deny skills. */
-  readonly deny?: readonly string[]
 }
 
 /** One layer of the filter config, addressed for read or write. */
@@ -18,7 +16,7 @@ export interface SkillFilterConfigRequest {
 export interface SkillFilterConfigWrite {
   /** Project working directory whose config is written. */
   readonly cwd: string
-  /** The complete config replacing the file; `allow` is required, `deny` optional. */
+  /** The complete config replacing the file; `allow` is required and must not be empty. */
   readonly config: SkillFilterConfigView
 }
 

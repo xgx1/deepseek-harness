@@ -28,15 +28,11 @@ export interface PersonalLayer {
   readonly error: string | undefined
   /** The personal allow draft. */
   readonly allow: readonly string[]
-  /** The personal deny draft. */
-  readonly deny: readonly string[]
   /** The save's state. */
   readonly save: SaveState
   /** Replace the allow draft. */
   readonly setAllow: (patterns: readonly string[]) => void
-  /** Replace the deny draft. */
-  readonly setDeny: (patterns: readonly string[]) => void
-  /** Persist both drafts as the personal layer. */
+  /** Persist the draft as the personal layer. */
   readonly onSave: () => void
   /** Why the last save was refused, as the Host worded it. */
   readonly reason: string | undefined
@@ -63,7 +59,6 @@ export function usePersonalLayer(options: UsePersonalLayerOptions): PersonalLaye
   const [exists, setExists] = useState(false)
   const [error, setError] = useState<string | undefined>(undefined)
   const [allow, setAllow] = useState<readonly string[]>([])
-  const [deny, setDeny] = useState<readonly string[]>([])
   const [save, setSave] = useState<SaveState>('idle')
   const [reason, setReason] = useState<string | undefined>(undefined)
   const [reload, setReload] = useState(0)
@@ -83,7 +78,6 @@ export function usePersonalLayer(options: UsePersonalLayerOptions): PersonalLaye
       const seeded = result.value.config
       if (seeded === undefined) return
       setAllow([...seeded.allow])
-      setDeny(seeded.deny === undefined ? [] : [...seeded.deny])
     })
     return () => { live = false }
   }, [loadPersonal, reload])
@@ -97,8 +91,7 @@ export function usePersonalLayer(options: UsePersonalLayerOptions): PersonalLaye
     setSave('saving')
     setReason(undefined)
     const kept = allow.filter(pattern => pattern.length > 0)
-    const dropped = deny.filter(pattern => pattern.length > 0)
-    void savePersonal({ allow: kept, ...dropped.length > 0 ? { deny: dropped } : {} }).then((result) => {
+    void savePersonal({ allow: kept }).then((result) => {
       if (result.ok) {
         setSave('saved')
         setReload(value => value + 1)
@@ -108,9 +101,9 @@ export function usePersonalLayer(options: UsePersonalLayerOptions): PersonalLaye
       setSave('failed')
       setReason(result.error.message)
     })
-  }, [allow, deny, savePersonal, onSaved, emptyAllow])
+  }, [allow, savePersonal, onSaved, emptyAllow])
 
-  return { status, exists, error, allow, deny, save, reason, setAllow, setDeny, onSave }
+  return { status, exists, error, allow, save, reason, setAllow, onSave }
 }
 
 /** Props the personal panel receives. */
@@ -152,13 +145,6 @@ export function PersonalRulesPanel({ t, layer }: PersonalRulesPanelProps) {
         hint={t('personal.allowHint')}
         patterns={layer.allow}
         onChange={layer.setAllow}
-      />
-      <RuleList
-        t={t}
-        heading={t('personal.deny')}
-        hint={t('personal.denyHint')}
-        patterns={layer.deny}
-        onChange={layer.setDeny}
       />
       <div className={css.actions}>
         <Button

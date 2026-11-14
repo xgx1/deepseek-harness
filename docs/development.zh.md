@@ -99,7 +99,7 @@ pnpm run build:web
 
 | 场景 | 命令 |
 |---|---|
-| 迭代包源码并需要可运行的产物 | `pnpm run build:artifacts`；`dev:web` 与 `dev:desktop` 启动前会先执行它 |
+| 迭代包源码并需要可运行的产物 | `pnpm run build:artifacts`；`dev:web` 与 `dev:desktop` 启动前会先执行它；自上次成功运行以来输入未变的步骤会被跳过（`--no-cache` 执行每个步骤，`--no-desktop` 同时省略 Desktop bundle） |
 | 检查测试、脚本、benchmarks 或 website 代码的类型 | 在最近一次 `build:artifacts` 之后运行 `pnpm run build:check`；包源码有改动时先重新运行 `build:artifacts` |
 | 声明 TypeScript 工作完成之前 | 在最近一次 `build:artifacts` 之后运行 `pnpm run build:check`，或运行 `pnpm run build` |
 | 完整验证（与 CI 必需的构建 lane 相同） | `pnpm run build` |
@@ -138,7 +138,7 @@ DEEPSEEK_API_KEY=sk-...
 DEEPSEEK_BASE_URL=https://... # optional
 ```
 
-`DEEPSEEK_BASE_URL` 可选，默认为公开 API。请勿提交真实凭证。未设置 `DEEPSEEK_API_KEY` 时，真实 API 的 e2e 套件会自动跳过。
+`DEEPSEEK_BASE_URL` 可选，默认为公开 API。e2e 与 Web 的 Vitest 配置，以及 `DSH_SNAPSHOT=record` 时的快照配置，会自行加载根目录 `.env`；而从仓库根目录启动的 `pnpm dsh` 和 `pnpm run demo:ptc` 会把它当作项目 `.env` 读取，项目 `.env` 不能设置 `DEEPSEEK_BASE_URL`，因此这些启动需要导出该变量，或把它写入 `$DSH_HOME/.env`。请勿提交真实凭证。未设置 `DEEPSEEK_API_KEY` 时，真实 API 的 e2e 套件会自动跳过。
 
 ### Git 集成
 

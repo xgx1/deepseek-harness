@@ -5,10 +5,10 @@ import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { Context } from '@deepseek-ai/cordis'
-import { ToolCallId } from '@deepseek-ai/dsh-llm'
+import type { ToolCallId } from '@deepseek-ai/dsh-llm'
 import AgentLoop from '@deepseek-ai/dsh-agent-loop'
 import { mountAgentLoopTestDependencies } from '@deepseek-ai/dsh-agent-loop-testkit'
-import { SessionId } from '@deepseek-ai/dsh-session'
+import type { SessionId } from '@deepseek-ai/dsh-session'
 import * as JsonlSessionPersistence from '@deepseek-ai/dsh-session-persistence-jsonl'
 import SubagentRuntime from '@deepseek-ai/dsh-subagent'
 import type { SubagentCatalogEntry } from '@deepseek-ai/dsh-subagent'
@@ -19,6 +19,7 @@ import { MockAdapter, textResponse } from '../../../core/agent-loop/tests/mock-a
 import * as tool from '../src/index.ts'
 import { parkParent } from './park-parent.ts'
 import { TestSessionQuery } from './test-session-query.ts'
+import { brandString } from '@deepseek-ai/dsh-brand'
 
 /** One scripted response that may wait on a caller-released gate before streaming. */
 interface GatedEntry {
@@ -71,7 +72,7 @@ async function setupWith(adapter: MockAdapter | GatedAdapter) {
   await ctx.plugin(SubagentSpawn, { providerName: 'spawn' })
   await ctx.plugin(tool)
   ctx.llm.registerAdapter(['mock'], adapter)
-  const parent = await ctx.agentLoop.create(SessionId('parent'), { provider: 'mock', model: 'mock' })
+  const parent = await ctx.agentLoop.create(brandString<SessionId>('parent'), { provider: 'mock', model: 'mock' })
   parkParent(ctx, parent)
   return { ctx, parent, adapter }
 }
@@ -94,7 +95,7 @@ function callTool(
 ) {
   return executeToolFixture(ctx, {
     signal,
-    callId: ToolCallId(`call-${++calls}`),
+    callId: brandString<ToolCallId>(`call-${++calls}`),
     name,
     arguments: args,
     ...agent !== undefined ? { agent: agent as never } : {},
@@ -131,7 +132,7 @@ describe('list_agents', () => {
   it('omits external leaves without diagnostics', async () => {
     const { ctx, parent } = await setup([])
     parent.session.append('subagent/catalog', {
-      version: 2, childId: SessionId('external-child'), childCreatedAt: 1,
+      version: 2, childId: brandString<SessionId>('external-child'), childCreatedAt: 1,
       mode: 'external', label: 'external child',
     })
     const result = await callTool(ctx, 'list_agents', {}, parent)
@@ -149,7 +150,8 @@ describe('list_agents', () => {
     }
     expect(Object.keys(parameters.properties ?? {})).toEqual([])
     expect(parameters.required ?? []).toEqual([])
-    expect(schemas[0]?.description).toContain('You can message any other agent in the subagent tree')
+    expect(schemas[0]?.description).toContain('你可以给树中任何其他 agent 发消息')
+    expect(ctx.tools.get('list_agents')?.isConcurrencySafe?.({})).toBe(true)
   })
 
   it('renders the Lead when the tree has no children', async () => {
@@ -174,7 +176,7 @@ describe('list_agents', () => {
     // from the live Agent registry, stubbed per candidate id.
     const entries = [
       {
-        id: SessionId('one-shot-child'),
+        id: brandString<SessionId>('one-shot-child'),
         createdAt: 1,
         label: 'finished once',
         mode: 'one-shot',
@@ -186,14 +188,14 @@ describe('list_agents', () => {
         mode: 'continuable',
       },
       {
-        id: SessionId('running-child'),
+        id: brandString<SessionId>('running-child'),
         createdAt: 3,
         label: 'still working',
         mode: 'continuable',
         name: 'runner',
       },
       {
-        id: SessionId('waiting-child'),
+        id: brandString<SessionId>('waiting-child'),
         createdAt: 4,
         label: 'waiting on descendants',
         mode: 'continuable',
@@ -234,7 +236,7 @@ describe('list_agents', () => {
   it('reports an unreadable historical branch alongside a settled continuable child', async () => {
     const { ctx, parent } = await setup([textResponse('done')])
     parent.session.append('subagent/catalog', {
-      version: 1, childId: SessionId('historical-one-shot'), childCreatedAt: 1,
+      version: 1, childId: brandString<SessionId>('historical-one-shot'), childCreatedAt: 1,
       mode: 'one-shot', label: 'finished once',
     })
     const started = await ctx.subagents.startActivation({ delivery: 'parent',
@@ -258,8 +260,8 @@ describe('list_agents', () => {
     const schema = ctx.tools.schemas().find(candidate => candidate.name === 'list_agents')
     // Completion reaches the parent through its notice; listing is discovery,
     // so its inactive status must not send the model looking for a result.
-    expect(schema?.description).toContain('While you remain active, you will be notified when a direct child finishes')
-    expect(schema?.description).toContain('inactive means no turn is executing')
+    expect(schema?.description).toContain('直接子 agent 完成时会通知你')
+    expect(schema?.description).toContain('inactive 表示没有正在执行的轮次')
     // The enum is the closed vocabulary the model renders, so pin it rather than
     // scanning prose that legitimately reads "not to poll for completion".
     expect(ctx.tools.get('list_agents')?.output.schema.items?.properties?.status?.enum)
@@ -271,6 +273,7 @@ describe('list_agents', () => {
     const result = await callTool(ctx, 'list_agents', {})
     expect(result.isError).toBe(true)
     expect(text(result)).toContain('requires a calling agent')
+    expect(result.error?.info).toEqual({ name: 'ToolContextUnavailableError', code: 'TOOL_CONTEXT_UNAVAILABLE' })
   })
 
   it('unregisters with its plugin fiber (HMR safety)', async () => {
@@ -344,7 +347,7 @@ describe('list_agents', () => {
     ctx.subagents.listDescendants = () => Promise.resolve([
       {
         kind: 'child',
-        id: SessionId('one-shot-mid'),
+        id: brandString<SessionId>('one-shot-mid'),
         label: 'one-shot intermediate',
         mode: 'one-shot',
         activity: 'inactive',
@@ -354,17 +357,17 @@ describe('list_agents', () => {
       },
       {
         kind: 'child',
-        id: SessionId('deep-leaf'),
+        id: brandString<SessionId>('deep-leaf'),
         label: 'deep leaf',
         mode: 'continuable',
         activity: 'inactive',
         hasChildren: false,
-        parentId: SessionId('one-shot-mid'),
+        parentId: brandString<SessionId>('one-shot-mid'),
         depth: 2,
       },
       {
         kind: 'diagnostic',
-        id: SessionId('broken-node'),
+        id: brandString<SessionId>('broken-node'),
         reason: 'unavailable',
         parentId: parent.id,
         depth: 1,

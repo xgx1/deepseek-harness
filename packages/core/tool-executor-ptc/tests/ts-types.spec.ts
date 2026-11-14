@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { ZH_DESCRIPTIONS } from '../src/zh-descriptions.ts'
 import { jsonSchemaToTs, renderToolsSdk } from '@deepseek-ai/dsh-tool-executor-ptc/src/ts-types.ts'
 import type { ToolSdkSchema } from '@deepseek-ai/dsh-tool-executor-ptc/src/ts-types.ts'
 import type { JsonSchemaNode } from '@deepseek-ai/dsh-tools/src/json-schema.ts'
@@ -137,6 +138,7 @@ describe('renderToolsSdk', () => {
     expect(text).toContain('declare class ToolCallError extends Error')
     expect(text).toContain('readonly toolName: ToolName;')
     expect(text).toContain('declare const tools: {')
+    expect(text).toContain('readonly attachmentId: string;')
     expect(text).toContain('type JsonValue = null | boolean | number | string')
     expect(text.indexOf('bash: {')).toBeGreaterThan(0)
     expect(text).toContain('"my-mcp.tool":')
@@ -146,34 +148,50 @@ describe('renderToolsSdk', () => {
     expect(text).toContain('[K in ToolName]: (args: ToolArgsMap[K]) => Promise<ToolOutputMap[K]>;')
     expect(text).toContain('/** Run a shell command. */')
     // The fixed instruction lines the model relies on.
-    expect(text).toContain('and `description`, a short summary of what the program does')
-    expect(text).toContain('rejects with `ToolCallError`')
-    expect(text).toContain('MAY overlap under `Promise.all`')
-    expect(text).toContain('lossless JSON')
+    expect(text).toContain('`description`，一句话说明这个程序做什么')
+    expect(text).toContain('工具调用失败会抛出 `ToolCallError`')
+    expect(text).toContain('只读调用并发执行')
+    expect(text).toContain('无损 JSON')
+  })
+
+  it('renders a known description in Chinese', () => {
+    const english = Object.keys(ZH_DESCRIPTIONS)[0] as string
+    const text = renderToolsSdk([{ ...bash, description: english }])
+    expect(text).toContain((ZH_DESCRIPTIONS[english] as string).slice(0, 24))
+  })
+
+  it('declares Image results for read_image and image-or-value results for cua', () => {
+    const tools: ToolSdkSchema[] = ['read_image', 'cua'].map(name => ({
+      name, description: 'Image-producing tool.', parameters: {}, output: { type: 'string' },
+    }))
+    const text = renderToolsSdk(tools)
+    const outputs = text.slice(text.indexOf('interface ToolOutputMap'), text.indexOf('type ToolName'))
+    expect(outputs).toContain('read_image: Image;')
+    expect(outputs).toContain('cua: Image | string;')
   })
 
   it('lists the program before its description', () => {
     const text = renderToolsSdk([bash])
     expect(text).toContain('`code`')
     expect(text).toContain('`description`')
-    expect(text).toContain('two required arguments: `code`')
+    expect(text).toContain('`run_code` 有两个必填参数：`code`')
   })
 
   it('keeps generated bindings inside a run_code program', () => {
     const text = renderToolsSdk([bash])
-    expect(text).toContain('A declaration does not make its name a directly callable tool')
-    expect(text).toContain('only names supplied as separate tool schemas may be called directly')
-    expect(text).toContain('`run_code({ code: "return await tools.bash({ description: \'Show current directory\', command: \'pwd\' })", description: "Show current directory" })`')
-    expect(text).toContain('Program-only SDK bindings:')
+    expect(text).toContain('声明本身不会让名字变成可直接调用的工具')
+    expect(text).toContain('只有另外以工具 schema 形式提供的名字才能直接调用')
+    expect(text).toContain('`run_code({ code: "inspect(await tools.bash({ description: \'Show current directory\', command: \'pwd\' }))", description: "Show current directory" })`')
+    expect(text).toContain('仅存在于程序里的 SDK 绑定：')
     expect(text).not.toContain('The available tools:')
   })
 
   it('keeps REPL output syntax distinct from function bodies', () => {
     const text = renderToolsSdk([bash], 'repl')
-    expect(text).toContain('run_code({ code: "console.log(await tools.bash(')
+    expect(text).toContain('run_code({ code: "inspect(await tools.bash(')
     expect(text).not.toContain('return await tools.bash(')
-    expect(text).not.toContain('the body of an async TypeScript function')
-    expect(text).not.toContain('Emit results with `return`')
+    expect(text).not.toContain('异步 TypeScript 函数的函数体')
+    expect(text).not.toContain('用 `return` 和/或 `console.log')
   })
 
   it('only shows a bash example accepted by the declared binding', () => {
@@ -222,10 +240,11 @@ describe('renderToolsSdk', () => {
     expect(renderToolsSdk([constrained])).toContain('tools.bash({ command: \'pwd\' })')
   })
 
-  it('uses a returned result in function-body mode', () => {
+  it('uses explicit inspection in function-body mode', () => {
     const text = renderToolsSdk([bash])
-    expect(text).toContain('return await tools.bash(')
-    expect(text).toContain('body of an async TypeScript function')
+    expect(text).toContain('inspect(await tools.bash(')
+    expect(text).toContain('- 用 `inspect(...values)` 显示选中的值和图片；其余中间结果都不进对话，只取你需要的部分。')
+    expect(text).toContain('异步 TypeScript 函数的函数体')
     expect(text).not.toContain('TypeScript REPL statements')
   })
 

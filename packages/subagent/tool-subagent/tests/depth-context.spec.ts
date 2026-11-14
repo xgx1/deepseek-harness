@@ -2,10 +2,11 @@ import { describe, expect, it } from 'vitest'
 import { assembleContextFor } from '@deepseek-ai/dsh-agent'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import type { Context } from '@deepseek-ai/cordis'
-import { SessionId } from '@deepseek-ai/dsh-session'
+import type { SessionId } from '@deepseek-ai/dsh-session'
 import * as tool from '../src/index.ts'
 import { disposeSetupProvider, modelSelectionSetupAgent, setup } from './harness.ts'
 import { mountScriptedProvider } from './scripted-provider.ts'
+import { brandString } from '@deepseek-ai/dsh-brand'
 
 /** Read the current tool-owned depth context through real prompt assembly. */
 async function depthContext(ctx: Context, agent?: Agent): Promise<string[]> {
@@ -24,7 +25,7 @@ describe('delegation depth context', () => {
     const ctx = await setup({ provider: 'mock', maxDepth })
     const root = modelSelectionSetupAgent(ctx)
     const { agent } = await ctx.agents.create({
-      sessionId: SessionId('depth-context-child'),
+      sessionId: brandString<SessionId>('depth-context-child'),
       meta: { delegationDepth: depth },
       // Resumed agents can have fresh runtime options; the persisted depth wins.
       agentOptions: { subagentDepth: 0 },
@@ -34,8 +35,8 @@ describe('delegation depth context', () => {
     expect(assembly.sections).toEqual(baseline.sections)
     expect(assembly.tools).toEqual(baseline.tools)
     expect(await depthContext(ctx, agent)).toEqual(remaining === 0 ? [
-      `Delegation depth for \`subagent\`: current ${depth}, maximum ${maxDepth}, remaining levels 0.`
-        + ' Do not call `subagent` at this depth; carry out the work directly.',
+      `\`subagent\` 的委派深度：当前 ${depth}，上限 ${maxDepth}，剩余层数 0。`
+        + '不要在此深度调用 `subagent`；请直接完成工作。',
     ] : [])
     const restore = agent.ctx.systemPrompt.suppressRuntimeContext()
     try {
@@ -51,11 +52,11 @@ describe('delegation depth context', () => {
   it('uses the runtime depth when it is deeper than the saved header', async () => {
     const ctx = await setup({ provider: 'mock', maxDepth: 2 })
     const { agent } = await ctx.agents.create({
-      sessionId: SessionId('deeper-runtime'),
+      sessionId: brandString<SessionId>('deeper-runtime'),
       agentOptions: { subagentDepth: 2 },
     })
     expect(await depthContext(ctx, agent)).toEqual([
-      'Delegation depth for `subagent`: current 2, maximum 2, remaining levels 0. Do not call `subagent` at this depth; carry out the work directly.',
+      '`subagent` 的委派深度：当前 2，上限 2，剩余层数 0。不要在此深度调用 `subagent`；请直接完成工作。',
     ])
   })
 
@@ -65,7 +66,7 @@ describe('delegation depth context', () => {
     await ctx.plugin(tool, { provider: 'mock', toolName: 'bounded', maxDepth: 0 })
     expect(await depthContext(ctx)).toEqual([])
     expect(await depthContext(ctx, modelSelectionSetupAgent(ctx))).toEqual([
-      'Delegation depth for `bounded`: current 0, maximum 0, remaining levels 0. Do not call `bounded` at this depth; carry out the work directly.',
+      '`bounded` 的委派深度：当前 0，上限 0，剩余层数 0。不要在此深度调用 `bounded`；请直接完成工作。',
     ])
   })
 
@@ -73,18 +74,18 @@ describe('delegation depth context', () => {
     const ctx = await setup({ provider: 'mock', maxDepth: 0 })
     const root = modelSelectionSetupAgent(ctx)
     const { agent } = await ctx.agents.create({
-      sessionId: SessionId('scoped-depth-policy'),
+      sessionId: brandString<SessionId>('scoped-depth-policy'),
       meta: { delegationDepth: 1 },
       setup: async (agentCtx) => { await agentCtx.plugin(tool, { provider: 'mock', maxDepth: 1 }) },
     })
     expect(await depthContext(ctx, agent)).toEqual([
-      'Delegation depth for `subagent`: current 1, maximum 1, remaining levels 0. Do not call `subagent` at this depth; carry out the work directly.',
+      '`subagent` 的委派深度：当前 1，上限 1，剩余层数 0。不要在此深度调用 `subagent`；请直接完成工作。',
     ])
     const restore = root.ctx.tools.restrict({ deny: ['subagent'] })
     expect(await depthContext(ctx, root)).toEqual([])
     restore()
     expect(await depthContext(ctx, root)).toEqual([
-      'Delegation depth for `subagent`: current 0, maximum 0, remaining levels 0. Do not call `subagent` at this depth; carry out the work directly.',
+      '`subagent` 的委派深度：当前 0，上限 0，剩余层数 0。不要在此深度调用 `subagent`；请直接完成工作。',
     ])
     const removeOverride = root.ctx.tools.register({ ...ctx.tools.get('subagent')!, description: 'Scoped replacement' })
     expect(await depthContext(ctx, root)).toEqual([])

@@ -9,15 +9,16 @@
 import type { Context } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
 import type {} from '@deepseek-ai/dsh-agent-preset-registry'
-import { defineTool } from '@deepseek-ai/dsh-tools'
+import { defineTool, ToolContextUnavailableError } from '@deepseek-ai/dsh-tools'
 import type { ToolDefinition } from '@deepseek-ai/dsh-tools'
 import type { AgentOptions } from '@deepseek-ai/dsh-agent'
-import { ReasoningEffortId } from '@deepseek-ai/dsh-llm'
+import type { ReasoningEffortId } from '@deepseek-ai/dsh-llm/types'
 import type { ContentBlock } from '@deepseek-ai/dsh-llm'
 import {
   assertSubagentMaxDepth,
   delegationDepthOf,
   parentAgentOptionsForDelegation,
+  SubagentError,
 } from '@deepseek-ai/dsh-subagent'
 import type { SubagentProvider } from '@deepseek-ai/dsh-subagent'
 import {
@@ -88,12 +89,12 @@ export const Config: z<Config> = z.object({
   agentOptions: z.object({
     provider: z.string(),
     model: z.string(),
-    reasoningEffort: z.string().min(1) as z<ReturnType<typeof ReasoningEffortId> | undefined>,
+    reasoningEffort: z.string().min(1) as z<ReasoningEffortId | undefined>,
     maxTokens: z.number().step(1).min(1).max(Number.MAX_SAFE_INTEGER),
   }).default(undefined as unknown as {
     provider: string
     model: string
-    reasoningEffort: ReturnType<typeof ReasoningEffortId>
+    reasoningEffort: ReasoningEffortId
     maxTokens: number
   }),
   agentPreset: z.string().min(1),
@@ -275,7 +276,7 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
         const parent = exec.agent
         if (!parent) {
           // Non-agent callers provide no parent for delegation ownership.
-          throw new Error('subagent tool requires a calling agent (exec.agent was undefined)')
+          throw new ToolContextUnavailableError('subagent tool requires a calling agent (exec.agent was undefined)')
         }
 
         const routes = subagentModelSelectionPolicy(subagentModelSelectionProjectionHandle, parent.session)
@@ -298,7 +299,7 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
         if (requiresRoutePreflight) {
           const llm = ctx.get('llm')
           if (llm === undefined) {
-            throw new Error('cannot resolve the selected child LLM route because the `llm` service is unavailable')
+            throw new ToolContextUnavailableError('cannot resolve the selected child LLM route because the `llm` service is unavailable')
           }
           const inheritParentReasoningEffort = providerRouteDefaults === undefined && !hasDelegationModelRequest(modelRequest)
           await preflightChildLlmRoute(
@@ -309,7 +310,10 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
             inheritParentReasoningEffort,
           )
           if (ctx.subagents.getProvider(config.provider) !== subagentProvider) {
-            throw new Error(`subagent provider "${config.provider}" changed while resolving the child LLM route; retry the delegation`)
+            throw new SubagentError(
+              `subagent provider "${config.provider}" changed while resolving the child LLM route; retry the delegation`,
+              'PROVIDER_CHANGED',
+            )
           }
         }
         exec.signal.throwIfAborted()
@@ -372,8 +376,8 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
         .map(tool => tool.name)
         .sort()
       if (visible[0] !== toolName) return ''
-      const names = visible.map(name => `\`${name}\``).join(' or ')
-      return `Start independent delegations with ${names} together in one assistant message and continue useful work while they run. When only waiting for their results remains, end your turn instead of sleeping or polling; the next result starts a new turn. Collect the subagent results required to complete the task before giving the user a final answer.\n\nAgents may use different working directories; changes to shared files affect other agents. Split parallel write work into disjoint file or directory scopes. Bash, formatters, code generators, and scripts can overwrite concurrent edits without conflict detection; coordinate their changes explicitly. The agent integrating the work must review the final diff and run relevant tests.`
+      const names = visible.map(name => `${name}`).join(' 或 ')
+      return `独立的委派用 ${names} 在同一条 assistant 消息里一起发起，它们运行时继续做有用的工作。当只剩下等它们的结果时，结束本轮而不是睡眠或轮询；下一条结果会开启新一轮。给出用户最终答复前，先收集完成任务所需的 subagent 结果。\n\nbash、格式化器、代码生成器与脚本可能在没有冲突检测的情况下覆盖并发编辑；要显式协调它们的改动。集成这项工作的 agent 必须审查最终 diff 并跑相关测试。`
     },
   })
   ctx.systemPrompt.context({
@@ -386,8 +390,8 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
       if (maxDepth === undefined) return ''
       const depth = delegationDepthOf(context.agent)
       if (depth < maxDepth) return ''
-      return `Delegation depth for \`${toolName}\`: current ${depth}, maximum ${maxDepth}, remaining levels 0.`
-        + ` Do not call \`${toolName}\` at this depth; carry out the work directly.`
+      return `\`${toolName}\` 的委派深度：当前 ${depth}，上限 ${maxDepth}，剩余层数 0。`
+        + `不要在此深度调用 \`${toolName}\`；请直接完成工作。`
     },
   })
 }

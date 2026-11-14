@@ -31,7 +31,7 @@ kind: "package-reference"
 - name: '@deepseek-ai/dsh-browser-use'
 ```
 
-服务没有配置。提供方 插件注入 `browserUse` 并调用 `ctx.browserUse.register(BrowserUseProviderName(name))`；品牌类型从 `@deepseek-ai/dsh-browser-use/brand` 导出。返回的 effect 清理器释放该注册。
+服务没有配置。提供方插件注入 `browserUse` 并调用 `ctx.browserUse.register(brandString<BrowserUseProviderName>(name))`，其中 `brandString` 来自 `@deepseek-ai/dsh-brand`，类型来自 `@deepseek-ai/dsh-browser-use/types`。返回的 effect 清理器释放该注册。
 
 提供方 在释放注册前停止接收工具调用、关闭资源并等待自己拥有的工作结束。`ctx.browserUse.providerName` 在释放之前持续报告已注册名称。
 
@@ -53,7 +53,6 @@ kind: "package-reference"
 ## 延伸阅读
 
 - [浏览器操作](../../../docs/subsystems/browser-use.zh.md) — 提供方 选择与 Session 所有权。
-- [Playwright MCP 提供方](../../experimental/browser-use-playwright-mcp/README.zh.md) — Playwright 浏览器工具。
 - [Chrome DevTools MCP 提供方](../../experimental/browser-use-chrome-devtools-mcp/README.zh.md) — Chromium 检查与控制。
 - [Stagehand 提供方](../../experimental/browser-use-stagehand-native/README.zh.md) — 支持 AI（人工智能）辅助的原生浏览器操作。
 

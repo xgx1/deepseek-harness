@@ -10,12 +10,15 @@ import z from '@deepseek-ai/schemastery'
 import type { ContentBlock } from '@deepseek-ai/dsh-llm'
 import type { JsonValue } from '@deepseek-ai/dsh-util-values'
 import type { SubagentProvider } from '@deepseek-ai/dsh-subagent'
-import { defineTool } from '@deepseek-ai/dsh-tools'
+import { defineTool, ToolArgsError, ToolContextUnavailableError } from '@deepseek-ai/dsh-tools'
 import type { ToolCallView, ToolResultView } from '@deepseek-ai/dsh-tools'
 import type { WorkflowResult, WorkflowRun } from '@deepseek-ai/dsh-workflow'
+import { RalphError } from './error.ts'
 
 export const name = 'tool-ralph'
 export const inject = ['tools', 'workflowEngine', 'subagents', 'systemPrompt']
+
+export { RalphError, type RalphErrorCode } from './error.ts'
 
 /** Deployment policy for the fixed Ralph workflow. */
 export interface Config {
@@ -174,12 +177,10 @@ for (let round = 1; round <= args.maxRounds; round += 1) {
 return { status: 'budget-limited', roundsStarted: args.maxRounds, report: previous }
 `
 
-const DESCRIPTION = 'Run a foreground fresh-agent Ralph loop toward one immutable objective. '
-  + 'Use only when the direct human explicitly asks for Ralph or fresh-agent iteration. Each round '
-  + 'opens a new child with no parent conversation or prior child session; the shared workspace is '
-  + 'long-term memory, and only a bounded structured report crosses rounds. The call returns when '
-  + 'a worker reports completion or a concrete blocker, or at the round limit. Ordinary long-running same-session work '
-  + 'belongs to goal tools.'
+const DESCRIPTION = '前台跑一个 fresh-agent 的 Ralph 循环，朝一个不可变目标迭代。'
+  + '任务复杂、需要多轮迭代逼近目标时自行判断使用，不必等用户点名 Ralph。每轮都新开一个'
+  + '没有父对话、没有历史子会话的 agent；共享工作区是长期记忆，只有一份受限的结构化报告跨轮传递。'
+  + 'worker 报告完成、报告具体阻塞，或到达轮数上限时返回。普通的长时间同会话工作交给 goal 工具。'
 
 /** Validate defaults even when a caller invokes apply() without Loader normalization. */
 function resolveConfig(config: Config): ResolvedConfig {
@@ -206,10 +207,10 @@ function resolveConfig(config: Config): ResolvedConfig {
 function resolveMaxRounds(requested: number | undefined, ceiling: number): number {
   const value = requested ?? ceiling
   if (!Number.isSafeInteger(value) || value < 1) {
-    throw new TypeError('Ralph maxRounds must be a positive safe integer')
+    throw new ToolArgsError(['Ralph maxRounds must be a positive safe integer'])
   }
   if (value > ceiling) {
-    throw new TypeError(`Ralph maxRounds ${value} exceeds the deployment ceiling ${ceiling}`)
+    throw new ToolArgsError([`Ralph maxRounds ${value} exceeds the deployment ceiling ${ceiling}`])
   }
   return value
 }
@@ -218,13 +219,13 @@ function resolveMaxRounds(requested: number | undefined, ceiling: number): numbe
 function requireFreshProvider(ctx: Context, name: string): SubagentProvider {
   const provider = ctx.subagents.getProvider(name)
   if (provider === undefined) {
-    throw new Error(`Ralph subagent provider "${name}" is not registered`)
+    throw new RalphError(`Ralph subagent provider "${name}" is not registered`, 'RALPH_PROVIDER_UNAVAILABLE')
   }
   if (!provider.capabilities.outputSchema) {
-    throw new Error(`Ralph subagent provider "${name}" does not support structured output`)
+    throw new RalphError(`Ralph subagent provider "${name}" does not support structured output`, 'RALPH_PROVIDER_UNSUPPORTED')
   }
   if (provider.inheritsParentContext) {
-    throw new Error(`Ralph subagent provider "${name}" inherits parent context; Ralph requires a fresh provider`)
+    throw new RalphError(`Ralph subagent provider "${name}" inherits parent context; Ralph requires a fresh provider`, 'RALPH_PROVIDER_UNSUPPORTED')
   }
   return provider
 }
@@ -251,7 +252,7 @@ function readReport(value: unknown, expectedStatus: RalphRoundStatus, maxChars: 
     || !normalizedList(value['nextSteps'])
     || typeof value['blocker'] !== 'string'
     || value['blocker'] !== value['blocker'].trim()) {
-    throw new Error('Ralph workflow returned a malformed round report')
+    throw new RalphError('Ralph workflow returned a malformed round report', 'RALPH_INVALID_RESULT')
   }
   const report: RalphRoundReport = {
     status: expectedStatus,
@@ -261,18 +262,18 @@ function readReport(value: unknown, expectedStatus: RalphRoundStatus, maxChars: 
     blocker: value['blocker'],
   }
   if (expectedStatus === 'continue' && (report.nextSteps.length === 0 || report.blocker !== '')) {
-    throw new Error('Ralph workflow returned an invalid continuing report')
+    throw new RalphError('Ralph workflow returned an invalid continuing report', 'RALPH_INVALID_RESULT')
   }
   if (expectedStatus === 'complete'
     && (report.evidence.length === 0 || report.nextSteps.length !== 0 || report.blocker !== '')) {
-    throw new Error('Ralph workflow returned an invalid completion report')
+    throw new RalphError('Ralph workflow returned an invalid completion report', 'RALPH_INVALID_RESULT')
   }
   if (expectedStatus === 'blocked' && !normalizedText(report.blocker)) {
-    throw new Error('Ralph workflow returned an invalid blocked report')
+    throw new RalphError('Ralph workflow returned an invalid blocked report', 'RALPH_INVALID_RESULT')
   }
   const chars = JSON.stringify(report).length
   if (chars > maxChars) {
-    throw new Error(`Ralph workflow returned an oversized handoff (${chars} > ${maxChars})`)
+    throw new RalphError(`Ralph workflow returned an oversized handoff (${chars} > ${maxChars})`, 'RALPH_INVALID_RESULT')
   }
   return report
 }
@@ -284,40 +285,40 @@ function readRunResult(value: unknown, maxRounds: number, maxHandoffChars: numbe
     || !Number.isSafeInteger(value['roundsStarted'])
     || value['roundsStarted'] < 1
     || value['roundsStarted'] > maxRounds) {
-    throw new Error('Ralph workflow returned a malformed terminal result')
+    throw new RalphError('Ralph workflow returned a malformed terminal result', 'RALPH_INVALID_RESULT')
   }
   const roundsStarted = value['roundsStarted']
   switch (value['status']) {
     case 'complete':
       if (Object.keys(value).sort().join(',') !== 'report,roundsStarted,status') {
-        throw new Error('Ralph workflow returned a malformed terminal result')
+        throw new RalphError('Ralph workflow returned a malformed terminal result', 'RALPH_INVALID_RESULT')
       }
       return { status: 'complete', roundsStarted, report: readReport(value['report'], 'complete', maxHandoffChars) }
     case 'blocked':
       if (Object.keys(value).sort().join(',') !== 'report,roundsStarted,status') {
-        throw new Error('Ralph workflow returned a malformed terminal result')
+        throw new RalphError('Ralph workflow returned a malformed terminal result', 'RALPH_INVALID_RESULT')
       }
       return { status: 'blocked', roundsStarted, report: readReport(value['report'], 'blocked', maxHandoffChars) }
     case 'budget-limited':
       if (Object.keys(value).sort().join(',') !== 'report,roundsStarted,status') {
-        throw new Error('Ralph workflow returned a malformed terminal result')
+        throw new RalphError('Ralph workflow returned a malformed terminal result', 'RALPH_INVALID_RESULT')
       }
       if (roundsStarted !== maxRounds) {
-        throw new Error('Ralph workflow returned budget-limited before the round limit')
+        throw new RalphError('Ralph workflow returned budget-limited before the round limit', 'RALPH_INVALID_RESULT')
       }
       return { status: 'budget-limited', roundsStarted, report: readReport(value['report'], 'continue', maxHandoffChars) }
     case 'round-failed': {
       if (Object.keys(value).sort().join(',') !== 'lastReport,roundsStarted,status') {
-        throw new Error('Ralph workflow returned a malformed terminal result')
+        throw new RalphError('Ralph workflow returned a malformed terminal result', 'RALPH_INVALID_RESULT')
       }
       if (roundsStarted === 1) {
         if (value['lastReport'] !== null) {
-          throw new Error('Ralph workflow returned an invalid first-round failure')
+          throw new RalphError('Ralph workflow returned an invalid first-round failure', 'RALPH_INVALID_RESULT')
         }
         return { status: 'round-failed', roundsStarted }
       }
       if (value['lastReport'] === null) {
-        throw new Error('Ralph workflow returned a round failure without its last handoff')
+        throw new RalphError('Ralph workflow returned a round failure without its last handoff', 'RALPH_INVALID_RESULT')
       }
       return {
         status: 'round-failed',
@@ -326,7 +327,7 @@ function readRunResult(value: unknown, maxRounds: number, maxHandoffChars: numbe
       }
     }
     default:
-      throw new Error('Ralph workflow returned an unknown terminal status')
+      throw new RalphError('Ralph workflow returned an unknown terminal status', 'RALPH_INVALID_RESULT')
   }
 }
 
@@ -344,6 +345,11 @@ function stopReasonError(result: WorkflowResult): string | undefined {
       return `Ralph workflow ended abnormally (${String(result.stopReason satisfies never)})`
     /* v8 ignore stop */
   }
+}
+
+/** The cancellation for a workflow the caller cancelled; the tool registry records it as `ABORTED`. */
+function ralphAborted(message: string): DOMException {
+  return new DOMException(message, 'AbortError')
 }
 
 const TRUNCATION_NOTICE = '\n… [truncated]'
@@ -399,13 +405,13 @@ function presentResult(args: RalphCallArgs, result: { content: ContentBlock[]; i
   return { card: 'generic' }
 }
 
-/** Register the fixed Ralph tool and its explicit-ask usage policy. */
+/** Register the fixed Ralph tool and its usage policy. */
 export function apply(ctx: Context, config: Config): void {
   const resolved = resolveConfig(config)
   ctx.systemPrompt.section({
     name: 'tool:ralph',
     order: ctx.systemPrompt.getSectionOrder('TOOL_RALPH'),
-    text: 'Use the ralph tool ONLY when the direct human explicitly asks for a Ralph loop or fresh-agent iterative execution. Each Ralph round starts a fresh child with no conversation seed and uses the shared workspace as durable memory. Completion and blockers are worker reports, not independent evaluation. Use same-session goal tools for ordinary long-running objectives, and plain subagents or workflows for bounded delegation and fan-out.',
+    text: '任务复杂、需要多轮迭代逼近目标时，自行判断是否使用 ralph 工具，不必等用户点名。每一轮都新开一个不带对话种子的全新子 agent，共享工作区承载长期记忆。完成与阻塞是 worker 的报告，不是独立评估。普通的长时间同会话目标交给 goal 工具，有界的委派与扇出用普通 subagent 或 workflow。',
   })
   ctx.tools.register(defineTool({
     name: 'ralph',
@@ -435,10 +441,10 @@ export function apply(ctx: Context, config: Config): void {
     async execute(args, exec) {
       const parent = exec.agent
       if (parent === undefined) {
-        throw new Error('Ralph tool requires a calling agent (exec.agent was undefined)')
+        throw new ToolContextUnavailableError('Ralph tool requires a calling agent (exec.agent was undefined)')
       }
       const objective = args.objective.trim()
-      if (objective.length === 0) throw new Error('Ralph objective must be a non-empty string')
+      if (objective.length === 0) throw new ToolArgsError(['Ralph objective must be a non-empty string'])
       const maxRounds = resolveMaxRounds(args.maxRounds, resolved.maxRounds)
       void requireFreshProvider(ctx, resolved.subagentProvider)
 
@@ -458,9 +464,9 @@ export function apply(ctx: Context, config: Config): void {
       try {
         const settled = await run.result
         const error = stopReasonError(settled)
-        if (error !== undefined) throw new Error(error)
+        if (error !== undefined) throw settled.stopReason === 'cancelled' && exec.signal.aborted ? ralphAborted(error) : new RalphError(error, 'RALPH_WORKFLOW_FAILED')
         const value = readRunResult(settled.value, maxRounds, resolved.maxHandoffChars)
-        if (value.status === 'round-failed') throw new Error(renderRoundFailure(value, resolved.maxResultChars))
+        if (value.status === 'round-failed') throw new RalphError(renderRoundFailure(value, resolved.maxResultChars), 'RALPH_ROUND_FAILED')
         return {
           runId: run.id,
           agentsStarted: settled.agentsStarted,
