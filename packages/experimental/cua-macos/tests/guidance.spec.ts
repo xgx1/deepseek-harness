@@ -17,51 +17,51 @@ it('keeps file-tool instructions in PTC and limits the program guidance to avail
     expect(PROGRAM_GUIDANCE).not.toContain(name)
   }
   expect(PROGRAM_GUIDANCE).toContain('node:fs/promises')
-  expect(PROGRAM_GUIDANCE).toContain('session’s file tools')
+  expect(PROGRAM_GUIDANCE).toContain('会话的文件工具')
 })
 
 it('keeps exactly three ordered operation headings', () => {
   const heads = COMMON_GUIDANCE.match(/^## .+$/gm)
-  expect(heads).toEqual(['## Accessibility tree', '## Simulated mouse', '## Simulated keyboard'])
-  expect(COMMON_GUIDANCE.indexOf('## Accessibility tree')).toBeLessThan(COMMON_GUIDANCE.indexOf('## Simulated mouse'))
-  expect(COMMON_GUIDANCE.indexOf('## Simulated mouse')).toBeLessThan(COMMON_GUIDANCE.indexOf('## Simulated keyboard'))
+  expect(heads).toEqual(['## 无障碍树', '## 模拟鼠标', '## 模拟键盘'])
+  expect(COMMON_GUIDANCE.indexOf('## 无障碍树')).toBeLessThan(COMMON_GUIDANCE.indexOf('## 模拟鼠标'))
+  expect(COMMON_GUIDANCE.indexOf('## 模拟鼠标')).toBeLessThan(COMMON_GUIDANCE.indexOf('## 模拟键盘'))
 })
 
 it('prefixes concise platform guidance before the shared catalog', () => {
-  expect(GUIDANCE.startsWith(`${PLATFORM_GUIDANCE}\n\nUse cua`)).toBe(true)
+  expect(GUIDANCE.startsWith(`${PLATFORM_GUIDANCE}\n\n用 cua`)).toBe(true)
   expect(PLATFORM_GUIDANCE).not.toContain('##')
 })
 
 it.each([GUIDANCE, PROGRAM_GUIDANCE])('explains when macOS mouse input needs a system-pointer prompt', (catalog) => {
   const instructions = withSystemPointerGuidance(catalog)
-  expect(catalog.split('- mouseMove(')[0]).toContain('Leave useSystemPointer unset')
-  expect(instructions).toContain('Prefer an advertised accessibility action, a click on a visible control, or browser tools when possible.')
-  expect(instructions).toContain('The question interrupts the user.')
-  expect(instructions).toContain('Omitting the option or passing false uses the default hover route without prompting.')
+  expect(catalog.split('- mouseMove(')[0]).toContain('保持 useSystemPointer 不设置')
+  expect(instructions).toContain('优先使用元素声明的无障碍动作、对可见控件的点击，或浏览器工具。')
+  expect(instructions).toContain('这个询问会打断用户。')
+  expect(instructions).toContain('省略该选项或传 false 会走默认的悬停路径，不会弹询问。')
   const drag = catalog.split('\n').find(line => line.startsWith('- drag('))
   expect(drag).toContain('useSystemPointer?: boolean')
-  expect(drag).toContain('Omitting useSystemPointer or passing false directs the drag to the window without asking for mouse control.')
-  expect(COMMON_GUIDANCE).not.toContain('window-directed drag')
+  expect(drag).toContain('省略 useSystemPointer 或传 false 时，拖动直接发往窗口，不请求鼠标控制。')
+  expect(COMMON_GUIDANCE).not.toContain('面向窗口的拖动')
 })
 
 it('states the macOS accessibility, keyboard, and mouse levels', () => {
-  expect(PLATFORM_GUIDANCE).toContain('accessibility tree operations are available at app or window level')
-  expect(PLATFORM_GUIDANCE).toContain('Simulated keyboard input is available at app level')
-  expect(PLATFORM_GUIDANCE).toContain('Simulated mouse input is available at window level')
+  expect(PLATFORM_GUIDANCE).toContain('无障碍树操作在 app 或 window 层级可用')
+  expect(PLATFORM_GUIDANCE).toContain('模拟键盘输入在 app 层级可用')
+  expect(PLATFORM_GUIDANCE).toContain('模拟鼠标输入在 window 层级可用')
   const pressKey = GUIDANCE.split('\n').find(line => line.startsWith('- pressKey('))
   expect(GUIDANCE).toContain("sendKeyEvent(key: string, direction: 'down' | 'up')")
-  expect(GUIDANCE).toContain('returns, throws, or the user pauses')
+  expect(GUIDANCE).toContain('当本次程序返回、抛错，或用户暂停它时')
   const sharedKeyEvent = COMMON_GUIDANCE.split('\n').find(line => line.startsWith('- sendKeyEvent('))
   expect(sharedKeyEvent).toBeDefined()
   expect(GUIDANCE.split('\n').find(line => line.startsWith('- sendKeyEvent('))).toContain(sharedKeyEvent)
   expect(pressKey).toBe(COMMON_GUIDANCE.split('\n').find(line => line.startsWith('- pressKey(')))
-  expect(GUIDANCE).toContain('W down, D down, D up, W up')
+  expect(GUIDANCE).toContain('W down、D down、D up、W up')
   const hover = GUIDANCE.split('\n').find(line => line.startsWith('- mouseMove('))
   for (const term of ['AXShowAlternateUI', 'AXShowDefaultUI', 'HOVER_UNAVAILABLE']) expect(hover).toContain(term)
   const click = GUIDANCE.split('\n').find(line => line.startsWith('- click('))
-  expect(click).toContain('await app.getWindow(windowId), then call win.click(target)')
-  expect(click).toContain('use app.invoke(id)')
-  for (const step of ['call app.activate() first', 'outside the window', 'screenshot pixels', 'before typing or retrying']) expect(click).toContain(step)
+  expect(click).toContain('win.click(target)')
+  expect(click).toContain('使用 app.invoke(id)')
+  for (const step of ['先调用 app.activate()', '落在窗口之外', '截图像素', '先验证预期效果']) expect(click).toContain(step)
   for (const platformDetail of ['macOS', 'AXShowAlternateUI', 'AXRaise', 'HOVER_UNAVAILABLE', 'mouse-down']) {
     expect(COMMON_GUIDANCE).not.toContain(platformDetail)
   }
@@ -108,9 +108,9 @@ it('documents shared types while leaving Modifier members platform-defined', () 
   expect([...new Set(names)].sort()).toEqual(['ActionResult', 'App', 'Image', 'JsonValue', 'Modifier', 'Window'])
   expect(COMMON_GUIDANCE).toContain('ActionResult = { dispatched: boolean, foregroundChanged?: boolean | null }')
   expect(COMMON_GUIDANCE).toContain('JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue }')
-  expect(COMMON_GUIDANCE).toContain('App is the application object with readonly app.appHandle: string (opaque) and the methods listed below for app level')
-  expect(COMMON_GUIDANCE).toContain('Window is the window object with readonly window.windowId: string and the methods listed below for window level')
-  expect(COMMON_GUIDANCE).toContain('Signatures show resolved return values after await')
+  expect(COMMON_GUIDANCE).toContain('App 是应用对象，含只读的 app.appHandle: string（不透明）')
+  expect(COMMON_GUIDANCE).toContain('Window 是窗口对象，含只读的 window.windowId: string')
+  expect(COMMON_GUIDANCE).toContain('签名展示的是 await 之后解析出的返回值')
 })
 
 it('references Modifier without defining its members in shared guidance', () => {
@@ -118,45 +118,45 @@ it('references Modifier without defining its members in shared guidance', () => 
   for (const name of ['click', 'drag', 'pressKey']) {
     const entry = lines.find(line => line.startsWith(`- ${name}(`))
     expect(entry).toContain('modifiers?: Modifier[]')
-    expect(entry).not.toContain('members of Modifier')
+    expect(entry).not.toContain('Modifier 的成员')
   }
-  expect(PLATFORM_GUIDANCE).toContain('pressKey, click, and drag accept command, control (or ctrl), option (or alt), shift, and fn. pressKey also accepts cmd for command.')
-  expect(COMMON_GUIDANCE).toContain('\n\nSupported modifier names depend on the platform and the operation; see the platform guidance.\n\n')
+  expect(PLATFORM_GUIDANCE).toContain('pressKey、click 与 drag 接受 command、control（或 ctrl）、option（或 alt）、shift 与 fn；pressKey 还接受 cmd 表示 command。')
+  expect(COMMON_GUIDANCE).toContain('\n\n支持的修饰键名称取决于平台与操作，见平台指南。\n\n')
   expect(COMMON_GUIDANCE).not.toMatch(/(?:type|enum) Modifier\b|Modifier\s*=/)
-  expect(COMMON_GUIDANCE).not.toContain('Supported modifiers:')
-  expect(COMMON_GUIDANCE).toContain('Key names are platform-defined strings')
+  expect(COMMON_GUIDANCE).not.toContain('支持的修饰键：')
+  expect(COMMON_GUIDANCE).toContain('按键名是平台定义的字符串')
 })
 
 it('states platform-dependent levels without qualifying grouped method names', () => {
-  expect(COMMON_GUIDANCE).toContain('## Simulated mouse\nUse an explicit window for screenshots and pointer input.')
-  for (const heading of ['Accessibility tree', 'Simulated keyboard']) {
-    expect(COMMON_GUIDANCE).toContain(`## ${heading}\nAvailable at app or window level depending on the platform.`)
+  expect(COMMON_GUIDANCE).toContain('## 模拟鼠标\n截图与指针输入都要用显式指定的窗口。')
+  for (const heading of ['无障碍树', '模拟键盘']) {
+    expect(COMMON_GUIDANCE).toContain(`## ${heading}\n按平台不同，在 app 或 window 层级可用。`)
   }
   expect(GUIDANCE).not.toMatch(/\bsurface\b/)
-  const groups = COMMON_GUIDANCE.slice(COMMON_GUIDANCE.indexOf('## Accessibility tree'))
+  const groups = COMMON_GUIDANCE.slice(COMMON_GUIDANCE.indexOf('## 无障碍树'))
   expect(groups).not.toMatch(/^- (?:surface|window|app)\./m)
   expect(COMMON_GUIDANCE).toContain('target: string | [number, number]')
   expect(COMMON_GUIDANCE).toContain('from: [number, number]')
 })
 
 it('keeps consent, lock, observation, and no-replay rules', () => {
-  expect(COMMON_GUIDANCE).toContain('consent')
+  expect(COMMON_GUIDANCE).toContain('同意')
   expect(COMMON_GUIDANCE).toContain('SESSION_LOCKED')
-  expect(COMMON_GUIDANCE).toContain('Never replay uncertain input')
-  expect(COMMON_GUIDANCE).toContain('Read fresh state after actions')
-  expect(COMMON_GUIDANCE).toMatch(/element ids are opaque strings/i)
+  expect(COMMON_GUIDANCE).toContain('没有新的观察就不要重放不确定的输入')
+  expect(COMMON_GUIDANCE).toContain('操作后读取新状态')
+  expect(COMMON_GUIDANCE).toContain('元素 ID 是取自最近一次成功树的不透明字符串')
   expect(COMMON_GUIDANCE).toContain('snapshotId')
 })
 
 it('prioritizes reported API availability over instruction text in the prologue', () => {
   const prologue = COMMON_GUIDANCE.split('\n\n')[0]
-  expect(prologue).toContain('Always use cua.getCapabilities() to confirm whether a specific API is available on the current platform; its reported capabilities take precedence over availability statements in these instructions.')
+  expect(prologue).toContain('始终先用 cua.getCapabilities() 确认当前平台是否提供某个具体 API；它报告的可用性优先于本说明中的可用性表述。')
 })
 
 it('documents explicit inspection and separate key arguments', () => {
-  expect(COMMON_GUIDANCE).toContain('Call inspect(...values) to display selected observation results.')
-  expect(COMMON_GUIDANCE).toContain('do not pack them into a chord string')
-  expect(COMMON_GUIDANCE).toContain('perform a left-button double-click')
+  expect(COMMON_GUIDANCE).toContain('调用 inspect(...values) 展示选定的观察结果。')
+  expect(COMMON_GUIDANCE).toContain('不要拼成一个和弦字符串')
+  expect(COMMON_GUIDANCE).toContain('做一次左键双击')
 })
 
 it('omits stale names and unavailable platform operations', () => {

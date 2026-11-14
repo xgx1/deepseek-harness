@@ -2,19 +2,19 @@
 import { COMMON_GUIDANCE } from '@deepseek-ai/dsh-cua/guidance'
 
 /** macOS operation levels, permissions, selectors, and native measurement units. */
-export const PLATFORM_GUIDANCE = 'macOS: accessibility tree operations are available at app or window level. Simulated keyboard input is available at app level. Simulated mouse input is available at window level. pressKey, click, and drag accept command, control (or ctrl), option (or alt), shift, and fn. pressKey also accepts cmd for command. For pointer input on a sheet, select its window ID with app.getWindow(id). For menu items outside a window, use app.invoke(id). findApps searches /Applications, /System/Applications, and ~/Applications. Use the Computer Use permission page to grant the helper application Accessibility and Screen Recording permissions in System Settings. Native window and AX bounds use macOS points, while delivered screenshots carry their own pixel dimensions. show does not switch Spaces, and Stage Manager can present reduced window geometry; explain any required foreground step before calling app.activate() or performing an advertised AXRaise action.'
+export const PLATFORM_GUIDANCE = 'macOS：无障碍树操作在 app 或 window 层级可用。模拟键盘输入在 app 层级可用。模拟鼠标输入在 window 层级可用。pressKey、click 与 drag 接受 command、control（或 ctrl）、option（或 alt）、shift 与 fn；pressKey 还接受 cmd 表示 command。要操作表单（sheet）上的指针输入，先用 app.getWindow(id) 选择它的窗口 ID。窗口之外的菜单项用 app.invoke(id)。findApps 搜索 /Applications、/System/Applications 与 ~/Applications。用 Computer Use 权限页在系统设置里给辅助应用授予「辅助功能」与「屏幕录制」权限。原生窗口与 AX 边界使用 macOS point，而交付的截图带有自己的像素尺寸。show 不会切换 Space，Stage Manager 也可能呈现被缩减的窗口几何；在调用 app.activate() 或执行元素声明的 AXRaise 动作之前，先说明需要的前台步骤。'
 
 function operationGuidance(treeAdvice: string): string {
-  const mouseGuidance = 'Leave useSystemPointer unset for ordinary mouseMove and drag calls, even after approval. Prefer selectText for a supported text range and ordinary window-directed drag for a draggable control. If the effect is unclear, inspect the window before choosing another action. Request the system pointer only when the user explicitly asks for it or the intended effect requires it.'
-  const catalog = COMMON_GUIDANCE.replace('## Simulated mouse\n', `## Simulated mouse\n${mouseGuidance}\n\n`)
+  const mouseGuidance = '普通的 mouseMove 与 drag 调用请保持 useSystemPointer 不设置，即使已经批准也一样。优先用 selectText 处理受支持的文本区间，用普通的面向窗口的拖动处理可拖动的控件。效果不明确时，先观察窗口再选择下一步动作。只有用户明确要求，或预期效果确实需要时，才请求系统指针。'
+  const catalog = COMMON_GUIDANCE.replace('## 模拟鼠标\n', `## 模拟鼠标\n${mouseGuidance}\n\n`)
   const methodDetails = new Map<string, string>([
-    ['cua.listApps', 'Each row represents one running process. To select one of several instances with the same name or bundle ID, pass String(row.pid) to cua.getApp.'],
-    ['cua.findApps', 'Running installation matches include their process ID. Stopped matches have no pid.'],
-    ['sendKeyEvent', "Send 'down' to hold a key across tool calls in one program, for example W down, D down, D up, W up. Holding a key on a physical keyboard can produce repeated key-down events after a delay. To send one such repeat for a non-modifier key this run already holds, send 'down' again. Each call posts one event. A control can filter repeats. Use the app's response to decide whether and when to repeat or release the key. When this program returns, throws, or the user pauses it, macOS releases only its remaining keys at their original recipients."],
-    ['getAccessibilityTree', `macOS accepts maxElements up to 100000 and maxDepth up to 512. If the tree is truncated, select a narrower window or raise the reported limit on the next read. ${treeAdvice} Use element ids from the file only while that observation is current.`],
-    ['mouseMove', 'With useSystemPointer omitted or false, macOS uses accessibility hover without asking for mouse control. This requires both AXShowAlternateUI and AXShowDefaultUI on an enabled element or ancestor. Without that route, HOVER_UNAVAILABLE is returned before sending input. Physical movement requires an unobscured foreground target. Explain any necessary activation and observe the target again.'],
-    ['drag', 'Omitting useSystemPointer or passing false directs the drag to the window without asking for mouse control. An explicit system drag shares the session decision with mouseMove and holds the chosen button along the path in the unobscured foreground window.'],
-    ['click', 'click is a Window method: select a window with const win = await app.getWindow(windowId), then call win.click(target). For a background control’s default action, use app.invoke(id). For a mouse click on a background app, call app.activate() first and re-read the target. Both target forms send mouse-down and mouse-up events. click(id) uses the center of the full element bounds. If that center is outside the window, take a fresh win.getScreenshot() and use click([x, y]) on a visible part of the control in screenshot pixels. A background app can ignore the events even when dispatched is true. Verify the expected effect, such as a changed selection, before typing or retrying.'],
+    ['cua.listApps', '每一行代表一个正在运行的进程。要在多个同名或同 bundle ID 的实例中选一个，把 String(row.pid) 传给 cua.getApp。'],
+    ['cua.findApps', '运行中的已安装匹配项会带进程 ID；未运行的匹配项没有 pid。'],
+    ['sendKeyEvent', "在一次程序里跨多次工具调用按住某个键时，先发送 'down'。例如 W down、D down、D up、W up。在物理键盘上按住一个键，延迟后会产生重复的按下事件。要给本次运行已经按住的非修饰键补发一次这样的重复，再发一次 'down'。每次调用只投递一个事件。控件可以过滤重复。用应用的响应来判断是否需要重发或松开。当本次程序返回、抛错，或用户暂停它时，macOS 只会把它仍然按住的键在原接收方处释放。"],
+    ['getAccessibilityTree', `macOS 接受 maxElements 最大 100000、maxDepth 最大 512。若树被截断，下次读取时选更窄的窗口或提高所报告的上限。${treeAdvice} 只在该次观察仍然有效时使用文件里的元素 ID。`],
+    ['mouseMove', '省略 useSystemPointer 或传 false 时，macOS 走无障碍悬停，不请求鼠标控制。这要求启用中的元素或其祖先同时支持 AXShowAlternateUI 与 AXShowDefaultUI。没有这条路径时，会在发送输入之前返回 HOVER_UNAVAILABLE。物理移动要求目标在前台且未被遮挡；说明必要的激活步骤，并重新观察目标。'],
+    ['drag', '省略 useSystemPointer 或传 false 时，拖动直接发往窗口，不请求鼠标控制。显式的系统拖动与 mouseMove 共享同一次会话决策，并在未遮挡的前台窗口里沿路径按住选定的按钮。'],
+    ['click', 'click 是 Window 方法：先用 const win = await app.getWindow(windowId) 选择窗口，再调用 win.click(target)。对后台控件的默认动作使用 app.invoke(id)；要对后台应用做鼠标点击，先调用 app.activate() 并重新读取目标。两种目标形式都会发送 mouse-down 与 mouse-up。click(id) 使用元素完整边界的中心；若该中心落在窗口之外，重新取 win.getScreenshot()，用截图像素对控件的可见部分调用 click([x, y])。后台应用即使 dispatched 为 true 也可能忽略这些事件；在输入或重试之前先验证预期效果，例如选中状态是否变化。'],
   ])
   return `${PLATFORM_GUIDANCE}
 
@@ -26,7 +26,7 @@ ${catalog.replace(/^- ([\w.]+)\(.*$/gm, (entry, method: string) => {
 }
 
 /** Native PTC operation instructions with registered file tools for large observations. */
-export const GUIDANCE = operationGuidance('In persistent PTC, capture a large tree with const tree = await win.getAccessibilityTree(). Filter its lines in memory, or save it with await tools.write({ file_path: path, content: tree }) to a new workspace file. Search its contents with tools.grep({ path, pattern }) and use tools.read around a matching line. Use inspect to display the matches you need.')
+export const GUIDANCE = operationGuidance('在常驻 PTC 中，用 const tree = await win.getAccessibilityTree() 抓取一棵大树。在内存里过滤它的行，或用 await tools.write({ file_path: path, content: tree }) 存成新的工作区文件。用 tools.grep({ path, pattern }) 搜索内容，并用 tools.read 读取匹配行附近。用 inspect 展示你需要的匹配。')
 
 /** CUA-only program instructions; other session tools remain outside the program. */
-export const PROGRAM_GUIDANCE = operationGuidance('Capture a large tree with const tree = await win.getAccessibilityTree(). Filter its lines in memory and use inspect to display the matches you need. If needed, save it to a new workspace file with node:fs/promises and use the session’s file tools to search it.')
+export const PROGRAM_GUIDANCE = operationGuidance('用 const tree = await win.getAccessibilityTree() 抓取一棵大树。在内存里过滤它的行，并用 inspect 展示你需要的匹配。必要时用 node:fs/promises 把它存成新的工作区文件，再用会话的文件工具搜索。')

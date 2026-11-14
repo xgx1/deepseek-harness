@@ -198,7 +198,7 @@ describe('Computer Use MCP composition', () => {
     expect(listed.tools[1]).toMatchObject({
       name: registered.name, description: registered.description, inputSchema: { ...schema, properties: served },
     })
-    expect(registered.parameters).toMatchObject({ required: expect.arrayContaining(['code', 'description']) as string[] })
+    expect(registered.parameters).toMatchObject({ required: expect.arrayContaining(['code']) as string[] })
     expect(registered.description.length).toBeGreaterThan(1000)
 
     // The reference is the provider's guidance for the connection Agent, served before any program has run.
@@ -209,7 +209,7 @@ describe('Computer Use MCP composition', () => {
     expect(referenceText.startsWith('## cua API reference')).toBe(true)
     expect(referenceText).not.toContain('execution rules')
     expect(referenceText).toContain('Fixture CUA guidance: select test.fixture and operate window 7.')
-    expect(referenceText).toContain('Maximum click holdMs: 5000 ms.')
+    expect(referenceText).toContain('最大点击 holdMs：5000 ms。')
     expect(native.calls).toEqual([])
 
     const first = await run('globalThis.visits = 1; var app = await cua.getApp("test.fixture"); var win = await app.getWindow("7"); '
@@ -262,10 +262,10 @@ describe('Computer Use MCP composition', () => {
     setTimeout(() => { controller.abort() }, 100)
     await expect(hanging).rejects.toThrow()
     expect(lastJson(await run('inspect(1 + 1)'))).toBe(2)
-    // Argument validation belongs to the DSH executor: a program without the required description is refused there.
-    const invalid = await client.callTool({ name: 'cua_run_code', arguments: { code: '1' } })
+    // Argument validation belongs to the DSH executor: a program without the required code is refused there.
+    const invalid = await client.callTool({ name: 'cua_run_code', arguments: {} })
     expect(invalid.isError).toBe(true)
-    expect(texts(invalid)).toEqual(['invalid arguments: missing required property "description"'])
+    expect(texts(invalid)).toEqual(['invalid arguments: missing required property "code"'])
   })
 
   it('resets only the program environment: a fresh process and cua object, the same Agent and native connection', async () => {
