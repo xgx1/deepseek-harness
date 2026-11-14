@@ -264,8 +264,8 @@ export function apply(ctx: Context, config: Config = {}): void {
   ctx.systemPrompt.section({
     name: 'tool:pwsh',
     order: ctx.systemPrompt.getSectionOrder('TOOL_PWSH'),
-    text: 'Non-zero exits are reported as `[exit code: N]` markers; investigate failures before moving on. '
-      + 'On Windows a killed process settles as `[exit code: 1]` without a signal marker; treat a bare exit 1 after an interruption as a termination, not a command failure.',
+    text: '非零退出会以 `[exit code: N]` 标记报告；先查明失败原因再继续。'
+      + '在 Windows 上被杀掉的进程会以 `[exit code: 1]` 结束且没有信号标记；中断之后出现的裸 exit 1 应视为进程被终止，而不是命令失败。',
   })
 
   /**

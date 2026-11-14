@@ -7,4 +7,6 @@ platform: posix
 header:
   class: compaction-summary-headroom
   pin: true
-  changes: 0
+  systemPromptSource: compaction-recovery
+  toolSchemasSource: compaction-recovery
+  changes: 1

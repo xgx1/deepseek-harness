@@ -45,14 +45,14 @@ export function registerListAgents(ctx: Context): ToolDefinition {
   const definition = defineTool({
     name: 'list_agents',
     description:
-      'List your entire subagent tree: the root agent and all reachable continuable descendants, including yourself. '
-      + 'Rows carry names, descriptions, and status. A descendant\'s name is its path from the root, such as reviewer/checker. '
-      + 'You can message any other agent in the subagent tree. '
-      + 'running means it is working; inactive means no turn is executing; it does not indicate task completion, success, or failure. '
-      + 'corrupt, unsupported, or unavailable means this row\'s own descendants could not be read; the row itself is '
-      + 'still a member you can message. '
-      + 'While you remain active, you will be notified when a direct child finishes; there is no need to keep checking its status. '
-      + 'Use send_message to continue the conversation.',
+      '列出你整棵 subagent 树：root agent 以及所有可达、可续接的后代，包括你自己。'
+      + '每行带有名字、描述与状态。后代的 name 是它从 root 起的路径，例如 reviewer/checker。'
+      + '你可以给树中任何其他 agent 发消息。'
+      + 'running 表示它在工作；inactive 表示没有正在执行的轮次，不代表任务完成、成功或失败。'
+      + 'corrupt、unsupported 或 unavailable 表示这一行自己的后代读不到；该行本身仍是'
+      + '可以发消息的成员。'
+      + '只要你仍然活跃，直接子 agent 完成时会通知你；无需反复查询它的状态。'
+      + '用 send_message 继续对话。',
     parameters: {},
     output: {
       schema: {

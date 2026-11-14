@@ -94,7 +94,7 @@ export function escalationHintMarker(subject: string): string {
  * @returns the parameter description, exactly as the model sees it.
  */
 export function sandboxPermissionsDescription(subject: string): string {
-  return `The narrowest wider sandbox mode for a one-shot retry of the exact ${subject} the sandbox just denied; the retry asks the user for approval.`
+  return `对被沙箱刚刚拒绝的那次 ${subject} 做一次性重试时，可用的最窄的更宽沙箱模式；重试会请求用户批准。`
 }
 
 /**

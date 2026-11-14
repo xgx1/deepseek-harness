@@ -32,7 +32,7 @@ export interface WorkflowPhase {
   detail?: string
   /** Optional provider override this phase is expected to use (informational). */
   provider?: string
-  /** Optional model override this phase is expected to use (informational). */
+  /** 本阶段预期使用的可选模型覆盖（仅作提示）。 */
   model?: string
 }
 
@@ -46,9 +46,9 @@ export interface WorkflowPhase {
 export interface WorkflowMeta {
   /** Short kebab-case workflow name (display + persistence key). */
   name: string
-  /** One-line description of what the workflow does. */
+  /** 一句话说明这个 workflow 做什么。 */
   description: string
-  /** Optional guidance on when this workflow applies (shown in listings). */
+  /** 可选的适用场景说明（显示在列表中）。 */
   whenToUse?: string
   /** Optional phase declarations matched by `phase()` calls. */
   phases?: WorkflowPhase[]

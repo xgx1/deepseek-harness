@@ -789,7 +789,7 @@ describe('read caps are plugin config', () => {
     expect(overCap.isError).toBe(true)
     expect(text(overCap)).toContain('less than or equal to 2')
     const readSchema = ctx.tools.schemas().find(s => s.name === 'read')
-    expect(JSON.stringify(readSchema)).toContain('Defaults to 2.')
+    expect(JSON.stringify(readSchema)).toContain('默认为 2。')
   })
 
   it('a configured readMaxLineLength truncates lines at the configured length', async () => {

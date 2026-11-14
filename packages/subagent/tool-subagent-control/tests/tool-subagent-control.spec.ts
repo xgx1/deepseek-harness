@@ -122,9 +122,9 @@ describe('dsh-tool-subagent-control', () => {
     // The continuable path has no Task, so the schema must not promise one.
     expect(schemas[0]!.description).not.toContain('job_output')
     expect(schemas[0]!.description).not.toContain('job id')
-    expect(schemas[0]!.description).toContain('receives it at its next step')
+    expect(schemas[0]!.description).toContain('会在下一步收到它')
     expect(props.agent).toMatchObject({
-      description: 'The name of another agent in your subagent tree, as shown by list_agents.',
+      description: '你的 subagent 树中另一个 agent 的名字，由 list_agents 显示。',
     })
   })
 
@@ -290,7 +290,7 @@ describe('dsh-tool-subagent-control', () => {
     ctx.systemPrompt.suppressRuntimeContext()
     const available = await ctx.systemPrompt.assemble({ agent: parent, scope: parent })
     expect(available.tools.find(tool => tool.name === 'list_agents')?.description)
-      .toContain('List your entire subagent tree')
+      .toContain('列出你整棵 subagent 树')
     expect(renderContextSnapshot(available)).toContain('要找到你的协作 agent')
     expect(renderContextSnapshot(available)).toContain('要给其它 agent 发消息')
     parent.ctx.tools.restrict({ deny: ['send_message', 'list_agents'] })

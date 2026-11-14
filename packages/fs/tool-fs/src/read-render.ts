@@ -15,9 +15,9 @@ export const READ_MAX_BYTES = 50 * 1024
 
 /** Resolved read window. The consumer applies its defaults/caps before calling. */
 export interface ReadWindow {
-  /** 1-based first line to return. */
+  /** 要返回的起始行，从 1 开始。 */
   offset: number
-  /** Maximum number of lines to return. */
+  /** 返回的最大行数。 */
   limit: number
   /** Maximum characters returned for a single line; overflow is truncated with a suffix. */
   maxLineLength: number

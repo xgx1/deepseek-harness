@@ -327,10 +327,10 @@ export function applyGlobTool(ctx: Context, caps: GlobToolCaps): void {
       pattern: {
         type: 'string',
         required: true,
-        description: 'Glob pattern to match file paths against (e.g. "**/*.ts", "src/**/*.test.js"). '
-          + 'A pattern with no "/" matches the basename at any depth, so "*" and "*.ts" both search the whole tree; include a separator to anchor the depth.',
+        description: '用于匹配文件路径的 glob 模式（例如 "**/*.ts"、"src/**/*.test.js"）。'
+          + '不含 "/" 的模式匹配任意深度的文件名，因此 "*" 与 "*.ts" 都会搜索整棵树；写上分隔符可锚定层级。',
       },
-      path: { type: 'string', description: 'Directory to search in. Defaults to the session workspace; a relative path resolves against it.' },
+      path: { type: 'string', description: '要搜索的目录。默认是会话工作区；相对路径基于它解析。' },
     },
     timeoutMs: caps.timeoutMs,
     output: {

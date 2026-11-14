@@ -390,8 +390,8 @@ describe('registration', () => {
     })
     expect(schema?.parameters.required).toEqual(['description', 'command'])
     const prompt = renderPrompt(await ctx.systemPrompt.assemble())
-    expect(prompt).toContain('Non-zero exits are reported as `[exit code: N]` markers')
-    expect(prompt).toContain('without a signal marker')
+    expect(prompt).toContain('非零退出会以 `[exit code: N]` 标记报告')
+    expect(prompt).toContain('没有信号标记')
   })
 
   it('registers a foreground-only schema without a job registry', async () => {
@@ -649,7 +649,7 @@ describe('sandbox escalation through ctx.approval', () => {
     const schema = ctx.tools.schemas().find(item => item.name === 'pwsh')!
     const properties = schema.parameters.properties as Record<string, { enum?: string[]; description?: string }>
     expect(properties['sandbox_permissions']?.enum).toEqual(['workspace-write', 'danger-full-access'])
-    expect(properties['sandbox_permissions']?.description).toContain('asks the user for approval')
+    expect(properties['sandbox_permissions']?.description).toContain('重试会请求用户批准')
     expect(schema.description).toContain('ConstrainedLanguage')
     expect(schema.description).toContain('workspace-write stays in FullLanguage')
     expect(schema.description).toContain('In both confined modes, programs cannot open named pipes')

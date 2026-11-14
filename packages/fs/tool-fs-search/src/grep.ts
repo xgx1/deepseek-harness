@@ -288,9 +288,9 @@ export function applyGrepTool(ctx: Context, caps: GrepToolCaps): void {
     description: 'Search file contents with a ripgrep regular expression. Returns matching lines with line numbers, grouped by file. '
       + `Returns up to ${caps.maxMatches} matches; a larger result reports where the complete match list was saved.`,
     parameters: {
-      pattern: { type: 'string', required: true, description: 'Regular expression to search for (ripgrep syntax).' },
-      path: { type: 'string', description: 'File or directory to search. Defaults to the session workspace; a relative path resolves against it.' },
-      include: { type: 'string', description: 'One glob filter for which files to search (e.g. "*.ts", "*.{js,jsx}"). Not a list; negation is not supported.' },
+      pattern: { type: 'string', required: true, description: '要搜索的正则表达式（ripgrep 语法）。' },
+      path: { type: 'string', description: '要搜索的文件或目录。默认是会话工作区；相对路径基于它解析。' },
+      include: { type: 'string', description: '一个 glob 过滤器，限定搜索哪些文件（例如 "*.ts"、"*.{js,jsx}"）。不是列表；不支持取反。' },
     },
     timeoutMs: caps.timeoutMs,
     output: {

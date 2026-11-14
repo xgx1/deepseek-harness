@@ -50,8 +50,8 @@ describe('the model-facing markers', () => {
   })
 
   it('the sandbox_permissions description names the family subject', () => {
-    expect(sandboxPermissionsDescription('command')).toBe('The narrowest wider sandbox mode for a one-shot retry of the exact command the sandbox just denied; the retry asks the user for approval.')
-    expect(sandboxPermissionsDescription('operation')).toBe('The narrowest wider sandbox mode for a one-shot retry of the exact operation the sandbox just denied; the retry asks the user for approval.')
+    expect(sandboxPermissionsDescription('command')).toBe('对被沙箱刚刚拒绝的那次 command 做一次性重试时，可用的最窄的更宽沙箱模式；重试会请求用户批准。')
+    expect(sandboxPermissionsDescription('operation')).toBe('对被沙箱刚刚拒绝的那次 operation 做一次性重试时，可用的最窄的更宽沙箱模式；重试会请求用户批准。')
   })
 
   it('the hint marker names the family subject', () => {

@@ -79,8 +79,8 @@ export function applyReadTool(ctx: Context, caps: ReadToolCaps): void {
     description: 'Read a UTF-8 text file and return line-numbered content.',
     parameters: {
       file_path: { type: 'string', required: true, description: 'Path to read, resolved by the filesystem backend.' },
-      offset: { type: 'number', description: '1-based first line to return. Defaults to 1.' },
-      limit: { type: 'number', description: `Maximum number of lines to return. Defaults to ${caps.limit}.` },
+      offset: { type: 'number', description: '要返回的起始行，从 1 开始。默认为 1。' },
+      limit: { type: 'number', description: `返回的最大行数。默认为 ${caps.limit}。` },
     },
     output: {
       schema: {

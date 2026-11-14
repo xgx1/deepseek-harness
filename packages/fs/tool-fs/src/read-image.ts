@@ -83,7 +83,7 @@ const IMAGE_VALUE_SCHEMA = {
 
 /** The structured outcome declared by the `read_image` output schema. */
 export interface ImageReadValue {
-  /** Canonical absolute path in the filesystem provider's execution world. */
+  /** 文件系统 provider 执行世界中的规范绝对路径。 */
   path: string
   image: {
     attachmentId: string

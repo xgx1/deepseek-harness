@@ -43,18 +43,18 @@ export function apply(ctx: Context, config: Config = {}): void {
   const sendMessage = defineTool({
     name: 'send_message',
     description:
-      'Send a message to an agent. A working agent receives it at its next step; an idle agent starts a new turn with it. '
-      + 'Returns delivery confirmation.',
+      '给一个 agent 发消息。工作中的 agent 会在下一步收到它；空闲的 agent 会用它开启新一轮。'
+      + '返回投递确认。',
     parameters: {
       agent: {
         type: 'string',
         required: true,
-        description: 'The name of another agent in your subagent tree, as shown by list_agents.',
+        description: '你的 subagent 树中另一个 agent 的名字，由 list_agents 显示。',
       },
       message: {
         type: 'string',
         required: true,
-        description: 'The message to deliver to the agent.',
+        description: '要投递给该 agent 的消息。',
       },
     },
     output: {

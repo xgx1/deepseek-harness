@@ -435,7 +435,7 @@ export function apply(ctx: Context, config: Config): void {
     // A timed-out wait returns job state rather than a TOOL_TIMEOUT error, so
     // this tool owns its deadline instead of using ToolDefinition.timeoutMs.
     parameters: {
-      job_id: { type: 'string', required: true, description: 'Job id returned by the tool that started the background work.' },
+      job_id: { type: 'string', required: true, description: '启动该后台工作的工具返回的 job id。' },
       wait: { type: 'boolean', description: 'Block until the job finishes or the timeout expires; a timed-out wait leaves the job running. Defaults to false.' },
       timeout_ms: { type: 'number', description: 'Max wait in milliseconds with wait: true. Defaults to and is capped by configuration.' },
     },
@@ -561,7 +561,7 @@ export function apply(ctx: Context, config: Config): void {
     name: 'job_kill',
     description: 'Request cancellation of a running background job.',
     parameters: {
-      job_id: { type: 'string', required: true, description: 'Job id returned by the tool that started the background work.' },
+      job_id: { type: 'string', required: true, description: '启动该后台工作的工具返回的 job id。' },
       reason: { type: 'string', description: 'Optional short reason, recorded in the log and forwarded to the job.' },
     },
     finalizeContent: finalizeJobContent,

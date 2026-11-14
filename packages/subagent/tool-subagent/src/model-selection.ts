@@ -7,7 +7,7 @@ import z from '@deepseek-ai/schemastery'
 
 /** One exact child LLM route authorized by a user setting. */
 export interface AllowedModelRoute {
-  /** Registered LLM provider id. */
+  /** 已注册的 LLM provider id。 */
   readonly provider: string
   /** Provider-owned exact model id. */
   readonly model: string

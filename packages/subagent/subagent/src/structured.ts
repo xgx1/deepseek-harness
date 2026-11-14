@@ -24,9 +24,9 @@ export const STRUCTURED_OUTPUT_TOOL = 'structured_output'
  * tool, as ordinary prompt state of exactly one agent.
  */
 export const STRUCTURED_OUTPUT_INSTRUCTION
-  = 'When you have your final answer, you MUST report it by calling the '
-    + `\`${STRUCTURED_OUTPUT_TOOL}\` tool with arguments matching its parameter schema exactly. `
-    + 'Do not finish with a plain text answer: only the tool call counts as your result.'
+  = '当你得出最终答案时，必须调用 '
+    + `\`${STRUCTURED_OUTPUT_TOOL}\` 工具上报，参数严格符合它的参数 schema。`
+    + '不要用纯文本答案收尾：只有这次工具调用才算你的结果。'
 
 /** One structured run's live handle: read the captured value once the child settles. */
 export interface StructuredAttachment {

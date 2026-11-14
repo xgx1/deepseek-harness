@@ -476,7 +476,7 @@ export type ScheduleCatalogEntry = ScheduleRecord & {
 
 /** Host task creation request. */
 export interface ScheduleCreateRequest {
-  /** Task name of at most 120 characters, non-empty after trimming. */
+  /** 任务名，最长 120 个字符，去掉首尾空白后非空。 */
   readonly title: string
   /** Instruction sent at each occurrence; non-empty after trimming. */
   readonly prompt: string
