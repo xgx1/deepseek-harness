@@ -95,7 +95,7 @@ Choose the command by what the change needs:
 
 | Situation | Command |
 |---|---|
-| Iterating on package sources and needing runnable artifacts | `pnpm run build:artifacts`; `dev:web` and `dev:desktop` run it before launching |
+| Iterating on package sources and needing runnable artifacts | `pnpm run build:artifacts`; `dev:web` and `dev:desktop` run it before launching. A step whose inputs are unchanged since the last successful run is skipped (`--no-cache` runs every step, `--no-desktop` also omits the Desktop bundle) |
 | Type-checking tests, scripts, benchmarks, or website code | `pnpm run build:check` after the latest `build:artifacts`; rerun `build:artifacts` first when package sources changed |
 | Before declaring TypeScript work complete | `pnpm run build:check` after the latest `build:artifacts`, or `pnpm run build` |
 | Complete verification, as the required CI build lanes run it | `pnpm run build` |

@@ -9,9 +9,11 @@
  * and both aggregate programs without bundling.
  */
 
-import { rmSync } from 'node:fs'
-import { resolve } from 'node:path'
+import { readFileSync, readdirSync, rmSync } from 'node:fs'
+import { join, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { parseArgs } from 'node:util'
+import { gateInputHash, writeGateStamp } from './build-cache.ts'
 import {
   CLIENT_BUILD_RECORD_PATH,
   CLIENT_BUILD_PROFILE_SELECTOR,
@@ -40,6 +42,10 @@ export interface BuildArguments {
   readonly profile: string | undefined
   /** Run build steps without overlap, including when a concurrency override is set. */
   readonly serial: boolean
+  /** Rebuild every gate instead of trusting the input stamps of the previous run. */
+  readonly noCache: boolean
+  /** Omit the Desktop bundle, which the Web development loop does not serve. */
+  readonly noDesktop: boolean
 }
 
 /**
@@ -53,6 +59,8 @@ export function parseBuildArguments(args: readonly string[]): BuildArguments {
   const { values } = parseArgs({
     args: [...args],
     options: {
+      'no-cache': { type: 'boolean', default: false },
+      'no-desktop': { type: 'boolean', default: false },
       profile: { type: 'string' },
       scope: { type: 'string' },
       serial: { type: 'boolean', default: false },
@@ -66,7 +74,13 @@ export function parseBuildArguments(args: readonly string[]): BuildArguments {
   if ((scope === 'check' || scope === 'typecheck') && values.profile !== undefined) {
     throw new Error(`build: --profile selects artifact values and does not apply to --scope ${scope}`)
   }
-  return { scope, profile: values.profile, serial: values.serial }
+  return {
+    scope,
+    profile: values.profile,
+    serial: values.serial,
+    noCache: values['no-cache'],
+    noDesktop: values['no-desktop'],
+  }
 }
 
 /**
@@ -164,7 +178,7 @@ async function main(): Promise<number> {
   if (!process.features.typescript) {
     throw new Error('build: Node.js TypeScript type stripping is unavailable in this Node.js process; remove --no-experimental-strip-types from NODE_OPTIONS or use a Node.js build with TypeScript support')
   }
-  const { scope, profile, serial } = parseBuildArguments(process.argv.slice(2))
+  const { scope, profile, serial, noCache, noDesktop } = parseBuildArguments(process.argv.slice(2))
   const root = resolve(import.meta.dirname, '..')
   const name = scope === 'complete' ? 'build' : scope === 'typecheck' ? 'typecheck' : `build:${scope}`
   const budget = defaultParallelism()
@@ -182,8 +196,17 @@ async function main(): Promise<number> {
   const environment = environmentOverlay(process.env, clientBuildProcessEnvironment(process.env, clientEnvironment))
   rmSync(resolve(root, CLIENT_BUILD_RECORD_PATH), { force: true })
   const gates = buildGates(root, scope, environment, serial)
+  if (noDesktop) dropGate(gates, 'desktop-bundle')
+  const inputs = gateInputTrees(root)
+  wrapCachedGates(root, gates, inputs, noCache)
   const exitCode = await runAggregate(name, gates, workers(gates))
   if (exitCode !== 0) return exitCode
+  // Stamped after the whole run: a gate's inputs may be rewritten by a later gate's dependencies
+  // (the Client compiler re-emits shared lib/types after the Host bundle consumed them).
+  for (const gate of gates) {
+    const trees = inputs.get(gate.id)
+    if (trees !== undefined) writeGateStamp(root, gate.id, gateInputHash(root, trees))
+  }
   const record = writeClientBuildRecord(root, clientEnvironment)
   console.log(
     `build: recorded ${String(record.artifacts.fileCount)} client artifact(s) with ${String(Object.keys(record.environment).length)} public value(s)`,
@@ -191,4 +214,98 @@ async function main(): Promise<number> {
   return 0
 }
 
+/** Workspace package directories, `packages/<group>/<name>`. */
+function workspacePackageDirs(root: string): string[] {
+  const dirs: string[] = []
+  const groups = readdirSync(join(root, 'packages'), { withFileTypes: true })
+  for (const group of groups) {
+    if (!group.isDirectory()) continue
+    for (const entry of readdirSync(join(root, 'packages', group.name), { withFileTypes: true })) {
+      if (entry.isDirectory()) dirs.push(`packages/${group.name}/${entry.name}`)
+    }
+  }
+  return dirs
+}
+
+/** Package directories the Client compiler face owns, read from its reference list. */
+function clientPackageDirs(root: string): Set<string> {
+  const text = readFileSync(join(root, 'tsconfig.client.json'), 'utf8')
+  const dirs = new Set<string>()
+  for (const match of text.matchAll(/"path":\s*"\.\/(packages\/[^"]+)"/g)) {
+    // A split package is referenced through its leaf config; the package directory is the owner.
+    const dir = match[1]?.replace(/\/tsconfig(\.[a-z]+)?\.json$/, '')
+    if (dir !== undefined) dirs.add(dir)
+  }
+  if (dirs.size === 0) throw new Error('build: tsconfig.client.json lists no package references')
+  return dirs
+}
+
+/**
+ * File trees each cacheable gate's output depends on. Coarse by design: a tree that does not
+ * exist contributes nothing, so a missing optional artifact costs a cache hit only.
+ */
+function gateInputTrees(root: string): Map<string, readonly string[]> {
+  const packages = workspacePackageDirs(root)
+  const client = clientPackageDirs(root)
+  const host = packages.filter(dir => !client.has(dir))
+  const trees = new Map<string, readonly string[]>()
+  trees.set('host-typert', [...packages.map(dir => `${dir}/src`), 'scripts/generate-typert.ts', 'scripts/typert-faces.ts'])
+  trees.set('host-bundle', [
+    'tsdown.config.ts',
+    // The Host bundle covers every workspace package, so client-face declarations and emitted
+    // JavaScript are inputs here too.
+    ...packages.flatMap(dir => [`${dir}/lib/types`, `${dir}/package.json`]),
+  ])
+  trees.set('desktop-bundle', [
+    'apps/desktop/src', 'apps/desktop/package.json', 'apps/desktop/tsdown.config.ts',
+    ...host.map(dir => `${dir}/lib`),
+  ])
+  trees.set('client-bundle', [
+    'tsdown.config.ts', 'packages/client/tsdown.client.ts',
+    ...[...client].flatMap(dir => [`${dir}/lib/types`, `${dir}/lib/client.js`, `${dir}/package.json`]),
+  ])
+  trees.set('web', [
+    'apps/web/src', 'apps/web/index.html', 'apps/web/vite.config.ts',
+    'apps/web/product-isolation.ts', 'apps/web/katex-fonts.ts', 'apps/web/package.json',
+    ...[...client].flatMap(dir => [`${dir}/lib/client.js`, `${dir}/lib/index.js`]),
+  ])
+  return trees
+}
+
+/** Gate runner that compares input trees before executing, then stamps a successful run. */
+const CACHED_GATE_RUNNER = fileURLToPath(new URL('./build-cached.ts', import.meta.url))
+
+/**
+ * Route cacheable gates through {@link CACHED_GATE_RUNNER}. The decision stays inside the gate
+ * process so it observes what earlier gates wrote in the same build.
+ * @param root - repository root the stamped paths are relative to.
+ * @param gates - gates to wrap in place.
+ * @param inputs - gate id to its input trees; unwrapped ids are not cacheable.
+ * @param bypass - run and stamp every wrapped gate instead of trusting a previous stamp.
+ */
+function wrapCachedGates(
+  root: string,
+  gates: Gate[],
+  inputs: ReadonlyMap<string, readonly string[]>,
+  bypass: boolean,
+): void {
+  for (const gate of gates) {
+    const trees = inputs.get(gate.id)
+    if (trees === undefined) continue
+    const spec = JSON.stringify({ root, id: gate.id, inputs: trees, command: gate.command, args: gate.args })
+    gate.env = { ...gate.env, DSH_BUILD_CACHE_GATE: spec, ...bypass ? { DSH_BUILD_CACHE_DISABLE: '1' } : {} }
+    gate.command = process.execPath
+    gate.args = [CACHED_GATE_RUNNER]
+  }
+}
+
+/** Remove one gate and the dependency edges that named it. */
+function dropGate(gates: Gate[], id: string): void {
+  const index = gates.findIndex(gate => gate.id === id)
+  if (index === -1) return
+  gates.splice(index, 1)
+  for (const gate of gates) {
+    if (gate.needs?.includes(id) === true) gate.needs = gate.needs.filter(need => need !== id)
+  }
+}
 if (import.meta.main) process.exitCode = await main()
