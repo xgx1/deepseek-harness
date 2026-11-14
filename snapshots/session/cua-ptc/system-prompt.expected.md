@@ -31,52 +31,67 @@ create_goal 可以从任何语言的人类直接请求中推断目标意图。�
 
 任务复杂、可拆成多路相互独立的工作时，自行判断是否使用 workflow 工具，不必等用户点名：你写一个 JavaScript 脚本（工具描述里有确切的格式），把工作按阶段扇出到多个子 agent，并汇总结构化结果。只委派一两件事时，用普通的 subagent 调用即可。
 
-独立的委派用 `subagent` 或 `subagent_fork` 在同一条 assistant 消息里一起发起，它们运行时继续做有用的工作。当只剩下等它们的结果时，结束本轮而不是睡眠或轮询；下一条结果会开启新一轮。给出用户最终答复前，先收集完成任务所需的 subagent 结果。
+独立的委派用 subagent 或 subagent_fork 在同一条 assistant 消息里一起发起，它们运行时继续做有用的工作。当只剩下等它们的结果时，结束本轮而不是睡眠或轮询；下一条结果会开启新一轮。给出用户最终答复前，先收集完成任务所需的 subagent 结果。
 
-各个 agent 可能使用不同的工作目录；对共享文件的改动会影响其他 agent。把并行写工作拆到互不重叠的文件或目录范围。bash、格式化器、代码生成器与脚本可能在没有冲突检测的情况下覆盖并发编辑；要显式协调它们的改动。集成这项工作的 agent 必须审查最终 diff 并跑相关测试。
+bash、格式化器、代码生成器与脚本可能在没有冲突检测的情况下覆盖并发编辑；要显式协调它们的改动。集成这项工作的 agent 必须审查最终 diff 并跑相关测试。
 
-用 cua 的 method getCapabilities 和 params {} 检查权限与 sessionLocked。sessionLocked 为 true，或某个操作报 SESSION_LOCKED 时，停止 UI 尝试并请用户解锁 macOS。sessionLocked 为 null 表示没有验证到可用的控制台会话。解锁后重新读取状态；锁屏桌面上的截图不是当前观测。用 listApps 或 cua.getState 发现运行中的应用，用 findApps(query) 按名称、bundle ID 或绝对路径搜索已安装的应用。getApp 在后台启动已停止的应用之前，或对运行中的应用做观测与输入之前，会请求用户同意。访问被拒绝或被撤销后，停止使用该应用，直到用户明确允许再一次授权请求。绝不换工具绕过拒绝。保留返回的 appHandle；每个应用操作都需要它。listWindows 返回窗口 ID 与点边界。raw getState 返回 AX 文本和 snapshotId。菜单栏条目默认显示；includeMenus=true 展开其内容。details=true 追加标识符、全局点边界和完整动作名。这两个选项同样适用于 getAXState。每次读取都会替换该应用/窗口范围内的索引。元素索引只能在那一个 snapshotId 下使用。raw 截图与坐标操作需要 windowId。坐标是最新返回截图里的像素，从它的左上角量起。改用 relative:true 表示 0 到 999 的整数千分比。Host 把两种模式都换算成原生窗口点；AX 详情边界仍是 macOS 全局点。通过验证的窗口也可能没有任何 AX 元素。它的空快照允许截图和坐标输入；元素索引动作需要一个来自新 AX 观测的元素。
+macOS: accessibility tree operations are available at app or window level. Simulated keyboard input is available at app level. Simulated mouse input is available at window level. pressKey, click, and drag accept command, control (or ctrl), option (or alt), shift, and fn. pressKey also accepts cmd for command. For pointer input on a sheet, select its window ID with app.getWindow(id). For menu items outside a window, use app.invoke(id). findApps searches /Applications, /System/Applications, and ~/Applications. Use the Computer Use permission page to grant the helper application Accessibility and Screen Recording permissions in System Settings. Native window and AX bounds use macOS points, while delivered screenshots carry their own pixel dimensions. show does not switch Spaces, and Stage Manager can present reduced window geometry; explain any required foreground step before calling app.activate() or performing an advertised AXRaise action.
 
-在持久 PTC 中初始化一次对象 API。后续调用复用它提供的变量；把临时声明放进 { ... } 块，避免重复声明错误。所有对象方法都是 async。getAXState 返回文本，不是结构化的状态对象。该文本把值和占位符分开，并在可用时报告子角色、help、URL、禁用/聚焦/选中/展开状态和 UTF-16 选区范围。相关控件上的可写性是 true、false 或 unknown；省略的状态字段并不表示 false。selection=unavailable 表示所报告的范围超出了观测到的文本。紧凑输出省略普通的 Press/Pick（点击）、ShowMenu（右键）和 ScrollToVisible 动作；details=true 列出全部可用动作。把显示出来的动作名交给 performSecondaryAction 使用；有歧义的别名需要 details=true 里的完整名称。截断表示已到达 provider 上限。再次读取前收窄窗口或提高那一个 provider 上限。
+Use cua to observe and operate native applications. Always use cua.getCapabilities() to confirm whether a specific API is available on the current platform; its reported capabilities take precedence over availability statements in these instructions. All methods are async. Actions report dispatch evidence, not verified completion. If sessionLocked is true or an operation reports SESSION_LOCKED, stop UI actions and ask the user to unlock the desktop session; null or unknown means verify a usable unlocked desktop session first. cua.getApp requests user consent; if access is denied or revoked, stop using that application until the user explicitly permits another request, and never bypass a refusal or switch tools to avoid it. Never replay uncertain input without a fresh observation.
 
-单窗口任务直接用 app 方法；getApp 已经读取了初始 AX 状态。只有要指定某个窗口，或要消解窗口选择上的歧义时，才调用 app.getWindows() 并 await app.getWindow(windowId)。应用级截图和坐标动作使用最新的 AX 观测：它聚焦的、在屏的、尺寸非零的窗口，否则就是唯一这样的窗口。它们不会自动刷新焦点。要跟随焦点变化，读 app.getAXState()。
+Call inspect(...values) to display selected observation results.
 
-CuaScreenshot 为 { bytes: Uint8Array, mimeType: "image/png" | "image/jpeg" | "image/webp" | "image/gif", pixelWidth: number, pixelHeight: number, windowId: number }。用 mimeType 选择文件扩展名或声明图片；不要假定它是 PNG。
+Signatures show resolved return values after await. ActionResult = { dispatched: boolean, foregroundChanged?: boolean | null }; foregroundChanged is omitted when not sampled and null when the sample is unavailable. JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue }; numbers must be finite. App is the application object with readonly app.appHandle: string (opaque) and the methods listed below for app level. Window is the window object with readonly window.windowId: string and the methods listed below for window level. Window IDs are opaque provider-issued strings; preserve them verbatim.
 
-对象 API 签名（options 默认为 { emit: true }）：
+Supported modifier names depend on the platform and the operation; see the platform guidance.
 
-- cua.getCapabilities(options?) -> { platform, permissions, sessionLocked, methods, coordinateSpace, browser }
-- cua.listApps(options?) -> Array<{ id, displayName, isRunning: true, pid }>
-- cua.findApps(query: string, options?) -> Array<{ id, displayName, path, isRunning, pid? }>
-- cua.getState(options?) -> { apps, browsers: [] }
-- cua.getApp(selector: string) -> App
-- app.activate() -> { dispatched: true, verified: false }
-- app.getWindows(options?) -> Array<{ windowId, pid, appName, title, bounds, isOnScreen, onCurrentSpace }>
-- app.getWindow(windowId: number) -> Window
-- app.typeText(text: string), app.pressKey(chord: string) -> action result
-- app.paste(text: string, options?: { format?: "text" | "html" }) -> action result
+Setup and discovery:
+- cua.getCapabilities() -> { platform: string, permissions: { accessibility: boolean, screenRecording: boolean }, appLevelAccessibility: boolean, systemPointer: boolean, keyboard: ('app' | 'window')[], sessionLocked: boolean | null, methods: string[], coordinateSpace: 'screenshot-pixels', browser: false } — inspect reported permissions, sessionLocked, methods, and keyboard scopes without requesting permissions.
+- cua.listApps() -> { id: string, displayName: string, isRunning: boolean, pid?: number }[] — list applications the provider exposes for selection with their current running state; pass the returned id unchanged to cua.getApp. Each row represents one running process. To select one of several instances with the same name or bundle ID, pass String(row.pid) to cua.getApp.
+- cua.findApps(query: string) -> { id: string, displayName: string, path: string, isRunning: boolean, pid?: number }[] — search installed applications, including stopped matches. Running installation matches include their process ID. Stopped matches have no pid.
+- cua.getState() -> { apps: { id: string, displayName: string, isRunning: boolean, pid?: number }[], browsers: [] } — summarize the same provider discovery; this is not an accessibility observation.
+- cua.getApp(selector: string) -> App — select an application by provider-issued discovery ID, name, bundle ID, or absolute path where supported, obtain consent, start a stopped application in the background only where the provider supports launch, and return without reading AX or activating the app.
+- app.getWindows() -> { windowId: string, appName: string, title: string, bounds: { x: number, y: number, width: number, height: number }, isOnScreen: boolean, onCurrentSpace: boolean | null }[] — enumerate windows with global native bounds; null onCurrentSpace means unknown Space membership.
+- app.getWindow(windowId: string) -> Window — select a window by an ID from getWindows without reading AX. Providers reject closed or foreign windows when operating on them.
+- app.activate() -> ActionResult — request explicit foreground activation; use only when foreground access is required.
+- app.show() -> { dispatched: boolean, windowId: string | null, foregroundChanged: boolean | null } — unhide the app and restore its selected, focused, main, or sole window without activation.
+- window.show() -> { dispatched: boolean, windowId: string | null, foregroundChanged: boolean | null } — unhide and restore that explicit window without activation.
 
-App 与 Window 方法：
+## Accessibility tree
+Available at app or window level depending on the platform.
 
-- show() -> { dispatched: true, verified: false, windowId: number | null, foregroundChanged: boolean | null }
-- getAXState(options?: { emit?: boolean, disableDiffing?: boolean, includeMenus?: boolean, details?: boolean }) -> string
-- getScreenshot(options?: { emit?: boolean }) -> CuaScreenshot
-- getAXStateAndScreenshot(options?) -> { state: string, screenshot: CuaScreenshot }
-- hover(target: number | [x, y], options?: { relative?: boolean }) -> { dispatched, verified, hoverRoute, systemPointerMoved }
-- click(target: number | [x, y], options?: { mouseButton?: "left" | "right" | "middle", clickCount?: 1 | 2, holdMs?: number, modifiers?: Array<"command" | "control" | "option" | "shift" | "fn">, relative?: boolean }) -> action result
-- setValue(elementIndex: number, value: string) -> action result
-- selectText(elementIndex: number, text: string, options?: { prefix?: string, suffix?: string, selectionType?: "text" | "cursor_before" | "cursor_after" }) -> action result
-- performSecondaryAction(elementIndex: number, action: string) -> action result
-- scroll({ x, y, deltaLinesX, deltaLinesY, relative? }) -> action result
-- drag(from: [x, y], to: [x, y], options?: { mouseButton?: "left" | "right" | "middle", modifiers?: Array<"command" | "control" | "option" | "shift" | "fn">, relative?: boolean }) -> action result
+Read getAccessibilityTree explicitly before using element ids. Selection and screenshots do not read or replace the current AX snapshot. Element ids are opaque strings from the latest successful tree; the object facade keeps one current snapshot per app across its repeated app and window objects, a new read replaces it, and a failed read invalidates the previous one. Repeated strings can appear for different elements, so do not reuse an old id blindly, and element operations do not fall back to pointer input or typing.
+- getAccessibilityTree(options?: { includeMenus?: boolean, details?: boolean, maxElements?: number, maxDepth?: number }) -> string — set the node count or depth for one read. Omitted limits use the provider settings. includeMenus expands menu contents and details adds identifiers, native bounds, and complete action names. macOS accepts maxElements up to 100000 and maxDepth up to 512. If the tree is truncated, select a narrower window or raise the reported limit on the next read. In persistent PTC, capture a large tree with const tree = await win.getAccessibilityTree(). Filter its lines in memory, or save it with await tools.write({ file_path: path, content: tree }) to a new workspace file. Search its contents with tools.grep({ path, pattern }) and use tools.read around a matching line. Use inspect to display the matches you need. Use element ids from the file only while that observation is current.
+- listActions(elementId: string) -> string[] — list the actions an element advertises.
+- invoke(elementId: string) -> ActionResult — invoke the element's default action; dispatched is false when it has none.
+- performAction(elementId: string, action: string, argument?: JsonValue) -> ActionResult — perform an observed action with an optional direct JSON argument.
+- setValue(elementId: string, value: JsonValue) -> ActionResult — write a control value.
+- selectText(elementId: string, text: string, options?: { prefix?: string, suffix?: string, selectionType?: 'text' | 'cursor_before' | 'cursor_after' }) -> ActionResult — select one literal occurrence or place the cursor beside it, using adjacent context to disambiguate.
 
-raw 操作工具用 { method, params }，无参数方法也要给 params: {}。getApp 只选择应用，不激活它。让应用留在后台做观测和常规输入。不要在初始化时、每次动作之前、或仅仅因为另一个应用在前台就激活或提升某个应用。优先用应用声明出来的 AX 动作。窗口被隐藏或最小化时，先试 app.show() 或 window.show()，再读新状态。show 请求取消隐藏和取消最小化，但不激活、不提升、也不切换空间；它按显式指定、聚焦中、主窗口、唯一 AX 窗口的顺序选择窗口。windowId 为 null 表示没有选中任何窗口可供恢复。foregroundChanged 比较请求前后的前台应用和顶层窗口；null 表示不可用，延迟的焦点变化仍可能发生。如果不支持恢复，或窗口仍不可用（包括位于另一个空间或处于台前调度），说明所需的前台步骤，用 app.activate() 或声明的提升动作，再读新状态。需要前台访问时以完成任务为先。用户切走后避免反复激活；继续做能在后台完成的步骤，并报告哪些步骤需要前台访问。应用仍可能响应输入而改变焦点。
+## Simulated mouse
+Leave useSystemPointer unset for ordinary mouseMove and drag calls, even after approval. Prefer selectText for a supported text range and ordinary window-directed drag for a draggable control. If the effect is unclear, inspect the window before choosing another action. Request the system pointer only when the user explicitly asks for it or the intended effect requires it.
 
-按顺序 await 每一个操作。输入之后重新读取状态以验证效果。动作成功只表示已派发，不表示已验证完成。取消可能留下部分效果；没有观测之前绝不重试不确定的输入。STALE_APP 需要重新 getApp；STALE_SNAPSHOT 需要重新 getState。绝对坐标输入需要该窗口的新截图。相对输入可以使用一次成功的 AX 观测或截图。SCREENSHOT_REQUIRED 表示用像素坐标前要先截取新截图。click 与 hover 的坐标目标必须是 [x, y]，例如 hover([650, 400], {relative:true})。像 hover(650) 这样的裸数字永远是 AX 元素索引。relative 选项只作用于坐标目标，不作用于 AX 索引。最新观测之后窗口尺寸被改变会拒绝坐标输入；只是移动窗口则保留窗口内坐标。WINDOW_CHANGED 要求重试前先取新状态；用声明的 AX 动作，或显式恢复该窗口，再做截图或坐标输入，然后重新观测。PERMISSION_DENIED 需要用户授予 macOS 辅助功能或屏幕录制所需的系统权限。授权之后先观测新状态再继续；不要自动重放先前的输入。
+Use an explicit window for screenshots and pointer input. Before coordinate input, including relative coordinates, obtain a successful getAccessibilityTree observation covering that window or take its screenshot. Absolute pixel coordinates require a returned screenshot.
+- getScreenshot() -> Image — capture the selected window as a stored image with readonly attachmentId, path, width, and height. Pass selected screenshots to inspect(...values) to display them; read the window ID from window.windowId.
+- mouseMove(target: string | [number, number], options?: { relative?: boolean, useSystemPointer?: boolean }) -> { dispatched: boolean, foregroundChanged?: boolean | null, hoverRoute: 'accessibility' | 'system-pointer', systemPointerMoved: boolean } — request a mouse move to the target without pressing a button; inspect hoverRoute and systemPointerMoved, and expect no automatic pointer restoration. With useSystemPointer omitted or false, macOS uses accessibility hover without asking for mouse control. This requires both AXShowAlternateUI and AXShowDefaultUI on an enabled element or ancestor. Without that route, HOVER_UNAVAILABLE is returned before sending input. Physical movement requires an unobscured foreground target. Explain any necessary activation and observe the target again.
+- click(target: string | [number, number], options?: { mouseButton?: 'left' | 'right' | 'middle', clickCount?: 1 | 2, modifiers?: Modifier[], holdMs?: number, relative?: boolean }) -> ActionResult — click an element id or point, or perform a left-button double-click; holdMs controls the press duration of each press. click is a Window method: select a window with const win = await app.getWindow(windowId), then call win.click(target). For a background control’s default action, use app.invoke(id). For a mouse click on a background app, call app.activate() first and re-read the target. Both target forms send mouse-down and mouse-up events. click(id) uses the center of the full element bounds. If that center is outside the window, take a fresh win.getScreenshot() and use click([x, y]) on a visible part of the control in screenshot pixels. A background app can ignore the events even when dispatched is true. Verify the expected effect, such as a changed selection, before typing or retrying.
+- scroll(options: { x: number, y: number, deltaLinesX: number, deltaLinesY: number, relative?: boolean }) -> ActionResult — scroll at a point; deltas are integers from -10 to 10 with at least one nonzero, and positive values reveal content above or left.
+- drag(from: [number, number], to: [number, number], options?: { mouseButton?: 'left' | 'right' | 'middle', modifiers?: Modifier[], relative?: boolean, useSystemPointer?: boolean }) -> ActionResult — drag between two points of one window. Omitting useSystemPointer or passing false directs the drag to the window without asking for mouse control. An explicit system drag shares the session decision with mouseMove and holds the chosen button along the path in the unobscured foreground window.
 
-hover 先走应用声明出来的 AX 备用 UI，不移动系统光标，并把展开的后代保留到指针目标离开它们的区域。不可用时，它移动可见的系统光标但不按下任何按键；这条路径要求目标点在前台应用中未被遮挡。FOREGROUND_REQUIRED 需要显式激活或提升，并重新观测之后才能重试。移回、AX 读取和截图都不会恢复上一次的位置。等应用的悬停延迟过去，观测，再 hover 进入展开的控件之后才点击。中间点用连续的 hover 调用。结果里报告 hoverRoute 与 systemPointerMoved。其他输入或应用变化可能打断这次交互；app 对象在调用之间不占用应用。
+A string target is an element id; coordinate targets are [x, y] and are pixels in the latest returned screenshot by default. With relative: true they are integer thousandths of the window width and height from 0 to 999, based on the current AX observation or screenshot. Left clicks support one or two presses; right and middle clicks support one. FOREGROUND_REQUIRED means explain the need, then explicitly activate the target and observe again; activation is never automatic. Read fresh state after actions, and treat WINDOW_CHANGED, STALE_SNAPSHOT, and SCREENSHOT_REQUIRED as requiring the stated fresh observation or capture before any retry.
 
-只在声明了 selectionWritable 的控件上使用 selectText。它选中唯一一处字面量出现位置，或把光标放到它之前/之后；prefix 与 suffix 必须紧邻。AMBIGUOUS_TEXT 需要更多上下文；TEXT_NOT_FOUND 或 SELECTION_CHANGED 需要先重新观测再决定输入。左键支持单击/双击；右键和中键只支持单击。带修饰键的点击使用指针输入。可选的 holdMs 是每次按下（双击的每一次按下都算）的非负整数毫秒数。0 表示不再额外保持就释放。配置的最大值写在下文。即使目标是 AX 元素也走指针输入；省略则保持普通点击。操作期限仍然有效，取消或超时会释放按住的键。KP_0、KP_Enter 这类小键盘名称保留其物理键身份。Window 对象提供观测与指针/AX 动作；键盘输入仍属于 app 作用域，并跟随当前焦点。滚动增量是 -10 到 10 的整数行；正值显示上方或左侧的内容。Paste 通过应用已启用的标准 Paste 菜单命令送达纯文本或 HTML。Paste 跟随目标应用聚焦的文本输入。前台要求因应用而异；例如观察到的 ChatGPT/Codex 接受后台 Paste 而不读取剪贴板数据。PASTE_NOT_CONSUMED 表示命令已派发，但在配置的期限内没有观测到剪贴板读取。检查目标内容，显式激活应用并聚焦预期输入，再观测，然后决定是否重试；延迟的粘贴仍可能执行。剪贴板仍属于这次粘贴时，原有格式会被恢复；之后的复制会被保留。不支持的 Paste 命令直接失败，不会退回逐字输入。CLIPBOARD_CHANGED 表示有别的写入方介入；决定进一步输入前先观测。浏览器应用可以像其他原生应用一样用 getApp 控制；浏览器标签页不可用。已安装应用搜索覆盖标准 macOS 应用目录；其他位置请用绝对应用路径。启动不恢复窗口或文档，取消时应用可能已经启动。执行宿主必须安装对象 API 并负责变量持久化；本插件不预加载 cua 全局。在持久 PTC 中，先执行一次下面由宿主提供的初始化片段。它由安装目录提供的文件 URL 与项目目录无关。在调用之间保留 app 对象。观测方法默认 emit，同时也返回其值。用 void await app.getAXState() 避免 REPL 重复补全，或传 emit:false 后把返回的文本打印一次。截图调用以 void await app.getScreenshot() 或 void await app.getAXStateAndScreenshot() 结尾，这样图片字节不会被当作程序完成值序列化。
+## Simulated keyboard
+Available at app or window level depending on the platform.
+- typeText(text: string) -> ActionResult — type literal text at the app's current focus; line endings send Return and tabs send Tab.
+- paste(text: string, options?: { format?: 'text' | 'html' }) -> ActionResult — deliver text or HTML through the app's Paste command, restoring prior clipboard contents unless another writer changes them; a Paste failure is surfaced without substituting typeText, and PASTE_NOT_CONSUMED means inspect before any retry.
+- pressKey(key: string, modifiers?: Modifier[]) -> ActionResult — press and release one complete keystroke. For example pressKey('Tab', ['shift']) or pressKey('+'). Key names are platform-defined strings. Pass key and modifiers separately; do not pack them into a chord string.
+- sendKeyEvent(key: string, direction: 'down' | 'up') -> ActionResult — send one key-down or key-up event; key accepts a single key name, including a modifier. Send 'down' to hold a key across tool calls in one program, for example W down, D down, D up, W up. Holding a key on a physical keyboard can produce repeated key-down events after a delay. To send one such repeat for a non-modifier key this run already holds, send 'down' again. Each call posts one event. A control can filter repeats. Use the app's response to decide whether and when to repeat or release the key. When this program returns, throws, or the user pauses it, macOS releases only its remaining keys at their original recipients.
+
+Raw tools use { method, params }: include appHandle for app calls and windowId for window calls, and use snapshotId with elementId for element routes. getAccessibilityTree maps to getState; getWindow has no raw method; getWindows maps to listWindows; getScreenshot maps to screenshot; cua.getState maps to listApps; every other named operation uses the same method name.
+
+Only if the task cannot be completed without moving the user’s pointer, call await win.mouseMove(target, { useSystemPointer: true }). Prefer an advertised accessibility action, a click on a visible control, or browser tools when possible. The question interrupts the user. When approval is disabled an explicit move can act immediately. Pass true on every physical move, even after approval. Omitting the option or passing false uses the default hover route without prompting. Approval or refusal lasts until this session closes or DSH restarts. A refusal sends no input. If the user dismisses the request, ask again only if they request it. Wait for an outstanding request to finish. Subagents cannot request physical movement.
+
+AX 读取默认值：maxElements=5000，maxDepth=50。
 
 最大点击 holdMs：5000 ms。
 
@@ -84,14 +99,14 @@ hover 先走应用声明出来的 AX 备用 UI，不移动系统光标，并把�
 
 `run_code` 有两个必填参数：`code`，异步 TypeScript 函数的函数体（只接受可擦除语法——不能有 `enum` 或 namespace；类型标注仅供参考，执行时会剥离）；`description`，一句话说明这个程序做什么。下面声明的类型是这个程序的 SDK 绑定；声明本身不会让名字变成可直接调用的工具，只有另外以工具 schema 形式提供的名字才能直接调用。 当没有单独提供 `bash` 工具 schema 时，在 `run_code` 里调用声明的 `bash` 绑定：
 
-`run_code({ code: "return await tools.bash({ description: 'Show current directory', command: 'pwd' })", description: "Show current directory" })`
+`run_code({ code: "inspect(await tools.bash({ description: 'Show current directory', command: 'pwd' }))", description: "Show current directory" })`
 
 在程序内部：
 
-- 用 `await tools.name(args)` 调用工具——名字含特殊字符时用带引号的写法：`tools["my-tool"](args)`。每次调用都返回该工具的类型化 JSON 结果；工具参数必须是无损 JSON。
+- 用 `await tools.name(args)` 调用工具——名字含特殊字符时用带引号的写法：`tools["my-tool"](args)`。每次调用都返回该工具声明的值，可能是一个 Image 对象；工具参数必须是无损 JSON。
 - 工具调用失败会抛出 `ToolCallError`，`toolName` 指出失败的工具，`message` 是给人看的说明——用 `try/catch` 接住并继续。
 - 相互独立的只读调用可以放在 `Promise.all` 里并发（只读调用并发执行，写调用单独执行、按提交顺序）；有依赖的步骤用 `await` 串起来。
-- 用 `return` 和/或 `console.log(...)` 输出结果；只有你打印或返回的内容才是程序输出。 工具结果里带图片时，会在程序结束后作为附件给你，方便下一步查看；其余中间结果都不进对话，只取你需要的部分。
+- 用 `inspect(...values)` 显示选中的值和图片；其余中间结果都不进对话，只取你需要的部分。
 - 能一起做的调用尽量放进同一个程序批量发起，省 token 和上下文；不要一个调用跑一次程序。
 
 仅存在于程序里的 SDK 绑定：
@@ -99,14 +114,18 @@ hover 先走应用声明出来的 AX 备用 UI，不移动系统光标，并把�
 ```ts
 type JsonValue = null | boolean | number | string | JsonValue[] | { [key: string]: JsonValue }
 
+declare class Image { private constructor(); readonly attachmentId: string; readonly path: string; readonly width: number; readonly height: number; }
+
+declare function inspect(...values: unknown[]): void;
+
 interface ToolArgsMap {
   /** Create, update, delete, or move UTF-8 text files with one patch; prefer it over multiple edit calls when a change spans several files or separated regions. */
   apply_patch: {
     /** Patch text: start with *** Begin Patch and end with *** End Patch. Use *** Add File: path with + lines; *** Update File: path, optionally followed by *** Move to: path, with @@ or @@ context and space-prefixed context, + added, or - removed lines; *** End of File anchors the last hunk to the file end. Use *** Delete File: path to delete. Paths are relative to the Session working directory. */
     input: string;
-    /** The narrowest wider sandbox mode for a one-shot retry of the exact operation the sandbox just denied; the retry asks the user for approval. */
+    /** 对被沙箱刚刚拒绝的那次 operation 做一次性重试时，可用的最窄的更宽沙箱模式；重试会请求用户批准。 */
     sandbox_permissions?: "workspace-write" | "danger-full-access";
-    /** Required with sandbox_permissions: one sentence for the user explaining why this exact file operation needs the wider access. Use the language of the user’s current request. */
+    /** 与 sandbox_permissions 一起使用时必填：用一句话向用户说明 这次文件操作为什么需要更宽的访问权限。使用用户当前请求的语言。 */
     justification?: string;
   } & Record<string, JsonValue>;
   /** 执行 bash 命令（`bash -c`）并返回其 stdout/stderr。每次调用都在全新 shell 中运行；请传入 `workdir` 而非使用 `cd`。受管的 `$DSH_*` 变量暴露当前 harness 环境信息。长输出会截断为尾部；完整输出保存到文件，可用时报告其路径。在参数中先提供 `description` 再提供 `command`。任何删除或移动前，请确认解析后的绝对目标路径正是预期路径；切勿对未经检查的计算路径执行。未设置的变量会展开为空字符串，因此此类路径中的变量请用 `${VAR:?}` 防护。命令可能在文件沙箱下运行；被阻止的文件操作会报告为 `[sandbox: file access denied under <mode> mode]`，即策略拒绝：不要换方式重试。 */
@@ -121,7 +140,7 @@ interface ToolArgsMap {
     workdir?: string;
     /** 在后台运行并立即返回作业 id（用 job_output 收集，用 job_kill 停止）。不适用超时。 */
     run_in_background?: boolean;
-    /** The narrowest wider sandbox mode for a one-shot retry of the exact command the sandbox just denied; the retry asks the user for approval. */
+    /** 对被沙箱刚刚拒绝的那次 command 做一次性重试时，可用的最窄的更宽沙箱模式；重试会请求用户批准。 */
     sandbox_permissions?: "workspace-write" | "danger-full-access";
     /** Required with sandbox_permissions: one sentence for the user explaining why this exact command needs the wider access. Use the language of the user’s current request. */
     justification?: string;
@@ -133,7 +152,7 @@ interface ToolArgsMap {
     /** 可选的自动续轮次数上限，须为正安全整数。 */
     max_goal_rounds?: number;
   } & Record<string, JsonValue>;
-  /** 检查 macOS 权限，选择应用与窗口，读取 AX 状态，截图或派发输入。用 getApp 返回的 appHandle；靠读取新状态验证动作。 */
+  /** 检查桌面访问权限，选择应用与窗口，读取 AX 状态，截图或派发输入。用 getApp 返回的 appHandle；靠读取新状态验证动作。 */
   cua: unknown;
   /** 通过替换字面文本编辑现有 UTF-8 文本文件。 */
   edit: {
@@ -145,37 +164,32 @@ interface ToolArgsMap {
     new_string: string;
     /** 替换所有匹配项。默认为 false；为 false 时，old_string 必须恰好出现一次。 */
     replace_all?: boolean;
-    /** The narrowest wider sandbox mode for a one-shot retry of the exact operation the sandbox just denied; the retry asks the user for approval. */
+    /** 对被沙箱刚刚拒绝的那次 operation 做一次性重试时，可用的最窄的更宽沙箱模式；重试会请求用户批准。 */
     sandbox_permissions?: "workspace-write" | "danger-full-access";
-    /** Required with sandbox_permissions: one sentence for the user explaining why this exact file operation needs the wider access. Use the language of the user’s current request. */
+    /** 与 sandbox_permissions 一起使用时必填：用一句话向用户说明 这次文件操作为什么需要更宽的访问权限。使用用户当前请求的语言。 */
     justification?: string;
   } & Record<string, JsonValue>;
   /** 读取当前会话目标，包括 update_goal 所需的 id 和 revision。 */
   get_goal: Record<string, JsonValue>;
   /** Find files, not directories, whose paths match a glob pattern, including hidden and ignored files. Returns up to 100 paths in modification-time order; a larger result keeps the first paths and reports where the complete list was saved. */
   glob: {
-    /** Glob pattern to match file paths against (e.g. "**\/*.ts", "src/**\/*.test.js"). A pattern with no "/" matches the basename at any depth, so "*" and "*.ts" both search the whole tree; include a separator to anchor the depth. */
+    /** 用于匹配文件路径的 glob 模式（例如 "**\/*.ts"、"src/**\/*.test.js"）。不含 "/" 的模式匹配任意深度的文件名，因此 "*" 与 "*.ts" 都会搜索整棵树；写上分隔符可锚定层级。 */
     pattern: string;
-    /** Directory to search in. Defaults to the session workspace; a relative path resolves against it. */
+    /** 要搜索的目录。默认是会话工作区；相对路径基于它解析。 */
     path?: string;
   } & Record<string, JsonValue>;
   /** Search file contents with a ripgrep regular expression. Returns matching lines with line numbers, grouped by file. Returns up to 250 matches; a larger result reports where the complete match list was saved. */
   grep: {
-    /** Regular expression to search for (ripgrep syntax). */
+    /** 要搜索的正则表达式（ripgrep 语法）。 */
     pattern: string;
-    /** File or directory to search. Defaults to the session workspace; a relative path resolves against it. */
+    /** 要搜索的文件或目录。默认是会话工作区；相对路径基于它解析。 */
     path?: string;
-    /** One glob filter for which files to search (e.g. "*.ts", "*.{js,jsx}"). Not a list; negation is not supported. */
+    /** 一个 glob 过滤器，限定搜索哪些文件（例如 "*.ts"、"*.{js,jsx}"）。不是列表；不支持取反。 */
     include?: string;
-  } & Record<string, JsonValue>;
-  /** Ask a subagent to stop its current work. This call returns without waiting for it to stop. You can continue a local subagent's conversation later with send_message. External executions stop permanently and cannot receive follow-ups. Subagents it started will keep running. */
-  interrupt_agent: {
-    /** The name of an agent created under you: your direct child or a deeper descendant. */
-    agent: string;
   } & Record<string, JsonValue>;
   /** 请求取消正在运行的后台任务。 */
   job_kill: {
-    /** 启动后台工作的工具返回的任务 id。 */
+    /** 启动该后台工作的工具返回的 job id。 */
     job_id: string;
     /** 可选的简短原因，记录到日志并转发给该任务。 */
     reason?: string;
@@ -184,22 +198,22 @@ interface ToolArgsMap {
   job_list: Record<string, JsonValue>;
   /** 读取后台任务：流式任务返回自上次读取以来的输出，或已结束的最终输出任务的结果。 */
   job_output: {
-    /** 启动后台工作的工具返回的任务 id。 */
+    /** 启动该后台工作的工具返回的 job id。 */
     job_id: string;
     /** 阻塞直到作业完成或超时；等待超时会保留作业继续运行。默认为 false。 */
     wait?: boolean;
     /** 配合 wait: true 使用的最长等待毫秒数。默认值及上限由配置决定。 */
     timeout_ms?: number;
   } & Record<string, JsonValue>;
-  /** List your entire subagent tree: the root agent and all reachable continuable descendants, including yourself. Rows carry names, descriptions, and status. A descendant's name is its path from the root, such as reviewer/checker. You can message any other agent in the subagent tree. running means it is working; inactive means no turn is executing; it does not indicate task completion, success, or failure. corrupt, unsupported, or unavailable means this row's own descendants could not be read; the row itself is still a member you can message. While you remain active, you will be notified when a direct child finishes; there is no need to keep checking its status. Use send_message to continue the conversation. */
+  /** 列出你整棵 subagent 树：root agent 以及所有可达、可续接的后代，包括你自己。每行带有名字、描述与状态。后代的 name 是它从 root 起的路径，例如 reviewer/checker。你可以给树中任何其他 agent 发消息。running 表示它在工作；inactive 表示没有正在执行的轮次，不代表任务完成、成功或失败。corrupt、unsupported 或 unavailable 表示这一行自己的后代读不到；该行本身仍是可以发消息的成员。只要你仍然活跃，直接子 agent 完成时会通知你；无需反复查询它的状态。用 send_message 继续对话。 */
   list_agents: Record<string, JsonValue>;
   /** 读取 UTF-8 文本文件并返回带行号的内容。 */
   read: {
     /** 要读取的路径，由文件系统后端解析。 */
     file_path: string;
-    /** 要返回的起始行（从 1 开始）。默认为 1。 */
+    /** 要返回的起始行，从 1 开始。默认为 1。 */
     offset?: number;
-    /** 要返回的最大行数。默认为 2000。 */
+    /** 返回的最大行数。默认为 2000。 */
     limit?: number;
   } & Record<string, JsonValue>;
   /** 读取 PNG/JPEG/WebP/GIF 文件并返回图像本身。大图像会自动缩小；不要安装图像库或创建缩略图来检查图像。 */
@@ -207,11 +221,11 @@ interface ToolArgsMap {
     /** 图像文件路径，由文件系统后端解析。 */
     file_path: string;
   } & Record<string, JsonValue>;
-  /** Send a message to an agent. A working agent receives it at its next step; an idle agent starts a new turn with it. Returns delivery confirmation. */
+  /** 给一个 agent 发消息。工作中的 agent 会在下一步收到它；空闲的 agent 会用它开启新一轮。返回投递确认。 */
   send_message: {
-    /** The name of another agent in your subagent tree, as shown by list_agents. */
+    /** 你的 subagent 树中另一个 agent 的名字，由 list_agents 显示。 */
     agent: string;
-    /** The message to deliver to the agent. */
+    /** 要投递给该 agent 的消息。 */
     message: string;
   } & Record<string, JsonValue>;
   /** 加载技能的完整说明。在对会话技能目录中命名或明显匹配某技能的任务采取行动前调用它。 */
@@ -321,9 +335,9 @@ interface ToolArgsMap {
     file_path: string;
     /** 要写入的完整 UTF-8 文本内容。 */
     content: string;
-    /** The narrowest wider sandbox mode for a one-shot retry of the exact operation the sandbox just denied; the retry asks the user for approval. */
+    /** 对被沙箱刚刚拒绝的那次 operation 做一次性重试时，可用的最窄的更宽沙箱模式；重试会请求用户批准。 */
     sandbox_permissions?: "workspace-write" | "danger-full-access";
-    /** Required with sandbox_permissions: one sentence for the user explaining why this exact file operation needs the wider access. Use the language of the user’s current request. */
+    /** 与 sandbox_permissions 一起使用时必填：用一句话向用户说明 这次文件操作为什么需要更宽的访问权限。使用用户当前请求的语言。 */
     justification?: string;
   } & Record<string, JsonValue>;
 }
@@ -403,7 +417,7 @@ interface ToolOutputMap {
     };
     activation: "armed" | "disarmed";
   };
-  cua: JsonValue;
+  cua: Image | JsonValue;
   edit: {
     /** 文件系统执行世界中的规范绝对路径。 */
     path: string;
@@ -437,9 +451,6 @@ interface ToolOutputMap {
       lineNumber: number;
       line: string;
     }[];
-  };
-  interrupt_agent: {
-    accepted: boolean;
   };
   job_kill: {
     outcome: "cancellation-requested" | "already-finished";
@@ -489,22 +500,7 @@ interface ToolOutputMap {
     }[];
     totalLines: number;
   };
-  read_image: {
-    /** 文件系统执行世界中的规范绝对路径。 */
-    path: string;
-    image: {
-      attachmentId: string;
-      mediaType: "image/png" | "image/jpeg" | "image/webp" | "image/gif";
-      bytes: number;
-      width: number;
-      height: number;
-      name?: string;
-      originalDimensions?: {
-        width: number;
-        height: number;
-      };
-    };
-  };
+  read_image: Image;
   send_message: {
     messageId: string;
   };

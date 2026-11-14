@@ -109,6 +109,15 @@ const GENERIC_SKIPS: readonly GenericSkip[] = [
   { file: 'apps/cli/tests/optional-bundle-transitions.e2e.ts', upstream: ['cordis'] },
   { file: 'apps/web/tests/agent-preset-selection.e2e.ts', upstream: ['cordis'] },
   { file: 'apps/web/tests/developer-tools-settings.e2e.ts', upstream: ['cordis'] },
+  { file: 'docs/tool-catalog.md', upstream: ['cordis'] },
+  { file: 'docs/tool-catalog.zh.md', upstream: ['cordis'] },
+  { file: 'apps/web/tests/creator-persona.e2e.ts', upstream: ['cordis'] },
+  { file: 'packages/experimental/cua/tests/agent-scopes.spec.ts', upstream: ['cordis'] },
+  { file: 'docs/upgrade-guide/v0.2.2-rc.1/subagent-interrupt-default/guide.md', upstream: ['cordis'] },
+  { file: 'docs/upgrade-guide/v0.2.2-rc.1/subagent-interrupt-default/guide.zh.md', upstream: ['cordis'] },
+  { file: 'docs/upgrade-guide/v0.2.2-alpha.2/fs-observation-policy-default-off/guide.md', upstream: ['cordis'] },
+  { file: 'docs/upgrade-guide/v0.2.2-alpha.2/fs-observation-policy-default-off/guide.zh.md', upstream: ['cordis'] },
+  { file: 'scripts/gen-tool-catalog.ts', upstream: ['cordis'] },
   { file: 'docs/upgrade-guide/v0.2.0-rc.2/schedule-bundle-retired/guide.md', upstream: ['cordis'] },
   { file: 'docs/upgrade-guide/v0.2.0-rc.2/schedule-bundle-retired/guide.zh.md', upstream: ['cordis'] },
   { file: 'docs/upgrade-guide/v0.2.1-alpha.1/subagent-preset-composition/guide.md', upstream: ['cordis'] },
@@ -276,8 +285,8 @@ const EXACT_EDITS: readonly ExactEdit[] = [
     // The root contract claimed vendored packages keep their upstream names.
     id: 'root-agents-vendored-name-contract',
     file: 'AGENTS.md',
-    find: 'vendor 保留上游名字且 `private: true`。`cordis` 是每个 harness 包的 peerDependency（+ dev）。',
-    replace: 'vendor 已[重定 scope](docs/rescope.md) 且 `private: true`。harness 包在 `peerDependencies`/`devDependencies` 里声明 `@deepseek-ai/cordis`。',
+    find: 'vendored packages keep upstream names and are `private: true`. `cordis` is a peerDependency (+ dev) of every harness package.',
+    replace: 'vendor is [rescoped](docs/rescope.md) and `private: true`. Harness packages declare `@deepseek-ai/cordis` in `peerDependencies`/`devDependencies`.',
     expect: 1,
   },
   {
@@ -669,7 +678,7 @@ export function exactEditState(text: string, find: string, replace: string, expe
 export function listRescopeFiles(repoRoot: string, env?: NodeJS.ProcessEnv): string[] {
   return execFileSync('git', ['ls-files', '-z'], { cwd: repoRoot, env, encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 })
     .split('\0')
-    .filter(file => file !== '' && !isRescopeExcluded(file) && existsSync(resolve(repoRoot, file)))
+    .filter(file => file !== '' && !isRescopeExcluded(file))
 }
 
 function main(): void {
@@ -719,6 +728,8 @@ function main(): void {
 
   for (const file of files) {
     const path = resolve(root, file)
+    // Index-only and staged-deleted paths have no working-tree content to scan.
+    if (!existsSync(path)) continue
     const before = readFileSync(path, 'utf8')
     const { text: after, lines } = rewrite(before, file, all)
     if (after === before) continue

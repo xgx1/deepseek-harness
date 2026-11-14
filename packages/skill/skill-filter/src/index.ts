@@ -99,7 +99,7 @@ export function apply(ctx: Context, config: Config = {}): void {
 /**
  * SkillProvider that wraps an internal filesystem provider with whitelist filtering.
  */
-export class FilteredSkillProvider implements SkillProvider {
+class FilteredSkillProvider implements SkillProvider {
   readonly name: string
   /** This registration's lifecycle and invalidation capability. */
   readonly control: SkillProviderControl

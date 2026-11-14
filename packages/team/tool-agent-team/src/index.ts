@@ -4,10 +4,10 @@ import type { Context } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import { SubagentError } from '@deepseek-ai/dsh-subagent'
-import { TeamTaskId } from '@deepseek-ai/dsh-agent-team'
-import type { TeamTaskView } from '@deepseek-ai/dsh-agent-team'
-import { defineTool } from '@deepseek-ai/dsh-tools'
+import type { TeamTaskId, TeamTaskView } from '@deepseek-ai/dsh-agent-team'
+import { defineTool, ToolArgsError, ToolContextUnavailableError } from '@deepseek-ai/dsh-tools'
 import type { InferValue, ValueSchemaSpec } from '@deepseek-ai/dsh-tools'
+import { brandString } from '@deepseek-ai/dsh-brand'
 
 /** Cordis plugin name. */
 export const name = 'tool-agent-team'
@@ -24,11 +24,11 @@ export const Config: z<Config> = z.object({})
 const REMOVED_CONFIG_KEYS = ['interrupt', 'freshProvider', 'forkProvider'] as const
 
 /** Model-facing collaboration guidance shared by Lead and teammates. */
-const TEAM_POLICY = `本会话提供了一块共享任务板。任务负责人是 list_agents 返回的 agent 名。root 可以把任务重新分配给自己或任何可继续的后代 agent；其它 agent 自己认领已就绪的任务。
+const TEAM_POLICY = `本会话启用了 Agent Teams。
 
-把写入工作拆成互不重叠的范围，把预期的写入范围记录在共享任务上，工作必须按序时用任务依赖表达。写入范围重叠只是提示性的，不是锁。
+团队负责人与所有队友共享同一个工作目录与文件系统，任何成员的编辑对所有人立即可见。把写入工作拆成互不重叠的范围，把预期的写入范围记录在共享任务上，工作必须按序时用任务依赖表达。写入范围重叠只是提示性的，不是锁。
 
-共享任务的工作流是：list、带当前 revision 的 get、claim，然后执行，最后 complete。任务就绪不会启动负责人。root agent 必须等必需的队友完成后再给出最终答复。
+分配或筛选共享任务时，用 subagent、subagent_fork 或 list_agents 返回的名字作为 owner。root 可以把任务重新分配给自己或任何可继续的后代 agent；其它 agent 自己认领已就绪的任务。共享任务的工作流是：list、带当前 revision 的 get、claim，然后执行，最后 complete。任务就绪不会启动负责人。root agent 必须等必需的队友完成后再给出最终答复。
 
 任务变动不会结束 wait_agent 调用、不会新增收件箱消息、也不会启动空闲 agent。需要另一个 agent 对某个任务采取行动时，用 send_message。`
 
@@ -82,7 +82,7 @@ type NamedTaskView = Omit<TeamTaskView, 'ownerId' | 'ownerName'> & { readonly ow
 /** Recover the exact caller guaranteed by conditional Team-tool discovery. */
 function callingAgent(agent: Agent | undefined, toolName: string): Agent {
   /* v8 ignore next 2 -- The Team condition rejects callers without an Agent before execution. */
-  if (agent === undefined) throw new Error(`${toolName} requires a calling Agent`)
+  if (agent === undefined) throw new ToolContextUnavailableError(`${toolName} requires a calling Agent`)
   return agent
 }
 
@@ -133,7 +133,7 @@ export function apply(ctx: Context, config: Config = {}): void {
       const task = await ctx.agentTeams.createTask(caller, {
         subject: args.subject,
         description: args.description,
-        ...args.blocked_by === undefined ? {} : { blockedBy: args.blocked_by.map(TeamTaskId) },
+        ...args.blocked_by === undefined ? {} : { blockedBy: args.blocked_by.map(brandString<TeamTaskId>) },
         ...args.write_scopes === undefined ? {} : { writeScopes: args.write_scopes },
       }, exec.signal)
       return withOwnerName(task)
@@ -156,13 +156,15 @@ export function apply(ctx: Context, config: Config = {}): void {
       limit: { type: 'integer', description: 'Number of rows, 1 through 100. Defaults to 50.' },
     },
     output: jsonOutput(TASK_LIST_VALUE_SCHEMA),
+    // Board reads project the Team Lead journal without appending to it.
+    isConcurrencySafe: () => true,
     async execute(args, exec) {
       const cursor = args.cursor ?? 0
       const limit = args.limit ?? 50
-      if (!Number.isSafeInteger(cursor) || cursor < 0) throw new Error('cursor must be a non-negative safe integer')
-      if (!Number.isSafeInteger(limit) || limit < 1 || limit > 100) throw new Error('limit must be an integer from 1 through 100')
+      if (!Number.isSafeInteger(cursor) || cursor < 0) throw new ToolArgsError(['cursor must be a non-negative safe integer'])
+      if (!Number.isSafeInteger(limit) || limit < 1 || limit > 100) throw new ToolArgsError(['limit must be an integer from 1 through 100'])
       const caller = callingAgent(exec.agent, 'team_task_list')
-      if (args.owner !== undefined && args.unowned !== undefined) throw new Error('owner and unowned filters cannot be combined')
+      if (args.owner !== undefined && args.unowned !== undefined) throw new ToolArgsError(['owner and unowned filters cannot be combined'])
       const owner = args.owner === undefined
         ? undefined
         : await ctx.subagents.resolveName(caller, args.owner, exec.signal)
@@ -186,9 +188,11 @@ export function apply(ctx: Context, config: Config = {}): void {
       task_id: { type: 'string', required: true, description: 'Shared task id.' },
     },
     output: jsonOutput(TASK_VIEW_SCHEMA),
+    // Board reads project the Team Lead journal without appending to it.
+    isConcurrencySafe: () => true,
     execute(args, exec) {
       const caller = callingAgent(exec.agent, 'team_task_get')
-      const task = ctx.agentTeams.getTask(caller, TeamTaskId(args.task_id))
+      const task = ctx.agentTeams.getTask(caller, brandString<TeamTaskId>(args.task_id))
       return Promise.resolve(withOwnerName(task))
     },
   }), { when: ({ agent }) => enabled(agent) })
@@ -214,14 +218,14 @@ export function apply(ctx: Context, config: Config = {}): void {
     output: jsonOutput(TASK_VIEW_SCHEMA),
     async execute(args, exec) {
       const caller = callingAgent(exec.agent, 'team_task_update')
-      const taskId = TeamTaskId(args.task_id)
+      const taskId = brandString<TeamTaskId>(args.task_id)
       const task = await ctx.agentTeams.updateTask(caller, {
         taskId,
         expectedRevision: args.expected_revision,
         action: args.action,
         ...args.subject === undefined ? {} : { subject: args.subject },
         ...args.description === undefined ? {} : { description: args.description },
-        ...args.blocked_by === undefined ? {} : { blockedBy: args.blocked_by.map(TeamTaskId) },
+        ...args.blocked_by === undefined ? {} : { blockedBy: args.blocked_by.map(brandString<TeamTaskId>) },
         ...args.write_scopes === undefined ? {} : { writeScopes: args.write_scopes },
         ...args.owner === undefined ? {} : { owner: await ctx.subagents.resolveName(caller, args.owner, exec.signal) },
       }, exec.signal)

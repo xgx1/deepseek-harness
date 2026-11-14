@@ -12,7 +12,7 @@
           },
           "sandbox_permissions": {
             "type": "string",
-            "description": "The narrowest wider sandbox mode for a one-shot retry of the exact operation the sandbox just denied; the retry asks the user for approval.",
+            "description": "对被沙箱刚刚拒绝的那次 operation 做一次性重试时，可用的最窄的更宽沙箱模式；重试会请求用户批准。",
             "enum": [
               "workspace-write",
               "danger-full-access"
@@ -20,7 +20,7 @@
           },
           "justification": {
             "type": "string",
-            "description": "Required with sandbox_permissions: one sentence for the user explaining why this exact file operation needs the wider access. Use the language of the user’s current request."
+            "description": "与 sandbox_permissions 一起使用时必填：用一句话向用户说明 这次文件操作为什么需要更宽的访问权限。使用用户当前请求的语言。"
           }
         },
         "required": [
@@ -56,7 +56,7 @@
           },
           "sandbox_permissions": {
             "type": "string",
-            "description": "The narrowest wider sandbox mode for a one-shot retry of the exact command the sandbox just denied; the retry asks the user for approval.",
+            "description": "对被沙箱刚刚拒绝的那次 command 做一次性重试时，可用的最窄的更宽沙箱模式；重试会请求用户批准。",
             "enum": [
               "workspace-write",
               "danger-full-access"
@@ -117,7 +117,7 @@
           },
           "sandbox_permissions": {
             "type": "string",
-            "description": "The narrowest wider sandbox mode for a one-shot retry of the exact operation the sandbox just denied; the retry asks the user for approval.",
+            "description": "对被沙箱刚刚拒绝的那次 operation 做一次性重试时，可用的最窄的更宽沙箱模式；重试会请求用户批准。",
             "enum": [
               "workspace-write",
               "danger-full-access"
@@ -125,7 +125,7 @@
           },
           "justification": {
             "type": "string",
-            "description": "Required with sandbox_permissions: one sentence for the user explaining why this exact file operation needs the wider access. Use the language of the user’s current request."
+            "description": "与 sandbox_permissions 一起使用时必填：用一句话向用户说明 这次文件操作为什么需要更宽的访问权限。使用用户当前请求的语言。"
           }
         },
         "required": [
@@ -151,11 +151,11 @@
         "properties": {
           "pattern": {
             "type": "string",
-            "description": "Glob pattern to match file paths against (e.g. \"**/*.ts\", \"src/**/*.test.js\"). A pattern with no \"/\" matches the basename at any depth, so \"*\" and \"*.ts\" both search the whole tree; include a separator to anchor the depth."
+            "description": "用于匹配文件路径的 glob 模式（例如 \"**/*.ts\"、\"src/**/*.test.js\"）。不含 \"/\" 的模式匹配任意深度的文件名，因此 \"*\" 与 \"*.ts\" 都会搜索整棵树；写上分隔符可锚定层级。"
           },
           "path": {
             "type": "string",
-            "description": "Directory to search in. Defaults to the session workspace; a relative path resolves against it."
+            "description": "要搜索的目录。默认是会话工作区；相对路径基于它解析。"
           }
         },
         "required": [
@@ -171,15 +171,15 @@
         "properties": {
           "pattern": {
             "type": "string",
-            "description": "Regular expression to search for (ripgrep syntax)."
+            "description": "要搜索的正则表达式（ripgrep 语法）。"
           },
           "path": {
             "type": "string",
-            "description": "File or directory to search. Defaults to the session workspace; a relative path resolves against it."
+            "description": "要搜索的文件或目录。默认是会话工作区；相对路径基于它解析。"
           },
           "include": {
             "type": "string",
-            "description": "One glob filter for which files to search (e.g. \"*.ts\", \"*.{js,jsx}\"). Not a list; negation is not supported."
+            "description": "一个 glob 过滤器，限定搜索哪些文件（例如 \"*.ts\"、\"*.{js,jsx}\"）。不是列表；不支持取反。"
           }
         },
         "required": [
@@ -195,7 +195,7 @@
         "properties": {
           "job_id": {
             "type": "string",
-            "description": "Job id returned by the tool that started the background work."
+            "description": "启动该后台工作的工具返回的 job id。"
           },
           "reason": {
             "type": "string",
@@ -223,7 +223,7 @@
         "properties": {
           "job_id": {
             "type": "string",
-            "description": "Job id returned by the tool that started the background work."
+            "description": "启动该后台工作的工具返回的 job id。"
           },
           "wait": {
             "type": "boolean",
@@ -241,7 +241,7 @@
     },
     {
       "name": "list_agents",
-      "description": "List your entire subagent tree: the root agent and all reachable continuable descendants, including yourself. Rows carry names, descriptions, and status. A descendant's name is its path from the root, such as reviewer/checker. You can message any other agent in the subagent tree. running means it is working; inactive means no turn is executing; it does not indicate task completion, success, or failure. corrupt, unsupported, or unavailable means this row's own descendants could not be read; the row itself is still a member you can message. While you remain active, you will be notified when a direct child finishes; there is no need to keep checking its status. Use send_message to continue the conversation.",
+      "description": "列出你整棵 subagent 树：root agent 以及所有可达、可续接的后代，包括你自己。每行带有名字、描述与状态。后代的 name 是它从 root 起的路径，例如 reviewer/checker。你可以给树中任何其他 agent 发消息。running 表示它在工作；inactive 表示没有正在执行的轮次，不代表任务完成、成功或失败。corrupt、unsupported 或 unavailable 表示这一行自己的后代读不到；该行本身仍是可以发消息的成员。只要你仍然活跃，直接子 agent 完成时会通知你；无需反复查询它的状态。用 send_message 继续对话。",
       "parameters": {
         "type": "object",
         "properties": {}
@@ -259,11 +259,11 @@
           },
           "offset": {
             "type": "number",
-            "description": "1-based first line to return. Defaults to 1."
+            "description": "要返回的起始行，从 1 开始。默认为 1。"
           },
           "limit": {
             "type": "number",
-            "description": "Maximum number of lines to return. Defaults to 2000."
+            "description": "返回的最大行数。默认为 2000。"
           }
         },
         "required": [
@@ -289,17 +289,17 @@
     },
     {
       "name": "send_message",
-      "description": "Send a message to an agent. A working agent receives it at its next step; an idle agent starts a new turn with it. Returns delivery confirmation.",
+      "description": "给一个 agent 发消息。工作中的 agent 会在下一步收到它；空闲的 agent 会用它开启新一轮。返回投递确认。",
       "parameters": {
         "type": "object",
         "properties": {
           "agent": {
             "type": "string",
-            "description": "The name of another agent in your subagent tree, as shown by list_agents."
+            "description": "你的 subagent 树中另一个 agent 的名字，由 list_agents 显示。"
           },
           "message": {
             "type": "string",
-            "description": "The message to deliver to the agent."
+            "description": "要投递给该 agent 的消息。"
           }
         },
         "required": [
@@ -629,7 +629,7 @@
           },
           "sandbox_permissions": {
             "type": "string",
-            "description": "The narrowest wider sandbox mode for a one-shot retry of the exact operation the sandbox just denied; the retry asks the user for approval.",
+            "description": "对被沙箱刚刚拒绝的那次 operation 做一次性重试时，可用的最窄的更宽沙箱模式；重试会请求用户批准。",
             "enum": [
               "workspace-write",
               "danger-full-access"
@@ -637,7 +637,7 @@
           },
           "justification": {
             "type": "string",
-            "description": "Required with sandbox_permissions: one sentence for the user explaining why this exact file operation needs the wider access. Use the language of the user’s current request."
+            "description": "与 sandbox_permissions 一起使用时必填：用一句话向用户说明 这次文件操作为什么需要更宽的访问权限。使用用户当前请求的语言。"
           }
         },
         "required": [

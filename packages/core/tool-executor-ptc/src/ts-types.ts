@@ -261,16 +261,13 @@ function renderSdkInstructions(programFormat: PtcProgramFormat): string {
 }
 
 /** Render tool execution and output instructions for the selected execution syntax. */
-function renderSdkProgramInstructions(programFormat: PtcProgramFormat): string {
-  const outputInstruction = programFormat === 'function-body'
-    ? '用 `return` 和/或 `console.log(...)` 输出结果；只有你打印或返回的内容才是程序输出。'
-    : '只有作为程序输出发出的值才会进入对话。'
+function renderSdkProgramInstructions(): string {
   return `在程序内部：
 
-- 用 \`await tools.name(args)\` 调用工具——名字含特殊字符时用带引号的写法：\`tools["my-tool"](args)\`。每次调用都返回该工具的类型化 JSON 结果；工具参数必须是无损 JSON。
+- 用 \`await tools.name(args)\` 调用工具——名字含特殊字符时用带引号的写法：\`tools["my-tool"](args)\`。每次调用都返回该工具声明的值，可能是一个 Image 对象；工具参数必须是无损 JSON。
 - 工具调用失败会抛出 \`ToolCallError\`，\`toolName\` 指出失败的工具，\`message\` 是给人看的说明——用 \`try/catch\` 接住并继续。
 - 相互独立的只读调用可以放在 \`Promise.all\` 里并发（只读调用并发执行，写调用单独执行、按提交顺序）；有依赖的步骤用 \`await\` 串起来。
-- ${outputInstruction} 工具结果里带图片时，会在程序结束后作为附件给你，方便下一步查看；其余中间结果都不进对话，只取你需要的部分。
+- 用 \`inspect(...values)\` 显示选中的值和图片；其余中间结果都不进对话，只取你需要的部分。
 - 能一起做的调用尽量放进同一个程序批量发起，省 token 和上下文；不要一个调用跑一次程序。
 
 仅存在于程序里的 SDK 绑定：`
@@ -284,7 +281,7 @@ function acceptsExampleString(schema: JsonSchemaNode | undefined, value: string)
 }
 
 /** Render the bash example only when its literal arguments satisfy the current parameter schema. */
-function renderBashExample(schemas: ToolSdkSchema[], programFormat: PtcProgramFormat): string {
+function renderBashExample(schemas: ToolSdkSchema[]): string {
   const bash = schemas.find(schema => schema.name === 'bash')
   if (bash === undefined) return ''
   const parameters = bash.parameters as JsonSchemaNode
@@ -295,9 +292,7 @@ function renderBashExample(schemas: ToolSdkSchema[], programFormat: PtcProgramFo
   const needsDescription = required.includes('description')
   if (needsDescription && !acceptsExampleString(parameters.properties?.description, 'Show current directory')) return ''
   const description = needsDescription ? "description: 'Show current directory', " : ''
-  const program = programFormat === 'function-body'
-    ? `return await tools.bash({ ${description}command: 'pwd' })`
-    : `console.log(await tools.bash({ ${description}command: 'pwd' }))`
+  const program = `inspect(await tools.bash({ ${description}command: 'pwd' }))`
   return ` 当没有单独提供 \`bash\` 工具 schema 时，在 \`run_code\` 里调用声明的 \`bash\` 绑定：\n\n\`run_code({ code: "${program}", description: "Show current directory" })\``
 }
 
@@ -321,11 +316,16 @@ export function renderToolsSdk(schemas: readonly ToolSdkSchema[], programFormat:
   for (const schema of sorted) {
     argsMembers.push(...docLines(schema.description, 1))
     argsMembers.push(`${pad(1)}${renderKey(schema.name)}: ${jsonSchemaToTs(schema.parameters, 1)};`)
-    outputMembers.push(`${pad(1)}${renderKey(schema.name)}: ${jsonSchemaToTs(schema.output, 1)};`)
+    // FIXME: Derive program return types from tool-declared adaptations, together with the binding adapter in ptc.ts.
+    const output = schema.name === 'read_image' ? 'Image'
+      : `${schema.name === 'cua' ? 'Image | ' : ''}${jsonSchemaToTs(schema.output, 1)}`
+    outputMembers.push(`${pad(1)}${renderKey(schema.name)}: ${output};`)
   }
   const argsMap = `interface ToolArgsMap {${argsMembers.length > 0 ? `\n${argsMembers.join('\n')}\n` : ''}}`
   const outputMap = `interface ToolOutputMap {${outputMembers.length > 0 ? `\n${outputMembers.join('\n')}\n` : ''}}`
   const declaration = [
+    'declare class Image { private constructor(); readonly attachmentId: string; readonly path: string; readonly width: number; readonly height: number; }',
+    'declare function inspect(...values: unknown[]): void;',
     argsMap,
     outputMap,
     'type ToolName = keyof ToolOutputMap',
@@ -334,6 +334,6 @@ export function renderToolsSdk(schemas: readonly ToolSdkSchema[], programFormat:
   ].join('\n\n')
   const jsonValue = 'type JsonValue = null | boolean | number | string | JsonValue[] | { [key: string]: JsonValue }'
   const instructions = renderSdkInstructions(programFormat)
-  const programInstructions = renderSdkProgramInstructions(programFormat)
-  return `${instructions}${renderBashExample(sorted, programFormat)}\n\n${programInstructions}\n\n\`\`\`ts\n${jsonValue}\n\n${declaration}\n\`\`\``
+  const programInstructions = renderSdkProgramInstructions()
+  return `${instructions}${renderBashExample(sorted)}\n\n${programInstructions}\n\n\`\`\`ts\n${jsonValue}\n\n${declaration}\n\`\`\``
 }

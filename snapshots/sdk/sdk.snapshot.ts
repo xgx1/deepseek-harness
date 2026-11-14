@@ -158,10 +158,15 @@ const SDK_ASSERTIONS: Readonly<Record<string, SdkAssertions>> = {
     expectedFinalResponse: 'SDK snapshot OK',
     runtimeContext: {
       includes: ['当前工作目录：'],
-      excludes: ['Current DeepSeek Harness implementation checkout:', 'Current DeepSeek Harness Web GUI URL:'],
+      excludes: ['当前 DeepSeek Harness 实现检出目录：', '当前 DeepSeek Harness Web GUI URL：'],
     },
   },
   'desktop-ptc-context': { expectedFinalResponse: 'SDK snapshot OK' },
+  'cua-run-code': {
+    expectedFinalResponse: 'The retained application and window report Count: 2. The counter persisted across calls, and the program exposes only tools.cua. The screenshot was attached after the first call.',
+    environment: { DSH_PERMISSION_MODE: 'danger-full-access' },
+    patches: [fileURLToPath(new URL('./cua-run-code/runtime.cordis.yml', import.meta.url))],
+  },
   'manual-compact': {
     expectedFinalResponse: 'SDK_COMPACT_OK',
     patches: [fileURLToPath(new URL('./manual-compact/capture.cordis.yml', import.meta.url))],
@@ -801,7 +806,10 @@ async function runScenario(scenario: CorpusScenario): Promise<{
     ignoredRootEntries: RUNTIME_WORKSPACE_ENTRIES,
   })
   const [parentFixture, ...childFixtures] = replayFixtures
-  const actions = sdkActions(primaryFixture, assertions.replayStandaloneCommands === true)
+  const recordedActions = sdkActions(primaryFixture, assertions.replayStandaloneCommands === true)
+  const actions = scenario.name === 'serial-created'
+    ? recordedActions.filter(action => action.kind === 'turn' && action.content !== undefined)
+    : recordedActions
   const resumeReplayFile = scenario.name === 'session-resume' && !recording
     ? join(patchRoot, 'resume-replay.json') : undefined
   const prepareTurnReplay = async (turn: number): Promise<void> => {
@@ -1020,6 +1028,9 @@ async function runScenario(scenario: CorpusScenario): Promise<{
           observe,
         )
       }
+      if (scenario.name === 'serial-created') {
+        await harness.client.request('session/wait', { sessionId })
+      }
       for (const type of postActionEventTypes(primaryFixture)) {
         await waitForRootEvent(subscription, sessionId, event => event.type === type, observe)
       }
@@ -1224,7 +1235,7 @@ describe('TypeScript SDK snapshots over the jsonrpc runtime', () => {
         expect((first.tools as JsonObject[]).map(tool => tool.name)).toEqual(expect.arrayContaining([
           'team_task_create', 'team_task_get', 'team_task_list', 'team_task_update',
         ]))
-        expect(JSON.stringify(first.messages)).toContain('共享任务板')
+        expect(JSON.stringify(first.messages)).toContain('本会话启用了 Agent Teams')
         expect(events.filter(event => event.type === 'team/task').map(event => event.data.task))
           .toEqual([expect.objectContaining({ subject: 'Configured Team', status: 'pending' })])
         expect(events.filter(event => event.type === 'tool/result').map(event => event.data.message.isError))
@@ -1236,7 +1247,7 @@ describe('TypeScript SDK snapshots over the jsonrpc runtime', () => {
         expect(JSON.stringify(childResults)).toContain('Configured Team')
         for (const request of modelRequests) {
           expect((request.tools as JsonObject[]).map(tool => tool.name)).toContain('team_task_list')
-          expect(JSON.stringify(request.messages)).toContain('共享任务板')
+          expect(JSON.stringify(request.messages)).toContain('本会话启用了 Agent Teams')
         }
       }
       if (scenario.name === 'command-attachments') {
@@ -1280,7 +1291,7 @@ describe('TypeScript SDK snapshots over the jsonrpc runtime', () => {
         ])
         const requestMessages = modelRequests[0]?.messages as JsonObject[]
         expect(requestMessages.map(message => message.content)).toContainEqual(content)
-        expect(JSON.stringify(requestMessages)).toContain('你处于计划模式。')
+        expect(JSON.stringify(requestMessages)).toContain('你处于计划模式')
         expect(events.findLast(event => event.type === 'assistant/message'))
           .toMatchObject({ data: { message: { content: [{ type: 'text', text: 'SDK_COMMAND_IMAGE_OK' }] } } })
       }
@@ -1323,7 +1334,7 @@ describe('TypeScript SDK snapshots over the jsonrpc runtime', () => {
         const active = modelRequests.map((request) => {
           const messages = request.messages as JsonObject[]
           const system = messages.filter(message => message.role === 'system').at(-1)
-          return JSON.stringify(system).includes('你处于计划模式。')
+          return JSON.stringify(system).includes('你处于计划模式')
         })
         expect(active).toEqual([false, true, true, false, true, false])
         expect(modelRequests.map(request => (request.tools as JsonObject[]).some(tool => tool.name === 'exit_plan_mode')))
@@ -1754,6 +1765,11 @@ describe('TypeScript SDK snapshots over the jsonrpc runtime', () => {
       }
       if (scenario.name === 'serial-created') {
         expect(observedMethods.has('subagent.started')).toBe(false)
+        const turns = parseSessionLog(ordered[0]!.content).filter(event => event.type === 'turn/end')
+        expect(turns.map(event => event.data.reason)).toEqual([
+          { kind: 'aborted', reason: { kind: 'user' } },
+          { kind: 'completed' },
+        ])
       }
       if (ordered.length > 1 && assertions.dshSdkChild === undefined) {
         expect(observedMethods.has('subagent.started')).toBe(true)

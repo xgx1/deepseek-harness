@@ -28,7 +28,7 @@
           },
           "sandbox_permissions": {
             "type": "string",
-            "description": "The narrowest wider sandbox mode for a one-shot retry of the exact command the sandbox just denied; the retry asks the user for approval.",
+            "description": "对被沙箱刚刚拒绝的那次 command 做一次性重试时，可用的最窄的更宽沙箱模式；重试会请求用户批准。",
             "enum": [
               "workspace-write",
               "danger-full-access"
@@ -81,7 +81,7 @@
         "properties": {
           "job_id": {
             "type": "string",
-            "description": "Job id returned by the tool that started the background work."
+            "description": "启动该后台工作的工具返回的 job id。"
           },
           "reason": {
             "type": "string",
@@ -109,7 +109,7 @@
         "properties": {
           "job_id": {
             "type": "string",
-            "description": "Job id returned by the tool that started the background work."
+            "description": "启动该后台工作的工具返回的 job id。"
           },
           "wait": {
             "type": "boolean",

@@ -8,9 +8,10 @@ import {
   createUserMessage, LlmAdapter,
   type GenerateOptions, type LlmResolvedModelInfo, type StreamChunk, type SystemPromptUpdate,
 } from '@deepseek-ai/dsh-llm'
-import { SessionId, type Session } from '@deepseek-ai/dsh-session'
+import type { SessionId, Session } from '@deepseek-ai/dsh-session'
 import { renderContextSnapshot, renderPrompt } from '@deepseek-ai/dsh-system-prompt'
 import * as HarnessDevContext from '../src/index.ts'
+import { brandString } from '@deepseek-ai/dsh-brand'
 
 const SOURCE_PROMPT = '运行时上下文会给出 DeepSeek Harness 的实现检出目录。检出目录与当前工作目录是两个不同的值，可能并不一致；不要从检出路径推断工作目录。用 pwd 确定当前工作目录。只有在需要检查或扩展 DSH 本身时才使用这个检出。'
 const WEB_GUIDANCE = '当用户说“这个页面”“这个 GUI”或“这个应用”而没有指定其它目标时，指的就是本 GUI。'
@@ -84,7 +85,7 @@ async function promptLoop(systemPromptUpdate: SystemPromptUpdate | undefined) {
   const harness = await mountAgentLoopTestHarness(ctx)
   /** Resume the Session's complete log under a new Agent, as a restarted process does. */
   const resume = async (session: Session, id: string): Promise<Agent> => (await ctx.agents.create({
-    sessionId: SessionId(id), agentOptions: ROUTE, seed: [...session.snapshotEvents()],
+    sessionId: brandString<SessionId>(id), agentOptions: ROUTE, seed: [...session.snapshotEvents()],
   })).agent
   /** One turn under an earlier release: the given paragraphs and no value contexts. */
   const earlierSession = async (source = LEGACY_SOURCE, web = LEGACY_WEB): Promise<Agent> => {
@@ -97,7 +98,7 @@ async function promptLoop(systemPromptUpdate: SystemPromptUpdate | undefined) {
         contexts: assembly.contexts.filter(entry => entry.name !== 'harness:source' && entry.name !== 'app:web-surface'),
       }
     })
-    const agent = await harness.create(SessionId('earlier'), ROUTE)
+    const agent = await harness.create(brandString<SessionId>('earlier'), ROUTE)
     await send(agent, 'before the upgrade')
     earlierRelease()
     return agent
@@ -212,7 +213,7 @@ describe('harness-dev-context', () => {
 
   it('keeps a new Session system prompt free of process values across ports', async () => {
     const h = await promptLoop(undefined)
-    const agent = await h.harness.create(SessionId('fresh'), ROUTE)
+    const agent = await h.harness.create(brandString<SessionId>('fresh'), ROUTE)
     await send(agent, 'first')
     const logged = systemPrompts(agent.session)
     expect(logged).toHaveLength(1)

@@ -530,7 +530,10 @@ _NEVER_POLICY = "本次会话已禁用审批提示"
 
 
 def _assert_request_permission(request: dict, sandbox: str, approval: str) -> None:
-    contexts = [text for text in _request_texts(request) if text.startswith("当前运行时上下文。")]
+    contexts = [
+        text for text in _request_texts(request)
+        if text.startswith("<system-reminder>\n以下信息描述你当前的会话")
+    ]
     assert contexts, "model request has no runtime-context snapshot"
     assert f"当前 DSH 文件策略：{sandbox}。" in contexts[-1]
     assert (_ASK_POLICY if approval == "ask" else _NEVER_POLICY) in contexts[-1]

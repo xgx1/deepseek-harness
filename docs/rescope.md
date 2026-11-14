@@ -8,7 +8,7 @@ The Cordis framework and its foundation libraries are vendored under [`vendor/`]
 
 | Directory | Upstream name | Published name | Upstream version | Role |
 |---|---|---|---|---|
-| `vendor/cordis/` | `cordis` | `@deepseek-ai/cordis` | 4.0.0-rc.11 | Framework core: `Context`, `Service`, `Fiber`, events |
+| `vendor/cordis/` | `cordis` | `@deepseek-ai/cordis` | 4.0.0-rc.12 | Framework core: `Context`, `Service`, `Fiber`, events |
 | `vendor/cosmokit/` | `cosmokit` | `@deepseek-ai/cosmokit` | 1.8.1 | Shared utilities the framework and Schemastery build on |
 | `vendor/schemastery/` | `schemastery` | `@deepseek-ai/schemastery` | 3.18.0 | Config schemas (`Schema`) behind every plugin's `Config` |
 | `vendor/loader/` | `@cordisjs/plugin-loader` | `@deepseek-ai/cordis-plugin-loader` | 1.0.0-rc.8 | `cordis.yml` loading, plugin resolution, repository cache |
@@ -23,7 +23,7 @@ Subpath exports keep their path: `@cordisjs/plugin-loader/repository` becomes `@
 ## What the rename does not touch
 
 - **Directory names and upstream source versions.** `vendor/hmr/` stays `vendor/hmr/`, and the table records the upstream version of the pinned source snapshot, so the manifest reads as an upstream snapshot; the vendored `package.json`'s own `version` field is the harness's released manifest version, which `pnpm run release:vendor` bumps and a re-sync restores to the upstream version.
-- **Dependency ranges.** Renaming changes dependency keys without changing ranges. Workspace manifests use the `workspace:` protocol; [repository rules](../AGENTS.md#约定) distinguish exact DSH references from vendor/native tilde ranges.
+- **Dependency ranges.** Renaming changes dependency keys without changing ranges. Workspace manifests use the `workspace:` protocol; [repository rules](../AGENTS.md#conventions) distinguish exact DSH references from vendor/native tilde ranges.
 - **The Loader's `cordis:` builtin prefix.** `cordis:include` and `cordis:group` are a protocol prefix, not a package name.
 - **The `cordis.yml` configuration family**, including `*.cordis.yml`, `*.cordis.snapshot.yml`, and `cordis.patch.yml`.
 - **Harness packages whose own names contain the word**, such as `@deepseek-ai/dsh-tool-cordis`.

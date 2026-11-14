@@ -140,13 +140,13 @@ it('pins Messages Files offload and inline fallback in assembled requests', asyn
     const fileImage = { type: 'image', source: { type: 'file', file_id: 'file-api-snapshot-1' } }
     const offloadedImage = `[image omitted to fit request image limits; ${attachmentId}.${normalizedAccess}]`
     const imageHandle = `Image ${attachmentId}; request preview 1x1px.${normalizedAccess}`
-    const runtimeContext = (cwd: string): string => '当前运行时上下文。本快照取代此前的运行时上下文快照。\n\n'
+    const runtimeContext = (cwd: string): string => '<system-reminder>\n以下信息描述你当前的会话：\n\n'
       + `当前工作目录：${JSON.stringify(cwd)}。\n\n`
       + '当前 DSH 文件策略：danger-full-access。DSH 文件沙箱不限制可用操作对文件的修改。\n\n'
       + '本次会话已禁用审批提示：需要审批的操作会被自动拒绝——不要请求沙箱升级（不要设置 `sandbox_permissions`）。\n\n'
       + '你是 root agent。你的名字是 "lead"。\n\n'
       + '要给其它 agent 发消息，请使用 send_message({ agent: "<agent-name>", message: "..." })。\n'
-      + '要找到你的协作 agent 及其名字，请使用 list_agents({})。'
+      + '要找到你的协作 agent 及其名字，请使用 list_agents({})。\n</system-reminder>'
     const messages = requests[0]?.messages as { content?: unknown }[] | undefined
     const offloaded = messages?.find(message => JSON.stringify(message.content).includes('[image omitted'))
     expect(offloaded?.content).toEqual([

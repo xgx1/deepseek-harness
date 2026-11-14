@@ -10,7 +10,7 @@
 
 import { brandString } from '@deepseek-ai/dsh-brand'
 import { CONTEXT_WINDOW_EXCEEDED_CODE, EMPTY_RESPONSE_CODE, isContextWindowExceededError, isQuotaExceededError, LlmError, QUOTA_EXCEEDED_CODE } from '@deepseek-ai/dsh-llm'
-import type { FinishReason, StreamChunk, TokenUsage, ToolCallId } from '@deepseek-ai/dsh-llm'
+import type { BuiltinLlmFailureCode, FinishReason, StreamChunk, TokenUsage, ToolCallId } from '@deepseek-ai/dsh-llm'
 import { isContextOverflow } from '@earendil-works/pi-ai/utils/overflow'
 import { isRetryableAssistantError } from '@earendil-works/pi-ai/utils/retry'
 import type { AssistantMessage, AssistantMessageEvent, Usage as PiUsage } from '@earendil-works/pi-ai'
@@ -32,6 +32,13 @@ export function mapUsage(usage: PiUsage): TokenUsage {
   }
 }
 
+// pi-ai's SDK-backed providers render an HTTP failure as `<status> <body>`
+// (Anthropic and OpenAI SDK `APIError`, pi-messages `<status> <statusText>: …`).
+// The body can quote another hop's status, such as a gateway 500 that embeds its
+// upstream's 401, so when a message leads with a status the status rules read
+// only that status; other wordings scan the whole message.
+const LEADING_HTTP_STATUS = /^[45]\d\d\b/
+
 // XXX(pi-ai upstream): pi-ai flattens the caught error to `error.message`
 // (api/anthropic-messages.js: `errorMessage = error instanceof Error ?
 // error.message : JSON.stringify(error)`), discarding the original Error and its
@@ -40,18 +47,19 @@ export function mapUsage(usage: PiUsage): TokenUsage {
 // wrapper a bare `terminated`, so we are left pattern-matching terse words here.
 // If pi-ai ever forwards the original Error (or a fetch/dispatcher hook that lets
 // us capture the cause ourselves), classify on `code`/`cause` instead of text.
-function classifyPiAiError(text: string, message: AssistantMessage): string {
-  if (/\b(?:401|403)\b/.test(text)) return 'AUTH'
+function classifyPiAiError(text: string, message: AssistantMessage): BuiltinLlmFailureCode {
+  const statusSource = LEADING_HTTP_STATUS.exec(text)?.[0] ?? text
+  if (/\b(?:401|403)\b/.test(statusSource)) return 'AUTH'
   // An explicit 429 is a rate-limit instruction even when the message also
   // names quota or billing conditions, so it wins over the wording below.
-  if (/\b429\b/.test(text)) return 'RATE_LIMIT'
+  if (/\b429\b/.test(statusSource)) return 'RATE_LIMIT'
   if (isQuotaExceededError(text)) return QUOTA_EXCEEDED_CODE
   if (/rate.?limit/i.test(text)) return 'RATE_LIMIT'
   // A rejected request body (gateway or provider size cap): resending the
   // same request cannot succeed, so it is invalid, not transient.
-  if (/\b413\b|failed to buffer the request body:\s*length limit exceeded|payload too large|request body too large/i.test(text)) return 'INVALID_REQUEST'
-  if (/\b400\b|invalid.?request/i.test(text)) return 'INVALID_REQUEST'
-  if (/\b5\d\d\b/.test(text)) return 'SERVER'
+  if (/\b413\b/.test(statusSource) || /failed to buffer the request body:\s*length limit exceeded|payload too large|request body too large/i.test(text)) return 'INVALID_REQUEST'
+  if (/\b400\b/.test(statusSource) || /invalid.?request/i.test(text)) return 'INVALID_REQUEST'
+  if (/\b5\d\d\b/.test(statusSource)) return 'SERVER'
   if (/\btime(?:d)?\s*out\b|timeout/i.test(text)) return 'TIMEOUT'
   // A stream truncated before the provider's terminal event: each pi-ai provider
   // throws its own wording when the wire closes mid-response without a terminal
@@ -81,10 +89,11 @@ function classifyPiAiError(text: string, message: AssistantMessage): string {
 /**
  * Map a terminal pi-ai event to the harness finish reason.
  * @param message - the assistant message carried by the `done` or `error` event.
- * @param contextWindow - resolved catalog capacity for zero-output `length` overflow detection.
- * @returns the mapped harness reason. Recognized error text and zero-output
- *   `length` usage that fills `contextWindow` map to `CONTEXT_WINDOW_EXCEEDED`;
- *   a `stop` with no content blocks maps to an `EMPTY_RESPONSE` error, while
+ * @param contextWindow - resolved catalog capacity for overflow detection.
+ * @returns the mapped harness reason. Recognized error text, zero-output
+ *   `length` usage that fills `contextWindow`, and a content-less `stop` whose
+ *   reported usage exceeds it map to `CONTEXT_WINDOW_EXCEEDED`; any other
+ *   `stop` with no content blocks maps to an `EMPTY_RESPONSE` error, while
  *   terminal `pending` and `deferred` states map to non-retryable
  *   `PI_AI_ERROR` failures. A `stop` that delivered content is successful at
  *   any reported usage.
@@ -93,10 +102,12 @@ export function mapStopReason(message: AssistantMessage, contextWindow?: number)
   // A `stop` that delivered content was accepted by the provider, so usage above
   // the catalog capacity means that capacity is stale (pricing-tier windows,
   // endpoints serving past their advertised limit); classifying it as overflow
-  // discards the answer and ends a turn the provider already completed.
+  // discards the answer and ends a turn the provider already completed. A `stop`
+  // with no content blocks carried nothing to keep, so silent overflow still wins
+  // over the empty-response diagnosis there.
   const piAiOverflow = isContextOverflow(
     message,
-    message.stopReason === 'length' ? contextWindow : undefined,
+    message.stopReason === 'length' || message.content.length === 0 ? contextWindow : undefined,
   )
   const harnessOverflow = message.stopReason === 'error'
     && message.errorMessage !== undefined
@@ -129,15 +140,15 @@ export function mapStopReason(message: AssistantMessage, contextWindow?: number)
     case 'toolUse': return { kind: 'tool-calls' }
     case 'pending': return {
       kind: 'error',
-      failure: { message: `pi-ai stream for model "${message.model}" ended pending`, code: 'PI_AI_ERROR' },
+      failure: { message: `pi-ai stream for model "${message.model}" ended pending`, code: 'PI_AI_ERROR' satisfies BuiltinLlmFailureCode },
     }
     case 'deferred': return {
       kind: 'error',
-      failure: { message: `pi-ai deferred response for model "${message.model}" is not supported`, code: 'PI_AI_ERROR' },
+      failure: { message: `pi-ai deferred response for model "${message.model}" is not supported`, code: 'PI_AI_ERROR' satisfies BuiltinLlmFailureCode },
     }
     case 'aborted': return {
       kind: 'aborted',
-      failure: { message: message.errorMessage ?? 'pi-ai stream aborted', code: 'ABORTED' },
+      failure: { message: message.errorMessage ?? 'pi-ai stream aborted', code: 'ABORTED' satisfies BuiltinLlmFailureCode },
     }
     case 'error': {
       const text = message.errorMessage ?? 'pi-ai stream error'
@@ -155,6 +166,7 @@ export function mapStopReason(message: AssistantMessage, contextWindow?: number)
  * @param callerSignal - caller cancellation state; an aborted caller makes any
  *   in-band terminal error an aborted finish.
  * @param requestedModel - request model identity recorded for durable replay.
+ * @param prefixDigest - request-context digest recorded for durable replay.
  * @returns the harness chunks, ending with `usage` then `finish`; throws
  *   `LlmError` (`STREAM_CLOSED`) if the source ends without a terminal event, or
  *   `MALFORMED_RESPONSE` when completed tool arguments are invalid. Length-limited
@@ -165,6 +177,7 @@ export async function* toStreamChunks(
   contextWindow?: number,
   callerSignal?: AbortSignal,
   requestedModel?: string,
+  prefixDigest?: string,
 ): AsyncGenerator<StreamChunk> {
   // pi-ai contentIndex ↔ our block index map 1:1 (both count blocks from 0
   // in stream order), but we track ids per index for tool calls.
@@ -239,7 +252,7 @@ export async function* toStreamChunks(
         yield {
           type: 'finish',
           reason: mapStopReason(event.message, contextWindow),
-          replayState: toPiReplayState(event.message, requestedModel),
+          replayState: toPiReplayState(event.message, requestedModel, prefixDigest),
         }
         return
       case 'error':

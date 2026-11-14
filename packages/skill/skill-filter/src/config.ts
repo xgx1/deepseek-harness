@@ -151,12 +151,17 @@ export function mergeConfigs(
  */
 export async function writePersonalCache(config: SkillFilterConfig): Promise<void> {
   try {
-    const cachePath = personalCachePath()
-    await mkdir(dirname(cachePath), { recursive: true })
-    await writeFile(cachePath, JSON.stringify(config), 'utf-8')
-  } catch {
+    await writePersonalCacheFile(config)
+  } catch (_cacheWriteFailure) {
     // Cache write failure is non-fatal; the primary file is still readable.
   }
+}
+
+/** Write the personal cache file; failures propagate to {@link writePersonalCache}. */
+async function writePersonalCacheFile(config: SkillFilterConfig): Promise<void> {
+  const cachePath = personalCachePath()
+  await mkdir(dirname(cachePath), { recursive: true })
+  await writeFile(cachePath, JSON.stringify(config), 'utf-8')
 }
 
 /**
