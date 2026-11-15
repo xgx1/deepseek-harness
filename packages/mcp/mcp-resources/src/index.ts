@@ -38,10 +38,13 @@ export interface McpResourceProvider {
 class ResourceLayer implements ScopeLayer {
   readonly servers = new NamedEntries<McpResourceProvider>(name =>
     new Error(`MCP resource server "${name}" is already registered in this scope`))
+  /** Servers a host plugin hides in this scope, whatever their registration scope. */
+  readonly hidden = new NamedEntries<true>(name =>
+    new Error(`MCP server "${name}" is already suppressed in this scope`))
   disposeTools: (() => void | Promise<void>) | undefined
 
   isEmpty(): boolean {
-    return this.servers.isEmpty()
+    return this.servers.isEmpty() && this.hidden.isEmpty()
   }
 }
 
@@ -64,7 +67,8 @@ export class McpResourceRuntime extends Service {
         order: inner.systemPrompt.getSectionOrder('MCP_SERVERS'),
         interpolate: false,
         text: ({ scope }) => {
-          const names = [...this.layers.merge(scope, layer => layer.servers).keys()].sort()
+          const hidden = this.hidden(scope)
+          const names = this.servers(scope).filter(name => !hidden.has(name))
           return names.length === 0 ? '' : '## MCP 资源服务器\n\n'
             + '用 list_mcp_resources、list_mcp_resource_templates 或 read_mcp_resource，把下列名称之一'
             + `作为 server 参数：${JSON.stringify(names)}。`
@@ -106,6 +110,36 @@ export class McpResourceRuntime extends Service {
     return dispose
   }
 
+  /**
+   * Hide servers from this scope's prompt section and resource requests.
+   * @param servers - configured server names to suppress in the calling scope.
+   * @returns the exact disposer lifting the suppression.
+   */
+  suppress(servers: readonly string[]): () => void {
+    return this.layers.effect(this.ctx, (layer) => {
+      const removes = servers.map(name => layer.hidden.insert(name, true))
+      return () => { for (const remove of removes) remove() }
+    }, { label: 'mcpResources.suppress' })
+  }
+
+  /**
+   * Server names a scope hides from its prompt section and resource requests.
+   * @param scope - viewing scope, or undefined for the global view.
+   * @returns the suppressed names in that scope.
+   */
+  hidden(scope: ScopeKey | undefined): ReadonlySet<string> {
+    return new Set(this.layers.merge(scope, layer => layer.hidden).keys())
+  }
+
+  /**
+   * Registered server names a scope can reach.
+   * @param scope - viewing scope, or undefined for the global view.
+   * @returns the sorted registered names.
+   */
+  servers(scope: ScopeKey | undefined): readonly string[] {
+    return [...this.layers.merge(scope, layer => layer.servers).keys()].sort()
+  }
+
   /** Own one scope's tools independently of its configured server plugins. */
   private registerTools(scope: ScopeKey | undefined): () => void | Promise<void> {
     const ctx = this.selfCtx
@@ -122,6 +156,9 @@ export class McpResourceRuntime extends Service {
 
   /** Resolve the caller-visible server before starting any network operation. */
   private request(server: string, request: McpResourceRequest, exec: ToolExecution): Promise<JsonValue> {
+    if (this.hidden(exec.agent).has(server)) {
+      throw new ToolArgsError([`server: MCP resource server "${server}" is unavailable in this agent's scope`])
+    }
     const provider = this.layers.merge(exec.agent, layer => layer.servers).get(server)
     if (!provider) throw new ToolArgsError([`server: MCP resource server "${server}" is unavailable in this agent's scope`])
     return provider.request(request, exec)

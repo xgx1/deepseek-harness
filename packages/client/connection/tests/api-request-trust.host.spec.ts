@@ -98,10 +98,35 @@ describe('isTrustedApiRequest', () => {
   it('refuses cross-origin browser markers even on a loopback Host', () => {
     // Origin present and different → cross-site request that survived preflight rules.
     expect(isTrustedApiRequest(request({ host: '127.0.0.1:3080', origin: 'http://evil.example' }), [])).toBe(false)
-    // Explicit cross-site label → refused regardless of Origin.
+    // Explicit cross-site label on a non-navigational request → refused regardless of Origin.
     expect(isTrustedApiRequest(request({ host: '127.0.0.1:3080', 'sec-fetch-site': 'cross-site' }), [])).toBe(false)
     // Opaque origin (sandboxed iframe, file: page) parses to no authority.
     expect(isTrustedApiRequest(request({ host: '127.0.0.1:3080', origin: 'null' }), [])).toBe(false)
+  })
+
+  it('admits the cross-site top-level document navigation a bookmark or new-tab shortcut produces', () => {
+    // Chromium labels any navigation starting outside this site — new-tab tile,
+    // bookmark, off-site link — cross-site, and keeps the label on reload, so
+    // refusal stranded the tab on the 403 page. The navigation carries no
+    // SameSite=Strict cookie and cannot read the response, so it reaches the
+    // ordinary credential check (401) instead of the source fence (403).
+    const navigation = {
+      host: '127.0.0.1:3080',
+      'sec-fetch-site': 'cross-site',
+      'sec-fetch-mode': 'navigate',
+      'sec-fetch-dest': 'document',
+    }
+    expect(isTrustedApiRequest(request(navigation), [])).toBe(true)
+    // A form submission navigates with an Origin attached, so it keeps the refusal.
+    expect(isTrustedApiRequest(request({ ...navigation, origin: 'http://evil.example' }), [])).toBe(false)
+    // Only documents: subresources and script-driven fetches keep the blanket refusal.
+    expect(isTrustedApiRequest(request({ ...navigation, 'sec-fetch-dest': 'empty' }), [])).toBe(false)
+    expect(isTrustedApiRequest(request({ ...navigation, 'sec-fetch-dest': 'image' }), [])).toBe(false)
+    expect(isTrustedApiRequest(request({ ...navigation, 'sec-fetch-mode': 'cors' }), [])).toBe(false)
+    // The Host fence still binds the navigation itself.
+    expect(isTrustedApiRequest(request({ ...navigation, host: 'evil.example' }), [])).toBe(false)
+    // A declared authority serves the same navigation remotely.
+    expect(isTrustedApiRequest(request({ ...navigation, host: 'harness.internal:3080' }), ['harness.internal'])).toBe(true)
   })
 
   it('accepts a same-origin browser request, with or without an Origin header', () => {

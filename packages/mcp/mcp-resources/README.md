@@ -54,6 +54,8 @@ The [base](../../bundle/base/README.md) and standalone [sdk-minimal](../../bundl
   name: '@deepseek-ai/dsh-mcp-resources'
 ```
 
+A host plugin can also suppress server names in its own scope (`suppress`): a suppressed server leaves the server-name prompt, and its resource requests fail like an unavailable server, without disconnecting anything.
+
 The first provider in a scope registers its shared tools; removing the last removes those local registrations, while inherited providers and tools remain visible. The resource service owns the shared tool effects independently of the first provider's plugin, so unloading that provider cannot remove tools needed by another server. Provider selection and the server-name prompt use the same scoped registry. Each call resolves its server before dispatch.
 
 Canonical results retain the complete JSON for programmatic callers. The pure text renderer adds server attribution and replaces string-valued `blob` fields with a description of their base64 length; URI, MIME type, and text fields remain in the rendered JSON. The tool pipeline owns recorded results. Server instructions belong to the MCP client and its logged system-prompt section.

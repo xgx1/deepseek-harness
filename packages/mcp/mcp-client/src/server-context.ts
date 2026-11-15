@@ -30,13 +30,15 @@ export function registerServerContext(ctx: Context, server: string, connection: 
   ctx.inject(['mcpResources'], (inner) => {
     inner.mcpResources.register(server, connection.resources)
   })
-  ctx.inject(['systemPrompt', 'tools'], (inner) => {
+  ctx.inject(['systemPrompt', 'tools', 'mcpResources'], (inner) => {
     inner.systemPrompt.section({
       name: `mcp:${server}`,
       order: inner.systemPrompt.getSectionOrder('MCP_SERVERS'),
       interpolate: false,
-      // A scope that masks every tool of this server does not use it, so its instructions take no prompt space.
+      // A scope that masks every tool of this server, or whose host suppresses the
+      // server outright, does not use it: its instructions take no prompt space.
       text: ({ scope }) => {
+        if (inner.mcpResources.hidden(scope).has(server)) return ''
         const owns = (view?: Parameters<typeof inner.tools.definitions>[0]): boolean => inner.tools
           .definitions(view).some(definition => definition.name.startsWith(`mcp__${server}__`))
         return owns() && !owns(scope) ? '' : connection.instructions()

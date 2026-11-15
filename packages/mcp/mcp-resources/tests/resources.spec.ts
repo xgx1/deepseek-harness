@@ -117,6 +117,25 @@ describe('MCP resource tools', () => {
     expect(visibleResourceTools(ctx)).toEqual([])
   })
 
+  it('hides a suppressed server from the section and its resource requests', async () => {
+    const ctx = await setup()
+    const owner = {} as Agent
+    const request = vi.fn<McpResourceProvider['request']>().mockResolvedValue({ resources: [] })
+    ctx.mcpResources.register('keep', { request })
+    ctx.mcpResources.register('drop', { request })
+    const scoped = await resourceScope(ctx, owner)
+
+    expect(renderPrompt(await ctx.systemPrompt.assemble({ scope: owner }))).toContain('["drop","keep"]')
+    const suppress = scoped.ctx.mcpResources.suppress(['drop'])
+    expect(renderPrompt(await ctx.systemPrompt.assemble({ scope: owner }))).toContain('["keep"]')
+    expect((await call(ctx, 'list_mcp_resources', { server: 'drop' }, owner)).isError).toBe(true)
+    expect((await call(ctx, 'list_mcp_resources', { server: 'keep' }, owner)).isError).toBe(false)
+
+    suppress()
+    expect(renderPrompt(await ctx.systemPrompt.assemble({ scope: owner }))).toContain('["drop","keep"]')
+    expect((await call(ctx, 'list_mcp_resources', { server: 'drop' }, owner)).isError).toBe(false)
+  })
+
   it.each([false, true])('shares scoped tools across independent provider owners (reverse disposal: %s)', async (reverse) => {
     const ctx = await setup()
     const owner = {} as Agent

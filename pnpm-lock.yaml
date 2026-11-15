@@ -15135,6 +15135,9 @@ importers:
 
   packages/preset/agent-config:
     dependencies:
+      '@deepseek-ai/dsh-mcp-resources':
+        specifier: workspace:*
+        version: link:../../mcp/mcp-resources
       yaml:
         specifier: ^2.4.2
         version: 2.9.0

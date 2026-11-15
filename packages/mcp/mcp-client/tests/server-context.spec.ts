@@ -68,6 +68,22 @@ describe('MCP server context', () => {
     expect(renderPrompt(await ctx.systemPrompt.assemble({ scope: scopeKey }))).not.toContain('Docs server instructions.')
   })
 
+  it('withdraws instructions for a server its host suppresses, tools or not', async () => {
+    const ctx = await setup()
+    await ctx.plugin({ apply(inner: Context) {
+      registerServerContext(inner, 'unity', {
+        resources: { request: async () => ({ resources: [] }) },
+        instructions: () => 'Unity editor instructions.',
+      })
+    } })
+    const scopeKey = {}
+    await ctx.plugin({ inject: ['mcpResources'], apply(inner: Context) {
+      createScope(inner, scopeKey).ctx.mcpResources.suppress(['unity'])
+    } })
+    expect(renderPrompt(await ctx.systemPrompt.assemble())).toContain('Unity editor instructions.')
+    expect(renderPrompt(await ctx.systemPrompt.assemble({ scope: scopeKey }))).not.toContain('Unity editor instructions.')
+  })
+
   it('shows scoped server instructions only to the owning scope', async () => {
     const ctx = await setup()
     const scopeKey = {}

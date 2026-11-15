@@ -16,8 +16,10 @@ import type { Context } from '@deepseek-ai/cordis'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import { scopeOf } from '@deepseek-ai/dsh-scope'
 import { Remote, RemoteError, TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol'
-// Side-effect type imports: declare the agent-created and tools/change events.
+// Side-effect type imports: declare the agent-created and tools/change events,
+// and the mcpResources service the suppression goes through.
 import type {} from '@deepseek-ai/dsh-tools'
+import type {} from '@deepseek-ai/dsh-mcp-resources'
 import {
   EMPTY_DOCUMENT, agentConfigsPath, mcpServersOf, readAgentConfigs, selectionOf, skillGlobsOf,
   writeAgentConfigs,
@@ -79,7 +81,7 @@ function mcpServerOf(toolName: string): string | undefined {
  * Skill enforcement lives in the skill filter, which reads the same document.
  */
 export default class AgentConfigsService extends TypertRemoteService {
-  static inject = ['tools', 'typert']
+  static inject = ['tools', 'typert', 'mcpResources']
 
   /** Last valid parse; kept so a transient bad write does not silently drop enforcement. */
   private cached: AgentConfigsDocument = EMPTY_DOCUMENT
@@ -91,6 +93,10 @@ export default class AgentConfigsService extends TypertRemoteService {
   private readonly masks = new Map<string, () => void>()
   /** Names each installed mask hides, so an unchanged selection is left alone. */
   private readonly masked = new Map<string, Set<string>>()
+  /** Lifts one agent's prompt suppression, keyed by session id. */
+  private readonly suppressors = new Map<string, () => void>()
+  /** Servers each suppression hides, so an unchanged profile is left alone. */
+  private readonly suppressed = new Map<string, Set<string>>()
   /** Serializes refreshes so two tool changes cannot interleave restrictions. */
   private tail: Promise<unknown> = Promise.resolve()
 
@@ -119,8 +125,11 @@ export default class AgentConfigsService extends TypertRemoteService {
       return () => {
         for (const dispose of disposers) dispose()
         for (const lift of this.masks.values()) lift()
+        for (const lift of this.suppressors.values()) lift()
         this.masks.clear()
         this.masked.clear()
+        this.suppressors.clear()
+        this.suppressed.clear()
         this.agents.clear()
       }
     }, 'agent-configs enforcement')
@@ -218,6 +227,9 @@ export default class AgentConfigsService extends TypertRemoteService {
     this.masks.get(sessionId)?.()
     this.masks.delete(sessionId)
     this.masked.delete(sessionId)
+    this.suppressors.get(sessionId)?.()
+    this.suppressors.delete(sessionId)
+    this.suppressed.delete(sessionId)
   }
 
   private async refresh(): Promise<void> {
@@ -249,14 +261,29 @@ export default class AgentConfigsService extends TypertRemoteService {
           const server = mcpServerOf(name)
           return server !== undefined && !servers.has(server)
         })
+      // Servers whose tools never reach the view (none registered yet) are still
+      // suppressed by name, so their prompt sections and resources follow the selection.
+      const roster = this.ctx.mcpResources.servers(scopeOf(agent.ctx))
+      const hide = servers === undefined ? [] : roster.filter(name => !servers.has(name))
       const previous = this.masked.get(sessionId)
-      if (previous !== undefined && previous.size === deny.length && deny.every(name => previous.has(name))) continue
+      const previousHide = this.suppressed.get(sessionId)
+      const same = (installed: Set<string> | undefined, next: readonly string[]): boolean =>
+        installed !== undefined && installed.size === next.length && next.every(name => installed.has(name))
+      if (same(previous, deny) && same(previousHide, hide)) continue
       this.masks.get(sessionId)?.()
       this.masks.delete(sessionId)
       this.masked.delete(sessionId)
-      if (deny.length === 0) continue
-      this.masks.set(sessionId, agent.ctx.tools.restrict({ deny }))
-      this.masked.set(sessionId, new Set(deny))
+      this.suppressors.get(sessionId)?.()
+      this.suppressors.delete(sessionId)
+      this.suppressed.delete(sessionId)
+      if (deny.length > 0) {
+        this.masks.set(sessionId, agent.ctx.tools.restrict({ deny }))
+        this.masked.set(sessionId, new Set(deny))
+      }
+      if (hide.length > 0) {
+        this.suppressors.set(sessionId, this.ctx.mcpResources.suppress(hide))
+        this.suppressed.set(sessionId, new Set(hide))
+      }
     }
     const live = new Set([...this.agents.keys()])
     for (const sessionId of [...this.masks.keys()]) if (!live.has(sessionId)) this.drop(sessionId)

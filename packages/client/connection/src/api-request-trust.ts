@@ -116,7 +116,10 @@ function isBindAddressAuthority(hostUrl: URL, bindHost: string | undefined): boo
  * @param trustedHosts - non-loopback authorities this deployment serves: exact `host:port`, or port-less `host` matching any port.
  * @param bindHost - the listener's own bind IP literal, accepted on any port independently of `trustedHosts`.
  * @param protocol - listener protocol for default Host ports; HTTP when no Web carrier is mounted.
- * @returns true when the Host is ours (loopback, the bind address, or trusted) and any attached browser markers are same-origin.
+ * @returns true when the Host is ours (loopback, the bind address, or trusted),
+ * the request is not a cross-site fetch or submission, and any attached Origin
+ * is this authority; a cross-site top-level document navigation is admitted
+ * because it carries no credentials and can read nothing.
  */
 export function isTrustedApiRequest(
   request: ConnectionTrustRequest,
@@ -139,8 +142,17 @@ export function isTrustedApiRequest(
     && !isTrustedAuthority(hostUrl, trustedHosts, protocol)
     && !isBindAddressAuthority(hostUrl, bindHost)) return false
   // Cross-site fence: modern browsers label the initiator relationship on
-  // every fetch; an explicit cross-site marker is refused regardless of Origin.
-  if (header(request.headers, 'sec-fetch-site') === 'cross-site') return false
+  // every fetch; an explicit cross-site marker is refused regardless of Origin,
+  // with one exception — the top-level document navigation a typed URL,
+  // bookmark, new-tab shortcut, or off-site link produces. Refusing that shape
+  // protects nothing and costs reachability: a browser withholds
+  // `SameSite=Strict` credentials from a cross-site navigation, and a document
+  // load cannot read this listener's response (no CORS answer, no script
+  // access), so the navigation arrives with no identity and the ordinary
+  // credential check answers 401. Chromium keeps the label across reloads, so
+  // refusing it also stranded the tab on a 403 page with no way back.
+  if (header(request.headers, 'sec-fetch-site') === 'cross-site'
+    && !isTopLevelDocumentNavigation(request)) return false
   // Origin fence: when a browser attaches an Origin it must be exactly this
   // authority (compared through the same normalization as the Host). Absent
   // Origin is fine — the Host fence above already bound the request. The
@@ -148,6 +160,20 @@ export function isTrustedApiRequest(
   const origin = header(request.headers, 'origin')
   if (origin === undefined) return true
   return isSameAuthorityOrigin(origin, host)
+}
+
+/**
+ * Whether a request is a browser's top-level document navigation: the only
+ * cross-site shape {@link isTrustedApiRequest} admits without an Origin.
+ * `navigate` with `document` excludes every subresource, script-driven fetch,
+ * and preflightable request, and an absent Origin excludes a form submission,
+ * which does attach one. Navigations from non-browser clients carry no
+ * Fetch-Metadata at all, so they never reach this predicate.
+ */
+function isTopLevelDocumentNavigation(request: ConnectionTrustRequest): boolean {
+  return header(request.headers, 'sec-fetch-mode') === 'navigate'
+    && header(request.headers, 'sec-fetch-dest') === 'document'
+    && header(request.headers, 'origin') === undefined
 }
 
 /**
