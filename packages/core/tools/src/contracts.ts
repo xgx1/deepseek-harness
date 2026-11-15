@@ -397,6 +397,12 @@ export interface ToolRestriction {
   readonly allow?: readonly string[]
   /** Global tool names removed from visibility. */
   readonly deny?: readonly string[]
+  /**
+   * Also mask registrations made in the agent's own scope, which a per-agent
+   * plugin instance mounts (MCP clients, GUI bridges). Off by default, because a
+   * preset's per-agent variants are normally not for a restriction to shadow.
+   */
+  readonly includeScoped?: boolean
 }
 
 /**

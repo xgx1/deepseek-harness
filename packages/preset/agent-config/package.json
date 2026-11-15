@@ -48,6 +48,7 @@
     "@deepseek-ai/dsh-mcp-resources": "workspace:*"
   },
   "devDependencies": {
+    "@types/picomatch": "^4.0.2",
     "@deepseek-ai/cordis": "workspace:~",
     "@deepseek-ai/dsh-agent": "workspace:*",
     "@deepseek-ai/dsh-home-paths": "workspace:*",
@@ -56,6 +57,7 @@
     "@deepseek-ai/dsh-typert-protocol": "workspace:*"
   },
   "dependencies": {
+    "picomatch": "^4.0.4",
     "yaml": "^2.4.2"
   },
   "files": [

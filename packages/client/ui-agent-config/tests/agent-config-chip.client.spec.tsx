@@ -20,8 +20,8 @@ const CWD = '/work/project'
 
 const ROSTER: AgentConfigSelectionView = {
   configs: [
-    { name: 'frontend', skills: ['ui-*', 'react-*'], mcp: ['playwright'] },
-    { name: 'backend', skills: ['db-*'], mcp: [] },
+    { name: 'frontend', skills: ['ui-*', 'react-*'], mcp: ['playwright'], tools: [] },
+    { name: 'backend', skills: ['db-*'], mcp: [], tools: ['read', 'bash'] },
   ],
   selected: [],
 }

@@ -8,6 +8,8 @@ export interface AgentConfigView {
   readonly skills: readonly string[]
   /** MCP servers the config enables. */
   readonly mcp: readonly string[]
+  /** Tool-name globs the config allows. */
+  readonly tools: readonly string[]
 }
 
 /** Roster plus the selection governing one project working directory. */

@@ -2,16 +2,18 @@
  * Host service that governs one project's skills and MCP tools through
  * `$DSH_HOME/agent-configs.yaml`.
  *
- * An agent is masked as soon as it is created: MCP tools whose server the
- * project's selection omits disappear from that agent's tool view, and the skill
- * filter reads the same document to decide the catalog. A project absent from
- * the document selects no configuration, which allows no server, so an
- * unconfigured checkout sees no MCP tool at all.
+ * An agent is masked as soon as it is created: tools the project's selection
+ * does not name disappear from that agent's tool view, MCP tools whose server
+ * the selection omits go with them, and the skill filter reads the same document
+ * to decide the catalog. A project absent from the document selects no
+ * configuration, which allows no tool, so an unconfigured checkout sees none.
  *
  * @module @deepseek-ai/dsh-agent-config
  */
 
+import { readFileSync, statSync } from 'node:fs'
 import { stat } from 'node:fs/promises'
+import picomatch from 'picomatch'
 import type { Context } from '@deepseek-ai/cordis'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import { scopeOf } from '@deepseek-ai/dsh-scope'
@@ -21,8 +23,8 @@ import { Remote, RemoteError, TypertRemoteService } from '@deepseek-ai/dsh-typer
 import type {} from '@deepseek-ai/dsh-tools'
 import type {} from '@deepseek-ai/dsh-mcp-resources'
 import {
-  EMPTY_DOCUMENT, agentConfigsPath, mcpServersOf, readAgentConfigs, selectionOf, skillGlobsOf,
-  writeAgentConfigs,
+  EMPTY_DOCUMENT, agentConfigsPath, mcpServersOf, parseAgentConfigs, readAgentConfigs, selectionOf,
+  skillGlobsOf, toolsOf, writeAgentConfigs,
 } from './config.js'
 import type { AgentConfigsDocument } from './config.js'
 import type { AgentConfigRequest, AgentConfigSelectionView, AgentConfigWrite } from './types.js'
@@ -52,6 +54,7 @@ function viewOf(document: AgentConfigsDocument, cwd: string): AgentConfigSelecti
       name,
       skills: config.skills,
       mcp: config.mcp,
+      tools: config.tools,
     })),
     selected: selectionOf(document, cwd) ?? [],
   }
@@ -126,6 +129,9 @@ export default class AgentConfigsService extends TypertRemoteService {
       const disposers = [
         ctx.on('agent/created', ({ agent }) => {
           this.agents.set(agent.session.id, agent)
+          // Mask in the same tick: the first request is assembled before a queued
+          // refresh could run, and an unmasked first step is the leak this prevents.
+          this.enforce(this.documentSync())
           return refresh()
         }),
         ctx.on('agent/disposed', ({ agent }) => {
@@ -145,6 +151,35 @@ export default class AgentConfigsService extends TypertRemoteService {
         this.agents.clear()
       }
     }, 'agent-configs enforcement')
+  }
+
+  /**
+   * Resolve the document without awaiting, so a new agent is masked before its
+   * first request is assembled.
+   * @returns the resolved document, or the last valid parse when this read fails.
+   */
+  private documentSync(): AgentConfigsDocument {
+    const path = agentConfigsPath()
+    let stamp: string | undefined
+    try {
+      const info = statSync(path)
+      stamp = `${info.mtimeMs}:${info.size}`
+    } catch {
+      stamp = undefined
+    }
+    if (stamp !== undefined && stamp === this.stamp) return this.cached
+    try {
+      this.cached = parseAgentConfigs(readFileSync(path, 'utf-8'), path)
+      this.stamp = stamp
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+        this.cached = EMPTY_DOCUMENT
+        this.stamp = undefined
+      } else {
+        this.ctx.logger.warn('agent-configs: %s; keeping the previous document', messageOf(error))
+      }
+    }
+    return this.cached
   }
 
   /**
@@ -256,21 +291,32 @@ export default class AgentConfigsService extends TypertRemoteService {
    * Bring every agent's mask in line with the current document. The deny set
    * comes from the unrestricted global view, so it is stable while a mask is
    * installed and an unchanged selection needs no reinstalling. A project the
-   * document does not list selects nothing, which allows no server.
+   * document does not list selects nothing, which allows neither a tool nor a server.
    */
   private async recompute(): Promise<void> {
-    const document = await this.document()
+    this.enforce(await this.document())
+  }
+
+  /**
+   * Bring every agent's mask in line with one already-resolved document.
+   * @param document - the document to enforce.
+   */
+  private enforce(document: AgentConfigsDocument): void {
     for (const agent of this.agents.values()) {
       const sessionId = agent.session.id
-      const servers = mcpServersOf(document, agent.session.header.cwd) ?? new Set<string>()
+      const cwd = agent.session.header.cwd
+      const servers = mcpServersOf(document, cwd) ?? new Set<string>()
+      // A tool is allowed by its own glob or, for an MCP tool, by its server.
+      const allowsTool = picomatch([...(toolsOf(document, cwd) ?? [])], { dot: true })
       // MCP servers mount in whatever scope their composition entry declares, so
       // candidates come from the agent's own view; the names a live mask already
       // hides are unioned back in, because that view no longer reports them.
       const names = new Set<string>(this.masked.get(sessionId))
       for (const schema of this.ctx.tools.schemas(scopeOf(agent.ctx))) names.add(schema.name)
       const deny = [...names].filter((name) => {
+        if (allowsTool(name)) return false
         const server = mcpServerOf(name)
-        return server !== undefined && !servers.has(server)
+        return server === undefined || !servers.has(server)
       })
       // Servers whose tools never reach the view (none registered yet) are still
       // suppressed by name, so their prompt sections and resources follow the selection.
@@ -292,11 +338,15 @@ export default class AgentConfigsService extends TypertRemoteService {
         this.suppressors.delete(sessionId)
         this.suppressed.delete(sessionId)
         if (deny.length > 0) {
-          this.masks.set(sessionId, agent.ctx.tools.restrict({ deny }))
+          // includeScoped: a preset mounts its MCP clients per agent, so their
+          // tools are scope-local and an ordinary mask would leave them visible.
+          this.masks.set(sessionId, agent.ctx.tools.restrict({ deny, includeScoped: true }))
           this.masked.set(sessionId, new Set(deny))
         }
         if (hide.length > 0) {
-          this.suppressors.set(sessionId, this.ctx.mcpResources.suppress(hide))
+          // Hide in the agent's own scope: a root-scope suppression would collide with
+          // every other session's and hide servers they may see.
+          this.suppressors.set(sessionId, this.ctx.mcpResources.suppress(hide, agent.ctx))
           this.suppressed.set(sessionId, new Set(hide))
         }
       } finally { this.applying = false }

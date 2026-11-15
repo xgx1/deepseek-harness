@@ -55,7 +55,7 @@ describe('the agentConfigs Remote namespace', () => {
     await document(roster)
     const view = await boot().getSelection({ cwd })
     expect(view).toEqual({
-      configs: [{ name: 'mini', skills: ['cbm-graph-first'], mcp: ['cbm'] }],
+      configs: [{ name: 'mini', skills: ['cbm-graph-first'], mcp: ['cbm'], tools: [] }],
       selected: [],
     })
   })

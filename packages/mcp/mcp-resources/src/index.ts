@@ -111,12 +111,13 @@ export class McpResourceRuntime extends Service {
   }
 
   /**
-   * Hide servers from this scope's prompt section and resource requests.
-   * @param servers - configured server names to suppress in the calling scope.
+   * Hide servers from one scope's prompt section and resource requests.
+   * @param servers - configured server names to suppress.
+   * @param ctx - context whose scope hides the servers; its own scope by default.
    * @returns the exact disposer lifting the suppression.
    */
-  suppress(servers: readonly string[]): () => void {
-    return this.layers.effect(this.ctx, (layer) => {
+  suppress(servers: readonly string[], ctx: Context = this.ctx): () => void {
+    return this.layers.effect(ctx, (layer) => {
       const removes = servers.map(name => layer.hidden.insert(name, true))
       return () => { for (const remove of removes) remove() }
     }, { label: 'mcpResources.suppress' })

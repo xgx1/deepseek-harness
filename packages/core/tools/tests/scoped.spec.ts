@@ -162,6 +162,20 @@ describe('restrict()', () => {
     expect(await run(ctx, 'allowed-local', allowed.key)).toBe('ran:allowed-local')
   })
 
+  it('masks a scope-local registration only when the filter asks for it', async () => {
+    const ctx = await mount()
+    const { scope, key } = await mintAgentScope(ctx, 'a')
+    ctx.tools.register(tool('read'))
+    scope.ctx.tools.register(tool('mcp__unit__scan'))
+    scope.ctx.tools.restrict({ allow: ['read'] })
+    // Per-agent plugin instances stay visible to an ordinary mask.
+    expect(ctx.tools.schemas(key).map(t => t.name).sort()).toEqual(['mcp__unit__scan', 'read'])
+
+    scope.ctx.tools.restrict({ deny: ['mcp__unit__scan'], includeScoped: true })
+    expect(ctx.tools.schemas(key).map(t => t.name)).toEqual(['read'])
+    expect(await run(ctx, 'mcp__unit__scan', key)).toBe('Error: unknown tool "mcp__unit__scan"')
+  })
+
   it('composes multiple restrictions by intersection and lifts each independently', async () => {
     const ctx = await mount()
     const { scope, key } = await mintAgentScope(ctx, 'a')

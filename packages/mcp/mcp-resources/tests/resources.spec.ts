@@ -136,6 +136,25 @@ describe('MCP resource tools', () => {
     expect((await call(ctx, 'list_mcp_resources', { server: 'drop' }, owner)).isError).toBe(false)
   })
 
+  it('hides the same server independently in two scopes', async () => {
+    const ctx = await setup()
+    const request = vi.fn<McpResourceProvider['request']>().mockResolvedValue({ resources: [] })
+    ctx.mcpResources.register('drop', { request })
+    const owners = [{} as Agent, {} as Agent]
+    const scopes = await Promise.all(owners.map(owner => resourceScope(ctx, owner)))
+    // One scope's suppression is not the other's: naming a scope is what lets two
+    // agents hide the same server without colliding on a shared layer.
+    const lifts = scopes.map(scoped => ctx.mcpResources.suppress(['drop'], scoped.ctx))
+    const shown = async (owner: Agent): Promise<string> => renderPrompt(await ctx.systemPrompt.assemble({ scope: owner }))
+    expect(await shown(owners[0]!)).not.toContain('"drop"')
+    expect(await shown(owners[1]!)).not.toContain('"drop"')
+    lifts[0]!()
+    expect(await shown(owners[0]!)).toContain('"drop"')
+    expect(await shown(owners[1]!)).not.toContain('"drop"')
+    lifts[1]!()
+    expect(await shown(owners[1]!)).toContain('"drop"')
+  })
+
   it.each([false, true])('shares scoped tools across independent provider owners (reverse disposal: %s)', async (reverse) => {
     const ctx = await setup()
     const owner = {} as Agent

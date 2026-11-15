@@ -39,6 +39,7 @@ declare module '@deepseek-ai/cordis' {
 interface CompiledToolRestriction {
   readonly allow?: ReadonlySet<string>
   readonly deny?: ReadonlySet<string>
+  readonly includeScoped?: boolean
 }
 
 /** One registered definition and its step-time activation condition. */
@@ -78,6 +79,16 @@ class ToolLayer implements ScopeLayer {
   /** Whether every compiled restriction in this layer admits a global tool name. */
   admits(name: string): boolean {
     for (const filter of this.restrictions.values()) {
+      if ((filter.allow !== undefined && !filter.allow.has(name))
+        || (filter.deny !== undefined && filter.deny.has(name))) return false
+    }
+    return true
+  }
+
+  /** Whether this layer's scoped-aware restrictions admit a scope-local tool name. */
+  admitsScoped(name: string): boolean {
+    for (const filter of this.restrictions.values()) {
+      if (filter.includeScoped !== true) continue
       if ((filter.allow !== undefined && !filter.allow.has(name))
         || (filter.deny !== undefined && filter.deny.has(name))) return false
     }
@@ -153,10 +164,12 @@ export class ToolsService extends Service {
   }
 
   /**
-   * Restrict global tools for the calling agent scope. Empty filters, unknown
+   * Restrict the tools the calling agent scope inherits. Empty filters, unknown
    * names, scope-local names, and reserved transport names fail. Restrictions
-   * intersect; scoped registrations remain visible.
-   * @param filter - global-tool mask: `allow` (keep only) and/or `deny` (remove).
+   * intersect; scoped registrations remain visible unless `includeScoped` asks
+   * for them too, which is how a per-project whitelist reaches a preset's own
+   * MCP client instances.
+   * @param filter - tool mask: `allow` (keep only) and/or `deny` (remove).
    * @returns the exact disposer that lifts this restriction.
    */
   restrict(filter: ToolRestriction): () => void {
@@ -169,17 +182,21 @@ export class ToolsService extends Service {
     if (allow === undefined && deny === undefined) {
       throw new Error('tools.restrict({}) is a no-op: pass `allow` and/or `deny` (an empty filter is almost always a materialized-empty-config bug)')
     }
+    const includeScoped = filter.includeScoped === true
     const compiled: CompiledToolRestriction = {
       ...allow !== undefined ? { allow: new Set(allow) } : {},
       ...deny !== undefined ? { deny: new Set(deny) } : {},
+      ...includeScoped ? { includeScoped } : {},
     }
     if ([...allow ?? [], ...deny ?? []].includes(RUN_CODE_NAME)) {
       throw new Error(`tools.restrict() cannot name reserved PTC mode presentation transport "${RUN_CODE_NAME}"; restrict end-capability tools instead`)
     }
-    const known = this.view(scope).restrictableNames
+    const view = this.view(scope)
+    const known = includeScoped ? view.knownNames : view.restrictableNames
     const unknown = [...allow ?? [], ...deny ?? []].filter(name => !known.has(name))
     if (unknown.length > 0) {
-      throw new Error(`tools.restrict() names unknown global tool${unknown.length > 1 ? 's' : ''} ${unknown.map(n => `"${n}"`).join(', ')}; known global tools: ${[...known].sort().join(', ') || '(none)'}`)
+      const where = includeScoped ? 'global or scope-local' : 'global'
+      throw new Error(`tools.restrict() names unknown ${where} tool${unknown.length > 1 ? 's' : ''} ${unknown.map(n => `"${n}"`).join(', ')}; known ${where} tools: ${[...known].sort().join(', ') || '(none)'}`)
     }
     return this.layers.effect(
       this.ctx,
@@ -191,8 +208,9 @@ export class ToolsService extends Service {
   /**
    * Resolve visible tools and pre-restriction names. Restrictions across the
    * scope chain intersect over inherited global and ancestor tools; the viewing
-   * scope's own registrations remain exempt. Nearer registrations shadow
-   * farther ones. Pre-restriction names support restriction and prompt-order validation.
+   * scope's own registrations remain exempt unless a restriction passes
+   * `includeScoped`. Nearer registrations shadow farther ones. Pre-restriction
+   * names support restriction and prompt-order validation.
    * @param scope - the viewing scope (the agent), or undefined for the global view.
    * @returns the complete derived view for that scope.
    */
@@ -219,6 +237,7 @@ export class ToolsService extends Service {
     if (own !== undefined) {
       for (const [name, registration] of own.tools.entries()) {
         knownNames.add(name)
+        if (!layers.every(layer => layer.admitsScoped(name))) continue
         visible.set(name, registration.definition)
         registrations.set(name, registration)
       }

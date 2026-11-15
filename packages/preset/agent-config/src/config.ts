@@ -1,8 +1,8 @@
 /**
  * Reader, validator, and resolver for `$DSH_HOME/agent-configs.yaml`.
  *
- * One named configuration bundles the skill allow globs and the MCP server
- * names a session may use. `projects` maps a project working directory to the
+ * One named configuration bundles the skill allow globs, the MCP server names
+ * and the tool-name globs a session may use. `projects` maps a project working directory to the
  * configurations it selects, so a project owns one default selection and every
  * session started there resolves the same document. The skill filter and the
  * MCP tool gate both read through this module, keeping one file authoritative.
@@ -21,6 +21,8 @@ export interface AgentConfiguration {
   readonly skills: readonly string[]
   /** MCP `serverName` values a session selecting this configuration may call. */
   readonly mcp: readonly string[]
+  /** Glob patterns over model-facing tool names; a tool matching none is denied. */
+  readonly tools: readonly string[]
 }
 
 /** The whole document: the definitions plus every project's selection. */
@@ -68,10 +70,14 @@ function stringArray(value: unknown, where: string): readonly string[] {
  */
 function parseConfiguration(value: unknown, name: string): AgentConfiguration {
   if (value === null || typeof value !== 'object' || Array.isArray(value)) {
-    throw new Error(`agent-configs: configuration "${name}" must be a mapping with "skills" and/or "mcp"`)
+    throw new Error(`agent-configs: configuration "${name}" must be a mapping with "skills", "mcp" and/or "tools"`)
   }
   const record = value as Record<string, unknown>
-  return { skills: stringArray(record.skills, `configs.${name}.skills`), mcp: stringArray(record.mcp, `configs.${name}.mcp`) }
+  return {
+    skills: stringArray(record.skills, `configs.${name}.skills`),
+    mcp: stringArray(record.mcp, `configs.${name}.mcp`),
+    tools: stringArray(record.tools, `configs.${name}.tools`),
+  }
 }
 
 /**
@@ -181,4 +187,19 @@ export function mcpServersOf(document: AgentConfigsDocument, cwd: string | undef
   const servers = new Set<string>()
   for (const name of selection) for (const server of document.configs[name]?.mcp ?? []) servers.add(server)
   return servers
+}
+
+/**
+ * Union the tool-name globs of the selected configurations.
+ * @param document - the document to resolve against.
+ * @param cwd - absolute project working directory.
+ * @returns the globs; empty when the project selects no configuration, undefined
+ * when the project is not governed, which allows no tool.
+ */
+export function toolsOf(document: AgentConfigsDocument, cwd: string | undefined): readonly string[] | undefined {
+  const selection = selectionOf(document, cwd)
+  if (selection === undefined) return undefined
+  const globs: string[] = []
+  for (const name of selection) globs.push(...document.configs[name]?.tools ?? [])
+  return globs
 }

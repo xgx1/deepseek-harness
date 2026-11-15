@@ -36,7 +36,7 @@ projects:
   /work/game: [general, unreal]
   /work/blank: []
 `, file)
-    expect(document.configs.general).toEqual({ skills: ['*'], mcp: ['cbm'] })
+    expect(document.configs.general).toEqual({ skills: ['*'], mcp: ['cbm'], tools: [] })
     expect(document.configs.unreal?.skills).toEqual(['unreal-*', 'ue*'])
     expect(document.projects['/work/game']).toEqual(['general', 'unreal'])
     expect(document.projects['/work/blank']).toEqual([])
@@ -44,7 +44,7 @@ projects:
 
   it('treats an absent field as an empty list', () => {
     const document = parseAgentConfigs('configs:\n  bare: {}\n', file)
-    expect(document.configs.bare).toEqual({ skills: [], mcp: [] })
+    expect(document.configs.bare).toEqual({ skills: [], mcp: [], tools: [] })
   })
 
   it('treats an empty file as no document', () => {
