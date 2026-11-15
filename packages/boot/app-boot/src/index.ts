@@ -661,14 +661,15 @@ export function renderConfigDump(
   } catch (error) {
     throw new Error(`${binName}: failed to read config ${absoluteConfigPath}: ${String(error)}`)
   }
+  const toml = extname(absoluteConfigPath) === '.toml'
   let parsed: unknown
   try {
-    parsed = parseEntryYaml(content)
+    parsed = toml ? parseEntryToml(content) : parseEntryYaml(content)
   } catch (error) {
     throw new Error(`${binName}: failed to parse config ${absoluteConfigPath}: ${String(error)}`)
   }
   if (!Array.isArray(parsed)) {
-    throw new Error(`${binName}: config ${absoluteConfigPath} must be a top-level YAML array of entries`)
+    throw new Error(`${binName}: config ${absoluteConfigPath} must be a top-level ${toml ? 'TOML entry array under [[entry]]' : 'YAML array of entries'}`)
   }
   const baseLabel = basename(absoluteConfigPath)
   // YAML parsing yields untyped rows; the include validates each entry

@@ -11,7 +11,7 @@
  */
 
 import { existsSync, mkdirSync, mkdtempSync, renameSync, rmSync, writeFileSync } from 'node:fs'
-import { dirname, join, resolve } from 'node:path'
+import { dirname, extname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { FiberState, type Context } from '@deepseek-ai/cordis'
 import type { PatchOptions } from '@deepseek-ai/cordis-plugin-include'
@@ -84,6 +84,22 @@ const PROFILE_ROOT_CONFIG = `# dsh profile root — an empty entry list. The tre
 # file, then any --patch overlays. Edit that patch file, not this one.
 []
 `
+
+/** The same empty entry list in the TOML dialect, for a profile whose root is `cordis.toml`. */
+const TOML_PROFILE_ROOT_CONFIG = `# dsh profile root — an empty entry list. The tree is composed as patches:
+# each bundle in package.json's dsh.profile.bundles, then the profile's patch
+# file, then any --patch overlays. Edit that patch file, not this one.
+entry = []
+`
+
+/**
+ * The empty root composition in the dialect its file name selects.
+ * @param path - the resolved root-config path.
+ * @returns file contents to write.
+ */
+function profileRootConfig(path: string): string {
+  return extname(path) === '.toml' ? TOML_PROFILE_ROOT_CONFIG : PROFILE_ROOT_CONFIG
+}
 
 export { PROFILE_ROOT_FILENAME } from '@deepseek-ai/dsh-app-boot'
 
@@ -195,7 +211,8 @@ export function prepareProfile(name: string, userLayer = true, fromDefaultProfil
   if (fromDefaultProfile !== undefined) initializeProfileFromDefault(name, fromDefaultProfile)
   const profile = loadProfile(NAME, name, INSTALL_ANCHOR, undefined, { userLayer })
   reportSkippedBundles(NAME, profile)
-  writeFileSync(resolveProfileRootPath(profile.dir), PROFILE_ROOT_CONFIG)
+  const rootPath = resolveProfileRootPath(profile.dir)
+  writeFileSync(rootPath, profileRootConfig(rootPath))
   return profile
 }
 
@@ -228,7 +245,10 @@ async function composeProfile(
   resolvedProfile?: ResolvedProfileRuntime,
 ): Promise<ComposedProfile> {
   const profile = resolvedProfile?.profile ?? prepareProfile(name, true, fromDefaultProfile)
-  if (resolvedProfile !== undefined) writeFileSync(resolveProfileRootPath(profile.dir), PROFILE_ROOT_CONFIG)
+  if (resolvedProfile !== undefined) {
+    const rootPath = resolveProfileRootPath(profile.dir)
+    writeFileSync(rootPath, profileRootConfig(rootPath))
+  }
   const resolutionOptions = { installAnchor: resolvedProfile?.installAnchor ?? INSTALL_ANCHOR, profile }
   const resolution = await createRuntimeResolution(resolutionOptions)
   const overlays = patchFiles.flatMap(file => loadOverlayPatches(NAME, resolve(file)))
