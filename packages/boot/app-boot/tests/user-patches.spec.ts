@@ -18,6 +18,8 @@ import {
   loadOverlayPatches,
   PROFILE_PATCH_FILENAME,
   reconcileProfilePatches,
+  resolveProfilePatchPath,
+  TOML_PROFILE_PATCH_FILENAME,
 } from '../src/index.ts'
 
 const NAME = 'dsh-test-bin'
@@ -61,6 +63,25 @@ describe('loadOptionalPatches', () => {
       config: { model: { __jsExpr: 'process.env.DSH_SPEC_MODEL' } },
     })
     expect(patches?.[1]?.insert).toHaveLength(1)
+  })
+
+  it('reads a TOML patch layer with the js: expression prefix', () => {
+    const dir = tmp()
+    writeFileSync(join(dir, TOML_PROFILE_PATCH_FILENAME), [
+      '[[entry]]',
+      'id = "agent-loop"',
+      "name = '@deepseek-ai/dsh-agent-loop'",
+      '',
+      '[entry.config]',
+      'model = "js:process.env.DSH_SPEC_MODEL"',
+      '',
+    ].join('\n'))
+    const patches = loadOptionalPatches(NAME, resolveProfilePatchPath(dir))
+    expect(patches).toHaveLength(1)
+    expect(patches?.[0]).toMatchObject({
+      id: 'agent-loop',
+      config: { model: { __jsExpr: 'process.env.DSH_SPEC_MODEL' } },
+    })
   })
 
   it.each([

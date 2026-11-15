@@ -7,15 +7,16 @@
  */
 
 import { existsSync } from 'node:fs'
-import { join, resolve } from 'node:path'
+import { resolve } from 'node:path'
 import {
   loadOptionalPatches,
   loadOverlayPatches,
   renderConfigDump,
+  resolveProfileRootPath,
   type ConfigDumpLayer,
   type Profile,
 } from '@deepseek-ai/dsh-app-boot'
-import { homePatchPath, prepareProfile, PROFILE_ROOT_FILENAME } from './profile-boot.ts'
+import { homePatchPath, prepareProfile } from './profile-boot.ts'
 
 const NAME = 'dsh'
 
@@ -38,7 +39,7 @@ export function runDumpConfig(
   const loaded = prepareProfile(profile, !defaultOnly, fromDefaultProfile)
   const layers = collectConfigDumpLayers(loaded, defaultOnly, patches)
   // The dump anchors on the same empty root file the boot includes.
-  process.stdout.write(renderConfigDump(NAME, join(loaded.dir, PROFILE_ROOT_FILENAME), layers))
+  process.stdout.write(renderConfigDump(NAME, resolveProfileRootPath(loaded.dir), layers))
 }
 
 /**

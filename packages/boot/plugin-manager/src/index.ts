@@ -1455,7 +1455,7 @@ export class PluginManager extends TypertRemoteService {
   }
 
   private diskState(): string {
-    return ['package.json', 'cordis.patch.yml', 'pnpm-workspace.yaml', PROFILE_COMPATIBILITY_FILENAME].map((file) => {
+    return ['package.json', 'cordis.patch.yml', 'cordis.patch.toml', 'cordis.yml', 'cordis.toml', 'pnpm-workspace.yaml', PROFILE_COMPATIBILITY_FILENAME].map((file) => {
       try { return readFileSync(join(this.profile.dir, file), 'utf8') }
       catch (error) {
         if ((error as NodeJS.ErrnoException).code === 'ENOENT') return ''

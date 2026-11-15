@@ -1,12 +1,12 @@
 /** Boot-free inspection of declared plugin Config schemas using profile module resolution. */
 
 import { readFile, realpath } from 'node:fs/promises'
-import { extname, join } from 'node:path'
+import { extname } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import Loader, { EntryGroup, ModuleLoader, isJsExpr, type EntryOptions } from '@deepseek-ai/cordis-plugin-loader'
 import Group from '@deepseek-ai/cordis-plugin-group'
-import Include, { applyEntryPatches, entryYamlErrorPosition, parseEntryYaml, type PatchOptions } from '@deepseek-ai/cordis-plugin-include'
-import type { Profile, RuntimeResolution } from '../profile.ts'
+import Include, { applyEntryPatches, entryYamlErrorPosition, parseEntryToml, parseEntryYaml, type PatchOptions } from '@deepseek-ai/cordis-plugin-include'
+import { resolveProfileRootPath, type Profile, type RuntimeResolution } from '../profile.ts'
 import { installRuntimeInterception } from '../profile-resolution/resolver.ts'
 import { buildConfigSchemaDocument } from './document.ts'
 import type { CollectedConfigEntry, ConfigSchemaDiagnostic, ConfigSchemaDump } from './types.ts'
@@ -127,7 +127,7 @@ export async function collectConfigSchemas(
       if (typeof config.path !== 'string') throw new Error('include path must be literal; config expressions are not evaluated')
       const filename = fileURLToPath(new URL(config.path, baseUrl))
       const extension = extname(filename)
-      if (!['.json', '.yaml', '.yml'].includes(extension)) throw new Error(`include extension ${JSON.stringify(extension)} is not supported`)
+      if (!['.json', '.yaml', '.yml', '.toml'].includes(extension)) throw new Error(`include extension ${JSON.stringify(extension)} is not supported`)
       let source: unknown
       let canonical: string
       try {
@@ -147,12 +147,17 @@ export async function collectConfigSchemas(
       }
       if (content !== undefined) {
         try {
-          source = extension === '.json' ? JSON.parse(content) : parseEntryYaml(content)
+          source = extension === '.json'
+            ? JSON.parse(content)
+            : extension === '.toml'
+              ? parseEntryToml(content)
+              : parseEntryYaml(content)
         } catch (error) {
           // Parser messages can quote configuration values; retain only the file and location.
           const position = entryYamlErrorPosition(error)
           const at = position === undefined ? '' : ` at line ${position.line}, column ${position.column}`
-          throw new Error(`invalid ${extension === '.json' ? 'JSON' : 'YAML'} include ${filename}${at}`)
+          const dialect = extension === '.json' ? 'JSON' : extension === '.toml' ? 'TOML' : 'YAML'
+          throw new Error(`invalid ${dialect} include ${filename}${at}`)
         }
       }
       const patches = includePatches(config.patches)
@@ -228,7 +233,7 @@ export async function collectConfigSchemas(
       }
     }
 
-    await walk(entries, pathToFileURL(join(profile.dir, 'cordis.yml')).href, '')
+    await walk(entries, pathToFileURL(resolveProfileRootPath(profile.dir)).href, '')
     const targets = new Map<string, CollectedConfigEntry>()
     const indexTargets = (rows: readonly unknown[]): void => {
       for (const row of rows) {

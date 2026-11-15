@@ -8,6 +8,8 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 import * as yaml from 'js-yaml'
 import { applyJournal, flatten, type Journal, merge, reconcile, record } from './journal.ts'
 import { parseEntryToml, stringifyEntryToml } from './toml.ts'
+/** The TOML dialect of entry and patch files, beside the YAML one. */
+export { ENTRY_ROOT_KEY, JS_EXPRESSION_PREFIX, PATCH_ROOT_KEY, parseEntryToml, stringifyEntryToml } from './toml.ts'
 import { applyPatches, ensureIds, ensureInsertIds, PatchIndex, type PatchOptions, routeJournal } from './patch.ts'
 /** Shared patch semantics used by config dumps and mounting. */
 export { applyPatches as applyEntryPatches } from './patch.ts'

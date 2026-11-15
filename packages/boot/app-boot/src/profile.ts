@@ -41,6 +41,39 @@ export const PROFILES_DIR = 'profiles'
 /** The user patch layer inside a profile directory (hot-reloaded on long-lived surfaces). */
 export const PROFILE_PATCH_FILENAME = 'cordis.patch.yml'
 
+/** Patch file a profile may carry instead of {@link PROFILE_PATCH_FILENAME}, in the TOML dialect. */
+export const TOML_PROFILE_PATCH_FILENAME = 'cordis.patch.toml'
+
+/** Root composition filename inside a profile directory. */
+export const PROFILE_ROOT_FILENAME = 'cordis.yml'
+
+/** Root composition a profile may carry instead of {@link PROFILE_ROOT_FILENAME}, in the TOML dialect. */
+export const TOML_PROFILE_ROOT_FILENAME = 'cordis.toml'
+
+/**
+ * Resolve a profile's user patch layer, preferring the TOML file when present.
+ * @param dir - the profile directory.
+ * @returns the absolute patch-file path.
+ */
+export function resolveProfilePatchPath(dir: string): string {
+  const toml = join(dir, TOML_PROFILE_PATCH_FILENAME)
+  if (existsSync(toml)) return toml
+  // Absent files resolve to the YAML name, which is what a new profile writes.
+  return join(dir, PROFILE_PATCH_FILENAME)
+}
+
+/**
+ * Resolve a profile's root composition, preferring the TOML file when present.
+ * @param dir - the profile directory.
+ * @returns the absolute root-config path.
+ */
+export function resolveProfileRootPath(dir: string): string {
+  const toml = join(dir, TOML_PROFILE_ROOT_FILENAME)
+  if (existsSync(toml)) return toml
+  // Absent files resolve to the YAML name, which is what a new profile writes.
+  return join(dir, PROFILE_ROOT_FILENAME)
+}
+
 /** Package metadata accepted by the profile reader; local profiles need no published identity. */
 export type ProfileManifest = Partial<DshPackageManifest>
 
@@ -210,7 +243,7 @@ export function initProfile(
     }
     writeFileSync(manifestPath, JSON.stringify(manifest, undefined, 2) + '\n')
   }
-  const patchPath = join(dir, PROFILE_PATCH_FILENAME)
+  const patchPath = resolveProfilePatchPath(dir)
   if (!existsSync(patchPath)) writeFileSync(patchPath, PROFILE_PATCH_TEMPLATE)
   const workspacePath = join(dir, 'pnpm-workspace.yaml')
   if (!existsSync(workspacePath)) writeFileSync(workspacePath, PROFILE_PNPM_WORKSPACE)
@@ -705,7 +738,7 @@ export function loadProfileDirectory(
       skippedBundles.push({ packageName, reason: String(error) })
     }
   }
-  const patchPath = join(dir, PROFILE_PATCH_FILENAME)
+  const patchPath = resolveProfilePatchPath(dir)
   const patches = options.userLayer !== false && existsSync(patchPath)
     ? loadOverlayPatches(binName, patchPath)
     : []

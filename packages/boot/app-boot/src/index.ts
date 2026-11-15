@@ -11,10 +11,10 @@ import { readFileSync } from 'node:fs'
 import { inspect, parseEnv } from 'node:util'
 import { captureStartupComposition, type StartupCompositionDiagnostic } from './startup-diagnostics.ts'
 export type { StartupCompositionDiagnostic, StartupPluginState, StartupServiceState } from './startup-diagnostics.ts'
-import { basename, dirname, isAbsolute, resolve } from 'node:path'
+import { basename, dirname, extname, isAbsolute, resolve } from 'node:path'
 import { Context, type Fiber, type FiberState } from '@deepseek-ai/cordis'
 import Loader, { type Entry, type EntryGroup, type EntryOptions } from '@deepseek-ai/cordis-plugin-loader'
-import Include, { applyEntryPatches, parseEntryYaml, stringifyEntryYaml, type PatchOptions } from '@deepseek-ai/cordis-plugin-include'
+import Include, { applyEntryPatches, parseEntryToml, parseEntryYaml, stringifyEntryYaml, type PatchOptions } from '@deepseek-ai/cordis-plugin-include'
 import Group from '@deepseek-ai/cordis-plugin-group'
 import { dshHomePath, dshPath, resolveDshHome } from '@deepseek-ai/dsh-home-paths'
 import { createLaunchEnvironmentSnapshot, type LaunchEnvironmentSnapshot } from '@deepseek-ai/dsh-launch-environment'
@@ -69,11 +69,16 @@ export {
   loadProfile,
   loadProfileDirectory,
   PROFILE_PATCH_FILENAME,
+  PROFILE_ROOT_FILENAME,
+  TOML_PROFILE_PATCH_FILENAME,
+  TOML_PROFILE_ROOT_FILENAME,
   PROFILES_DIR,
   readProfileManifest,
   reportSkippedBundles,
   resolveBundleDir,
   resolveProfileDir,
+  resolveProfilePatchPath,
+  resolveProfileRootPath,
   writeProfileManifest,
   type Profile,
   type ProfileLayer,
@@ -585,14 +590,16 @@ function anchorInsertedPluginNames(patches: PatchOptions[], file: string): Patch
 function parsePatchList(
   binName: string, file: string, content: string, label: string,
 ): PatchOptions[] {
+  const toml = extname(file) === '.toml'
   let parsed: unknown
   try {
-    parsed = parseEntryYaml(content)
+    parsed = toml ? parseEntryToml(content) : parseEntryYaml(content)
   } catch (error) {
     throw new Error(`${binName}: failed to parse ${label} ${file}: ${String(error)}`)
   }
   if (!Array.isArray(parsed)) {
-    throw new Error(`${binName}: ${label} ${file} must be a top-level YAML array of loader patch entries`)
+    const dialect = toml ? 'TOML array of loader patch entries under [[entry]]' : 'YAML array of loader patch entries'
+    throw new Error(`${binName}: ${label} ${file} must be a top-level ${dialect}`)
   }
   parsed.forEach((entry, index) => {
     if (typeof entry !== 'object' || entry === null || Array.isArray(entry)) {

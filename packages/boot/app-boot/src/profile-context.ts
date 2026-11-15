@@ -1,6 +1,5 @@
 /** Launcher-owned profile locations and composition inputs. */
-import { join } from 'node:path'
-import { composeEntries, loadProfileDirectory, PROFILE_PATCH_FILENAME, type Profile } from './profile.ts'
+import { composeEntries, loadProfileDirectory, resolveProfilePatchPath, type Profile } from './profile.ts'
 import { loadOptionalPatches } from './index.ts'
 import type { PatchOptions } from '@deepseek-ai/cordis-plugin-include'
 
@@ -75,7 +74,7 @@ export function readProfilePatches(binName: string, context: ProfileContext, ini
   const patches = structuredClone([
     ...readBundlePatches(binName, context, initialProfile),
     ...(initialProfile?.patches ?? loadOptionalPatches(binName, context.patchPath) ?? []),
-    ...(loadOptionalPatches(binName, join(context.home, PROFILE_PATCH_FILENAME)) ?? []),
+    ...(loadOptionalPatches(binName, resolveProfilePatchPath(context.home)) ?? []),
     ...context.overlays,
   ])
   const telemetryPatch = resolveTelemetryPatch(context.telemetryDisabledEnv,

@@ -27,6 +27,7 @@ import {
   PluginPackages,
   PROFILE_PATCH_FILENAME,
   resolveProfileDir,
+  resolveProfileRootPath,
   type ProfileContext,
   type Profile,
   type RuntimeResolution,
@@ -79,13 +80,12 @@ export const INSTALL_ANCHOR = fileURLToPath(new URL('../package.json', import.me
 
 /** The empty root entry list every profile tree patches over. */
 const PROFILE_ROOT_CONFIG = `# dsh profile root — an empty entry list. The tree is composed as patches:
-# each bundle in package.json's dsh.profile.bundles, then cordis.patch.yml, then any
-# --patch overlays. Edit cordis.patch.yml, not this file.
+# each bundle in package.json's dsh.profile.bundles, then the profile's patch
+# file, then any --patch overlays. Edit that patch file, not this one.
 []
 `
 
-/** Root config filename inside a profile directory. */
-export const PROFILE_ROOT_FILENAME = 'cordis.yml'
+export { PROFILE_ROOT_FILENAME } from '@deepseek-ai/dsh-app-boot'
 
 /**
  * Replace the named custom profile with a fresh copy of one shipped template.
@@ -195,7 +195,7 @@ export function prepareProfile(name: string, userLayer = true, fromDefaultProfil
   if (fromDefaultProfile !== undefined) initializeProfileFromDefault(name, fromDefaultProfile)
   const profile = loadProfile(NAME, name, INSTALL_ANCHOR, undefined, { userLayer })
   reportSkippedBundles(NAME, profile)
-  writeFileSync(join(profile.dir, PROFILE_ROOT_FILENAME), PROFILE_ROOT_CONFIG)
+  writeFileSync(resolveProfileRootPath(profile.dir), PROFILE_ROOT_CONFIG)
   return profile
 }
 
@@ -228,7 +228,7 @@ async function composeProfile(
   resolvedProfile?: ResolvedProfileRuntime,
 ): Promise<ComposedProfile> {
   const profile = resolvedProfile?.profile ?? prepareProfile(name, true, fromDefaultProfile)
-  if (resolvedProfile !== undefined) writeFileSync(join(profile.dir, PROFILE_ROOT_FILENAME), PROFILE_ROOT_CONFIG)
+  if (resolvedProfile !== undefined) writeFileSync(resolveProfileRootPath(profile.dir), PROFILE_ROOT_CONFIG)
   const resolutionOptions = { installAnchor: resolvedProfile?.installAnchor ?? INSTALL_ANCHOR, profile }
   const resolution = await createRuntimeResolution(resolutionOptions)
   const overlays = patchFiles.flatMap(file => loadOverlayPatches(NAME, resolve(file)))
@@ -323,7 +323,7 @@ export async function runProfile(options: RunProfileOptions): Promise<{ ctx: Con
       await app.current?.fiber.dispose()
     })
 
-    const rootConfig = join(composed.profile.dir, PROFILE_ROOT_FILENAME)
+    const rootConfig = resolveProfileRootPath(composed.profile.dir)
     const profileContext: ProfileContext = {
       name: options.profile,
       ...(options.packageManager === undefined ? {} : { packageManager: options.packageManager }),
