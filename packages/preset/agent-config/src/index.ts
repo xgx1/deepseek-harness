@@ -99,6 +99,10 @@ export default class AgentConfigsService extends TypertRemoteService {
   private readonly suppressed = new Map<string, Set<string>>()
   /** Serializes refreshes so two tool changes cannot interleave restrictions. */
   private tail: Promise<unknown> = Promise.resolve()
+  /** True while this plugin mutates masks, so its own `tools/change` cannot reschedule a refresh. */
+  private applying = false
+  /** True while a refresh is already queued, so a change storm coalesces into one recompute. */
+  private refreshQueued = false
 
   /**
    * @param ctx - host context of the plugin instance.
@@ -107,7 +111,15 @@ export default class AgentConfigsService extends TypertRemoteService {
     super(ctx, 'agentConfigs', { namespace: 'agentConfigs' })
     ctx.effect(() => {
       const refresh = (): undefined => {
-        void this.enqueue(() => this.refresh())
+        // Both guards keep recompute from rescheduling itself: mask mutation emits
+        // `tools/change` synchronously, and a queued refresh already reads the
+        // state a second queued one would read, so the queue must stay bounded.
+        if (this.applying || this.refreshQueued) return undefined
+        this.refreshQueued = true
+        void this.enqueue(() => {
+          this.refreshQueued = false
+          return this.refresh()
+        })
         return undefined
       }
       // A fresh agent and a late-registering MCP server both invalidate the mask.
@@ -267,23 +279,28 @@ export default class AgentConfigsService extends TypertRemoteService {
       const hide = servers === undefined ? [] : roster.filter(name => !servers.has(name))
       const previous = this.masked.get(sessionId)
       const previousHide = this.suppressed.get(sessionId)
+      // An absent installation is the empty selection: `same(undefined, [])` must hold,
+      // or an agent with nothing to deny never converges and reinstalls every pass.
       const same = (installed: Set<string> | undefined, next: readonly string[]): boolean =>
-        installed !== undefined && installed.size === next.length && next.every(name => installed.has(name))
+        (installed?.size ?? 0) === next.length && next.every(name => installed?.has(name) === true)
       if (same(previous, deny) && same(previousHide, hide)) continue
-      this.masks.get(sessionId)?.()
-      this.masks.delete(sessionId)
-      this.masked.delete(sessionId)
-      this.suppressors.get(sessionId)?.()
-      this.suppressors.delete(sessionId)
-      this.suppressed.delete(sessionId)
-      if (deny.length > 0) {
-        this.masks.set(sessionId, agent.ctx.tools.restrict({ deny }))
-        this.masked.set(sessionId, new Set(deny))
-      }
-      if (hide.length > 0) {
-        this.suppressors.set(sessionId, this.ctx.mcpResources.suppress(hide))
-        this.suppressed.set(sessionId, new Set(hide))
-      }
+      this.applying = true
+      try {
+        this.masks.get(sessionId)?.()
+        this.masks.delete(sessionId)
+        this.masked.delete(sessionId)
+        this.suppressors.get(sessionId)?.()
+        this.suppressors.delete(sessionId)
+        this.suppressed.delete(sessionId)
+        if (deny.length > 0) {
+          this.masks.set(sessionId, agent.ctx.tools.restrict({ deny }))
+          this.masked.set(sessionId, new Set(deny))
+        }
+        if (hide.length > 0) {
+          this.suppressors.set(sessionId, this.ctx.mcpResources.suppress(hide))
+          this.suppressed.set(sessionId, new Set(hide))
+        }
+      } finally { this.applying = false }
     }
     const live = new Set([...this.agents.keys()])
     for (const sessionId of [...this.masks.keys()]) if (!live.has(sessionId)) this.drop(sessionId)
