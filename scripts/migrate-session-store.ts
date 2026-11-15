@@ -19,7 +19,7 @@
 import { Context } from '@deepseek-ai/cordis'
 import type { SessionPersistence } from '@deepseek-ai/dsh-session-persistence'
 import * as JsonlSessionPersistence from '@deepseek-ai/dsh-session-persistence-jsonl'
-import * as SqliteSessionPersistence from '@deepseek-ai/dsh-session-persistence-sqlite'
+import * as TursoSessionPersistence from '@deepseek-ai/dsh-session-persistence-turso'
 import { fileURLToPath } from 'node:url'
 import { resolve } from 'node:path'
 
@@ -39,7 +39,7 @@ interface Mounted {
  * @returns the registered service and a disposer.
  */
 async function mount(
-  plugin: typeof JsonlSessionPersistence | typeof SqliteSessionPersistence,
+  plugin: typeof JsonlSessionPersistence | typeof TursoSessionPersistence,
   config: { root: string; compression: 'zstd' | 'none' } | { path: string },
 ): Promise<Mounted> {
   const ctx = new Context()
@@ -71,7 +71,7 @@ export async function migrateSessionStore(
   compression: 'zstd' | 'none' = 'zstd',
 ): Promise<MigrationReport> {
   const from = await mount(JsonlSessionPersistence, { root, compression })
-  const to = await mount(SqliteSessionPersistence, { path: databasePath })
+  const to = await mount(TursoSessionPersistence, { path: databasePath })
   const imported: string[] = []
   const skipped: string[] = []
   let found = 0

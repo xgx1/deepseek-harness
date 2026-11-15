@@ -1,6 +1,6 @@
 {
-  "name": "@deepseek-ai/dsh-session-persistence-sqlite",
-  "description": "SQLite durable session persistence backend for the DeepSeek Harness",
+  "name": "@deepseek-ai/dsh-session-persistence-turso",
+  "description": "Turso durable session persistence backend for the DeepSeek Harness",
   "version": "0.2.2-rc.3",
   "publishConfig": {
     "access": "public"
@@ -8,7 +8,7 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/deepseek-ai/deepseek-harness.git",
-    "directory": "packages/session/session-persistence-sqlite"
+    "directory": "packages/session/session-persistence-turso"
   },
   "type": "module",
   "main": "lib/index.js",
@@ -37,7 +37,8 @@
     "@deepseek-ai/dsh-session-persistence": "workspace:*"
   },
   "dependencies": {
-    "@deepseek-ai/schemastery": "workspace:~"
+    "@deepseek-ai/schemastery": "workspace:~",
+    "@tursodatabase/database": "^0.8.3"
   },
   "devDependencies": {
     "@deepseek-ai/cordis": "workspace:~",

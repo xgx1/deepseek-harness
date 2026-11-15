@@ -1,15 +1,15 @@
 ---
-description: "为选择、配置或排查单数据库 Session 存储的宿主与维护者准备的 SQLite Session 持久化后端。"
+description: "为选择、配置或排查单数据库 Session 存储的宿主与维护者准备的 Turso Session 持久化后端。"
 kind: "package-reference"
 ---
 
-# @deepseek-ai/dsh-session-persistence-sqlite
+# @deepseek-ai/dsh-session-persistence-turso
 
 [English](README.md) | 中文
 
 ## 概述
 
-`dsh-session-persistence-sqlite` 在一个 SQLite 数据库之上实现 `ctx.sessionPersistence`：每个已存储的 Session 对应 `sessions` 表中的一行（保存其 header），每个已存储的事件对应 `events` 表中的一行（保存该事件的 JSON 文本）。它既不压缩也不打包，因此任何 SQLite 客户端都能读到原始行。部署希望用单个可查询数据库取代按 Session 分文件时选它；希望运维以纯文本文件查看 Session 日志时选 `dsh-session-persistence-jsonl`。本后端不贡献提示词、工具或 schema。
+`dsh-session-persistence-turso` 在一个 Turso 数据库（SQLite 文件格式）之上实现 `ctx.sessionPersistence`：每个已存储的 Session 对应 `sessions` 表中的一行（保存其 header），每个已存储的事件对应 `events` 表中的一行（保存该事件的 JSON 文本）。它既不压缩也不打包，因此任何兼容 SQLite 的客户端都能读到原始行。部署希望用单个可查询数据库取代按 Session 分文件时选它；希望运维以纯文本文件查看 Session 日志时选 `dsh-session-persistence-jsonl`。本后端不贡献提示词、工具或 schema。
 
 ## 目录
 
@@ -33,7 +33,7 @@ kind: "package-reference"
 <a id="when-to-choose-it"></a>
 ### 何时选用
 
-Session 数据应落在一个运维已在备份与查询的数据库里时选它。同步的 `node:sqlite` 驱动会在每次 append 时阻塞 JavaScript 线程（包括发布一批事件的事务），高写入频率时要把这一点计入预算。存储的行不压缩，因此数据库比等价的压缩日志更大。
+Session 数据应落在一个运维已在备份与查询的数据库里时选它。Turso 驱动是异步的，每次 append 都要等发布本批事件的事务完成，高写入频率时要把这份延迟计入预算；Turso Database 尚未到 1.0，请保留数据库备份。存储的行不压缩，因此数据库比等价的压缩日志更大。
 
 <a id="configuration"></a>
 ### 配置
@@ -41,15 +41,15 @@ Session 数据应落在一个运维已在备份与查询的数据库里时选它
 只有两个字段：数据库路径与日志模式。
 
 ```yaml
-- id: session-persistence-sqlite
-  name: '@deepseek-ai/dsh-session-persistence-sqlite'
+- id: session-persistence-turso
+  name: '@deepseek-ai/dsh-session-persistence-turso'
   config:
     path: /var/lib/dsh/sessions.db
 ```
 
 | 字段 | 默认值 | 含义 |
 |---|---|---|
-| `path` | 必填 | SQLite 数据库文件路径，或 `:memory:` |
+| `path` | 必填 | Turso 数据库文件路径，或 `:memory:` |
 | `journalMode` | `wal` | 日志模式：`wal`、`delete`、`truncate` 或 `persist` |
 
 `wal` 适合本地磁盘；回滚日志模式适合 WAL 的共享内存文件无法工作的文件系统，例如网络挂载。
@@ -68,7 +68,7 @@ Session 数据应落在一个运维已在备份与查询的数据库里时选它
 <details>
 <summary>实现细节 —— 点击展开</summary>
 
-后端是一个 `node:sqlite` 连接与两张 STRICT 表；句柄约定由 `@deepseek-ai/dsh-session-persistence` 定义。
+后端是一个 Turso 连接与两张 STRICT 表；句柄约定由 `@deepseek-ai/dsh-session-persistence` 定义。
 
 ### 设计要点
 
@@ -85,7 +85,7 @@ Session 数据应落在一个运维已在备份与查询的数据库里时选它
 
 - `src/index.ts` —— 服务、open/create/flush/stat/list、append 事务、句柄。
 - `src/schema.ts` —— 打开顺序、布局版本、表结构。
-- `tests/sqlite.spec.ts` —— 共享的 `runPersistenceContract` 套件加物理布局用例。
+- `tests/turso.spec.ts` —— 共享的 `runPersistenceContract` 套件加物理布局用例。
 
 </details>
 
@@ -108,7 +108,7 @@ Session 数据应落在一个运维已在备份与查询的数据库里时选它
 
 #### 模型看到什么
 
-SQLite 存储注册 `ctx.sessionPersistence`，不向实时请求提供提示词、工具 schema 或结果。它存储 agent 循环已经产生的事件，并通过 `SessionHandle.read` 把它们交还给恢复后的 loop，因此模型看到的正是该 Session 记录的历史，本后端不做重排、合并或插入任何文本。
+Turso 存储注册 `ctx.sessionPersistence`，不向实时请求提供提示词、工具 schema 或结果。它存储 agent 循环已经产生的事件，并通过 `SessionHandle.read` 把它们交还给恢复后的 loop，因此模型看到的正是该 Session 记录的历史，本后端不做重排、合并或插入任何文本。
 
 #### Token 影响
 
@@ -123,7 +123,7 @@ SQLite 存储注册 `ctx.sessionPersistence`，不向实时请求提供提示词
 <a id="known-limitations-and-deferred-work"></a>
 
 - **单写者所有权只在进程内。** 后端按实例跟踪写所有权；两个进程对同一数据库做写打开不会被拒绝。一个数据库文件只由一个宿主使用。
-- **不能导入 JSONL。** `dsh-session-persistence-jsonl` 存储的 Session 不会被读取；切换前请用仍带该后端的构建导出。
+- **不自动迁移。** `dsh-session-persistence-jsonl` 存储的 Session 不会被读取；切换前先用 `pnpm exec tsx scripts/migrate-session-store.ts <jsonl-root> <turso-path>` 复制一次。
 - **没有按 Session 的产物位置。** 快照只报告 `eventCount`，因此诊断无法指向单个 Session 文件。
 
 <a id="dev-note"></a>

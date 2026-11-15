@@ -1,8 +1,8 @@
-# Agent Note: A thin SQLite Session-persistence provider beside JSONL
+# Agent Note: A thin Turso Session-persistence provider beside JSONL
 
 Status: implemented
 
-English | [中文](2026-11-15-sqlite-session-persistence.zh.md)
+English | [中文](2026-11-15-turso-session-persistence.zh.md)
 
 ## Problem
 
@@ -10,7 +10,7 @@ The shipped product stores every Session as a compressed JSONL log, and 2026-08-
 
 ## Decision
 
-`@deepseek-ai/dsh-session-persistence-sqlite` implements `ctx.sessionPersistence` over one `node:sqlite` database with one row per stored event written as plain JSON text, and no packing or compression layer. `SessionPersistence` stays backend-neutral, so this provider satisfies the same `runPersistenceContract` suite as the JSONL provider and ships beside it rather than replacing it: the base bundle keeps `session-persistence-jsonl`, and a deployment selects this provider in its own profile patch.
+`@deepseek-ai/dsh-session-persistence-turso` implements `ctx.sessionPersistence` over one Turso database with one row per stored event written as plain JSON text, and no packing or compression layer. Turso keeps SQLite file-format compatibility but ships an asynchronous driver, so the provider serializes its own writes and awaits every transaction. `SessionPersistence` stays backend-neutral, so this provider satisfies the same `runPersistenceContract` suite as the JSONL provider and ships beside it rather than replacing it: the base bundle keeps `session-persistence-jsonl`, and a deployment selects this provider in its own profile patch.
 
 ## Alternatives considered
 

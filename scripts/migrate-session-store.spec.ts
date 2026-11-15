@@ -7,7 +7,7 @@ import { join } from 'node:path'
 import { Context } from '@deepseek-ai/cordis'
 import type { SessionPersistence } from '@deepseek-ai/dsh-session-persistence'
 import * as JsonlSessionPersistence from '@deepseek-ai/dsh-session-persistence-jsonl'
-import * as SqliteSessionPersistence from '@deepseek-ai/dsh-session-persistence-sqlite'
+import * as TursoSessionPersistence from '@deepseek-ai/dsh-session-persistence-turso'
 import { meta, oneTurnLog } from '../packages/session/session-persistence/tests/contract.ts'
 import { migrateSessionStore } from './migrate-session-store.ts'
 
@@ -20,7 +20,7 @@ async function scratch(prefix: string): Promise<string> {
 
 /** Mount one persistence plugin over `config`. */
 async function mount(
-  plugin: typeof JsonlSessionPersistence | typeof SqliteSessionPersistence,
+  plugin: typeof JsonlSessionPersistence | typeof TursoSessionPersistence,
   config: { root: string; compression: 'zstd' | 'none' } | { path: string },
 ): Promise<{ persistence: SessionPersistence; dispose: () => Promise<void> }> {
   const ctx = new Context()
@@ -45,7 +45,7 @@ describe('migrate-session-store', () => {
     expect(first.imported).toEqual(['copied'])
     expect(first.skipped).toEqual([])
 
-    const target = await mount(SqliteSessionPersistence, { path: databasePath })
+    const target = await mount(TursoSessionPersistence, { path: databasePath })
     try {
       const reader = await target.persistence.open(meta('copied').id, 'read')
       expect((await reader.read()).events).toEqual(oneTurnLog())

@@ -1,15 +1,15 @@
 ---
-description: "SQLite Session-persistence backend for hosts and maintainers choosing, configuring, or debugging a single-database Session store."
+description: "Turso Session-persistence backend for hosts and maintainers choosing, configuring, or debugging a single-database Session store."
 kind: "package-reference"
 ---
 
-# @deepseek-ai/dsh-session-persistence-sqlite
+# @deepseek-ai/dsh-session-persistence-turso
 
 English | [中文](README.zh.md)
 
 ## Summary
 
-`dsh-session-persistence-sqlite` implements `ctx.sessionPersistence` over one SQLite database: every stored Session is one `sessions` row holding its header, and every stored event is one `events` row holding the event's JSON text. It compresses nothing and packs nothing, so stored rows stay readable with any SQLite client. Choose it when a deployment wants one queryable database instead of per-Session files; choose `dsh-session-persistence-jsonl` when operators inspect Session logs as plain files. The backend contributes no prompt, tool, or schema.
+`dsh-session-persistence-turso` implements `ctx.sessionPersistence` over one Turso database (SQLite file format): every stored Session is one `sessions` row holding its header, and every stored event is one `events` row holding the event's JSON text. It compresses nothing and packs nothing, so stored rows stay readable with any SQLite-compatible client. Choose it when a deployment wants one queryable database instead of per-Session files; choose `dsh-session-persistence-jsonl` when operators inspect Session logs as plain files. The backend contributes no prompt, tool, or schema.
 
 ## Table of Contents
 
@@ -32,22 +32,22 @@ Mount it as the provider of `ctx.sessionPersistence`; consumers that inject the 
 
 ### When to choose it
 
-Choose it when Session data belongs in one database the operator already backs up and queries. The synchronous `node:sqlite` driver blocks the JavaScript thread for each append, including the transaction that publishes a batch; account for this at high append rates. Stored rows are uncompressed, so a database is larger than an equivalent compressed log.
+Choose it when Session data belongs in one database the operator already backs up and queries. The Turso driver is asynchronous, so every append awaits the transaction that publishes its batch; account for that latency at high append rates, and keep backups because Turso Database has not reached 1.0. Stored rows are uncompressed, so a database is larger than an equivalent compressed log.
 
 ### Configuration
 
 Two fields: the database path and the journal mode.
 
 ```yaml
-- id: session-persistence-sqlite
-  name: '@deepseek-ai/dsh-session-persistence-sqlite'
+- id: session-persistence-turso
+  name: '@deepseek-ai/dsh-session-persistence-turso'
   config:
     path: /var/lib/dsh/sessions.db
 ```
 
 | Field | Default | Meaning |
 |---|---|---|
-| `path` | required | SQLite database file path, or `:memory:` |
+| `path` | required | Turso database file path, or `:memory:` |
 | `journalMode` | `wal` | Journal mode: `wal`, `delete`, `truncate`, or `persist` |
 
 `wal` suits local disks; a rollback-journal mode fits filesystems where WAL's shared-memory files do not work, such as network mounts.
@@ -65,7 +65,7 @@ Missing directories and database files are created owner-only (`0o700`/`0o600`);
 <details>
 <summary>Implementation internals — click to expand</summary>
 
-The backend is one `node:sqlite` connection and two STRICT tables; the handle contract lives in `@deepseek-ai/dsh-session-persistence`.
+The backend is one Turso connection and two STRICT tables; the handle contract lives in `@deepseek-ai/dsh-session-persistence`.
 
 ### Design concept
 
@@ -82,7 +82,7 @@ Opening creates the parent as `0o700`, exclusively creates a missing file as `0o
 
 - `src/index.ts` — service, open/create/flush/stat/list, append transactions, handle.
 - `src/schema.ts` — open sequence, layout version, table DDL.
-- `tests/sqlite.spec.ts` — the shared `runPersistenceContract` suite plus the physical layout.
+- `tests/turso.spec.ts` — the shared `runPersistenceContract` suite plus the physical layout.
 
 </details>
 
@@ -105,7 +105,7 @@ Opening creates the parent as `0o700`, exclusively creates a missing file as `0o
 
 #### What the model sees
 
-SQLite storage registers `ctx.sessionPersistence` and contributes no live prompt, tool schema, or result. It stores the events the agent loop already produced and returns them to a resumed loop through `SessionHandle.read`, so a model sees exactly the history its Session recorded, with no reordering, merging, or injected text from this backend.
+Turso storage registers `ctx.sessionPersistence` and contributes no live prompt, tool schema, or result. It stores the events the agent loop already produced and returns them to a resumed loop through `SessionHandle.read`, so a model sees exactly the history its Session recorded, with no reordering, merging, or injected text from this backend.
 
 #### Token effect
 
@@ -120,7 +120,7 @@ No effect on a live request prefix. A resumed loop can reuse the provider cache 
 <a id="known-limitations-and-deferred-work"></a>
 
 - **Single-writer ownership is in-process.** The backend tracks write ownership per instance; two processes opening the same database for write are not refused. Run one host per database file.
-- **No JSONL import.** Sessions stored by `dsh-session-persistence-jsonl` are not read; export them with a build that still ships that provider before switching.
+- **No automatic migration.** Sessions stored by `dsh-session-persistence-jsonl` are not read; copy them once with `pnpm exec tsx scripts/migrate-session-store.ts <jsonl-root> <turso-path>` before switching.
 - **No per-Session artifact location.** Snapshots report `eventCount` only, so diagnostics cannot point at a per-Session file.
 
 <a id="dev-note"></a>

@@ -1,14 +1,14 @@
 /**
- * SQLite Session-persistence backend: one database file holds every stored
+ * Turso Session-persistence backend: one database file holds every stored
  * Session header and every stored event as its own uncompressed JSON row.
  * Sessions stay invisible to other processes until their first append or
  * flush, matching the backend-neutral handle contract.
- * @module @deepseek-ai/dsh-session-persistence-sqlite
+ * @module @deepseek-ai/dsh-session-persistence-turso
  */
 
 import type { Context } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
-import type { DatabaseSync } from 'node:sqlite'
+import type { Database } from '@tursodatabase/database'
 import {
   SessionLogOffset,
   type SessionEvent,
@@ -48,12 +48,12 @@ import { openDatabase, type JournalMode } from './schema.ts'
 export type { JournalMode } from './schema.ts'
 
 /** Cordis plugin name. */
-export const name = 'session-persistence-sqlite'
+export const name = 'session-persistence-turso'
 
 /** Plugin configuration. */
 export interface Config {
   /**
-   * Path to the SQLite database file, or `:memory:` for an in-process
+   * Path to the Turso database file, or `:memory:` for an in-process
    * database. Missing directories and files are created owner-only.
    */
   path: string
@@ -97,7 +97,7 @@ function storedEventText(value: unknown): string {
   return row.event
 }
 
-/** Refuse a read cursor that SQLite cannot bind. */
+/** Refuse a read cursor that the database cannot bind. */
 function requireCount(value: number, label: string): number {
   if (!Number.isSafeInteger(value) || value < 0) {
     throw new Error(`session read ${label} must be a non-negative safe integer, got ${value}`)
@@ -106,21 +106,23 @@ function requireCount(value: number, label: string): number {
 }
 
 /**
- * The SQLite {@link SessionPersistence} backend. One connection serves every
+ * The Turso {@link SessionPersistence} backend. One connection serves every
  * handle; a created Session is process-local state until its first append or
  * flush writes its header row.
  */
-export class SqliteSessionPersistence extends SessionPersistence {
+export class TursoSessionPersistence extends SessionPersistence {
   /** Backend label for diagnostics and effects. */
-  override readonly name = 'session-persistence-sqlite'
+  override readonly name = 'session-persistence-turso'
 
-  private readonly ready: Promise<DatabaseSync>
+  private readonly ready: Promise<Database>
   /** Created Sessions with no durable row yet, visible to this instance only. */
   private readonly pending = new Map<SessionId, SessionStorageMetadata>()
   /** Ids claimed by a `create` racing another `create` for the same id. */
   private readonly reserved = new Set<SessionId>()
   /** Ids held by an active write handle of this instance. */
   private readonly owned = new Set<SessionId>()
+  /** Tail of the write queue: statements of concurrent writers never interleave. */
+  private writes: Promise<void> = Promise.resolve()
   private closing: Promise<void> | undefined
 
   /**
@@ -155,10 +157,10 @@ export class SqliteSessionPersistence extends SessionPersistence {
     try {
       const db = await this.ready
       options?.signal?.throwIfAborted()
-      if (this.selectSession(db, snapshot.id) !== undefined) throw new SessionAlreadyExistsError(snapshot.id)
+      if (await this.selectSession(db, snapshot.id) !== undefined) throw new SessionAlreadyExistsError(snapshot.id)
       this.pending.set(snapshot.id, { meta: snapshot, inheritedEventCount })
       this.owned.add(snapshot.id)
-      return new SqliteSessionHandle(this, snapshot.id, snapshot, inheritedEventCount, 'write', 0, false)
+      return new TursoSessionHandle(this, snapshot.id, snapshot, inheritedEventCount, 'write', 0, false)
     } finally {
       this.reserved.delete(snapshot.id)
     }
@@ -180,26 +182,26 @@ export class SqliteSessionPersistence extends SessionPersistence {
     const pending = this.pending.get(id)
     if (pending !== undefined) {
       if (access === 'write') this.claim(id)
-      return new SqliteSessionHandle(this, id, pending.meta, pending.inheritedEventCount, access, 0, false)
+      return new TursoSessionHandle(this, id, pending.meta, pending.inheritedEventCount, access, 0, false)
     }
-    const row = this.selectSession(db, id)
+    const row = await this.selectSession(db, id)
     if (row === undefined) throw new SessionPersistenceNotFoundError(id)
     const header = decodeHeader(row.header)
     assertStoredId(id, header)
     assertVersion(header)
     if (access !== 'write') {
-      return new SqliteSessionHandle(this, id, header, SessionLogOffset(row.inherited_event_count), access, row.event_count, true)
+      return new TursoSessionHandle(this, id, header, SessionLogOffset(row.inherited_event_count), access, row.event_count, true)
     }
     this.claim(id)
     try {
       // A write open over a log this build cannot interpret refuses and leaves
       // no ownership behind, so a retry sees the same refusal.
-      this.readEvents(db, id, header, 0, undefined)
+      await this.readEvents(db, id, header, 0, undefined)
     } catch (error: unknown) {
       this.owned.delete(id)
       throw error
     }
-    return new SqliteSessionHandle(this, id, header, SessionLogOffset(row.inherited_event_count), 'write', row.event_count, true)
+    return new TursoSessionHandle(this, id, header, SessionLogOffset(row.inherited_event_count), 'write', row.event_count, true)
   }
 
   /**
@@ -209,7 +211,7 @@ export class SqliteSessionPersistence extends SessionPersistence {
   async flush(): Promise<void> {
     const db = await this.ready
     for (const [id, stored] of [...this.pending]) {
-      this.materializeSession(db, id, stored)
+      await this.materializeSession(db, id, stored)
     }
   }
 
@@ -225,7 +227,7 @@ export class SqliteSessionPersistence extends SessionPersistence {
     options?.signal?.throwIfAborted()
     const pending = this.pending.get(id)
     if (pending !== undefined) return { header: pending.meta, revision: pendingRevision(id) }
-    const row = this.selectSession(db, id)
+    const row = await this.selectSession(db, id)
     if (row === undefined) return undefined
     return snapshotOf(id, row)
   }
@@ -239,7 +241,8 @@ export class SqliteSessionPersistence extends SessionPersistence {
     options?.signal?.throwIfAborted()
     const db = await this.ready
     options?.signal?.throwIfAborted()
-    const rows = db.prepare(`${SESSION_SELECT} ORDER BY id`).all().map(storedRow)
+    const statement = await db.prepare(`${SESSION_SELECT} ORDER BY id`)
+    const rows = (await statement.all()).map(storedRow)
     const snapshots = rows.map(row => snapshotOf(decodeHeader(row.header).id, row))
     for (const [id, stored] of this.pending) {
       snapshots.push({ header: stored.meta, revision: pendingRevision(id) })
@@ -257,18 +260,22 @@ export class SqliteSessionPersistence extends SessionPersistence {
   }
 
   private async doClose(): Promise<void> {
-    let db: DatabaseSync
+    let db: Database
     try {
       db = await this.ready
     } catch {
       // The database never opened; every operation already rejected through it.
       return
     }
-    db.close()
+    await this.writes
+    await db.close()
   }
 
-  /** The open connection, awaited by every handle operation. */
-  database(): Promise<DatabaseSync> {
+  /**
+   * The open connection, awaited by every handle operation.
+   * @returns the connection once the open sequence has finished.
+   */
+  database(): Promise<Database> {
     return this.ready
   }
 
@@ -278,20 +285,40 @@ export class SqliteSessionPersistence extends SessionPersistence {
     this.owned.add(id)
   }
 
-  /** Release write ownership taken by a `create` or a write `open`. */
+  /**
+   * Release write ownership taken by a `create` or a write `open`.
+   * @param id - the Session whose ownership is released.
+   */
   release(id: SessionId): void {
     this.owned.delete(id)
   }
 
-  /** Drop a created Session that never wrote anything; the id becomes free. */
+  /**
+   * Drop a created Session that never wrote anything; the id becomes free.
+   * @param id - the created Session to forget.
+   */
   discardPending(id: SessionId): void {
     this.pending.delete(id)
   }
 
-  private selectSession(db: DatabaseSync, id: SessionId): SessionRow | undefined {
-    const row = db.prepare(`SELECT header, inherited_event_count, revision,
+  /**
+   * Run one write past every other write, so an open transaction never
+   * interleaves with another writer's statements on the single connection.
+   * @param work - the write to run once the queue reaches it.
+   * @returns the write's own result.
+   */
+  private serialize<T>(work: () => Promise<T>): Promise<T> {
+    const run = this.writes.then(work, work)
+    this.writes = run.then(() => {}, () => {})
+    return run
+  }
+
+  private async selectSession(db: Database, id: SessionId): Promise<SessionRow | undefined> {
+    const statement = await db.prepare(`SELECT header, inherited_event_count, revision,
       (SELECT COUNT(*) FROM events WHERE session_id = sessions.id) AS event_count
-      FROM sessions WHERE id = ?`).get(id)
+      FROM sessions WHERE id = ?`)
+    // oxlint-disable-next-line typescript/no-unsafe-assignment -- the driver types every row as any.
+    const row = await statement.get(id)
     return row === undefined ? undefined : storedRow(row)
   }
 
@@ -302,14 +329,16 @@ export class SqliteSessionPersistence extends SessionPersistence {
    * @param id - the Session to materialize.
    * @param stored - the header and inherited cut to store.
    */
-  flushSession(db: DatabaseSync, id: SessionId, stored: SessionStorageMetadata): void {
-    this.materializeSession(db, id, stored)
+  async flushSession(db: Database, id: SessionId, stored: SessionStorageMetadata): Promise<void> {
+    await this.materializeSession(db, id, stored)
   }
 
   /** Write the header row of a created Session and retire its pending entry. */
-  private materializeSession(db: DatabaseSync, id: SessionId, stored: SessionStorageMetadata): void {
-    db.prepare('INSERT OR IGNORE INTO sessions (id, header, inherited_event_count, revision) VALUES (?, ?, ?, 0)')
-      .run(id, JSON.stringify(stored.meta), stored.inheritedEventCount)
+  private async materializeSession(db: Database, id: SessionId, stored: SessionStorageMetadata): Promise<void> {
+    await this.serialize(async () => {
+      const statement = await db.prepare('INSERT OR IGNORE INTO sessions (id, header, inherited_event_count, revision) VALUES (?, ?, ?, 0)')
+      await statement.run(id, JSON.stringify(stored.meta), stored.inheritedEventCount)
+    })
     this.pending.delete(id)
   }
 
@@ -323,9 +352,15 @@ export class SqliteSessionPersistence extends SessionPersistence {
    * @param length - maximum number of events, or `undefined` for the rest.
    * @returns validated, frozen events in seq order.
    */
-  readEvents(db: DatabaseSync, id: SessionId, header: SessionHeader, offset: number, length: number | undefined): SessionEvent[] {
-    const rows = db.prepare('SELECT event FROM events WHERE session_id = ? AND seq >= ? ORDER BY seq LIMIT ?')
-      .all(id, offset, length ?? -1)
+  async readEvents(
+    db: Database,
+    id: SessionId,
+    header: SessionHeader,
+    offset: number,
+    length: number | undefined,
+  ): Promise<SessionEvent[]> {
+    const statement = await db.prepare('SELECT event FROM events WHERE session_id = ? AND seq >= ? ORDER BY seq LIMIT ?')
+    const rows = await statement.all(id, offset, length ?? -1)
     const events = rows.map(row => JSON.parse(storedEventText(row)) as SessionEvent)
     return validateStoredEvents(header, events)
   }
@@ -337,18 +372,23 @@ export class SqliteSessionPersistence extends SessionPersistence {
    * @param stored - the header and inherited cut to materialize alongside it.
    * @param batch - contiguous events, already snapshot-validated.
    */
-  appendEvents(db: DatabaseSync, id: SessionId, stored: SessionStorageMetadata, batch: readonly SessionEvent[]): void {
-    db.exec('BEGIN IMMEDIATE')
-    try {
-      this.materializeSession(db, id, stored)
-      const insert = db.prepare('INSERT INTO events (session_id, seq, event) VALUES (?, ?, ?)')
-      for (const event of batch) insert.run(id, event.seq, JSON.stringify(event))
-      db.prepare('UPDATE sessions SET revision = revision + 1 WHERE id = ?').run(id)
-      db.exec('COMMIT')
-    } catch (error: unknown) {
-      db.exec('ROLLBACK')
-      throw error
-    }
+  async appendEvents(db: Database, id: SessionId, stored: SessionStorageMetadata, batch: readonly SessionEvent[]): Promise<void> {
+    await this.serialize(async () => {
+      await db.exec('BEGIN IMMEDIATE')
+      try {
+        const header = await db.prepare('INSERT OR IGNORE INTO sessions (id, header, inherited_event_count, revision) VALUES (?, ?, ?, 0)')
+        await header.run(id, JSON.stringify(stored.meta), stored.inheritedEventCount)
+        const insert = await db.prepare('INSERT INTO events (session_id, seq, event) VALUES (?, ?, ?)')
+        for (const event of batch) await insert.run(id, event.seq, JSON.stringify(event))
+        const bump = await db.prepare('UPDATE sessions SET revision = revision + 1 WHERE id = ?')
+        await bump.run(id)
+        await db.exec('COMMIT')
+      } catch (error: unknown) {
+        await db.exec('ROLLBACK')
+        throw error
+      }
+    })
+    this.pending.delete(id)
   }
 }
 
@@ -388,11 +428,10 @@ function snapshotOf(id: SessionId, row: SessionRow): SessionPersistenceSnapshot 
 }
 
 /**
- * One open channel onto a stored Session. Appends write through synchronously,
- * so a resolved `append` is already durable and `flush` only materializes an
- * otherwise empty created Session.
+ * One open channel onto a stored Session. An append commits before it resolves,
+ * so `flush` only materializes an otherwise empty created Session.
  */
-class SqliteSessionHandle implements SessionHandle {
+class TursoSessionHandle implements SessionHandle {
   private closed = false
   private materialized: boolean
   private cursor: number
@@ -407,7 +446,7 @@ class SqliteSessionHandle implements SessionHandle {
    * @param materialized - whether the header row exists on the medium.
    */
   constructor(
-    private readonly backend: SqliteSessionPersistence,
+    private readonly backend: TursoSessionPersistence,
     readonly id: SessionId,
     readonly header: SessionHeader,
     readonly inheritedEventCount: SessionLogOffset,
@@ -434,7 +473,7 @@ class SqliteSessionHandle implements SessionHandle {
     options?.signal?.throwIfAborted()
     // Every read parses its own rows, so the returned values are caller-owned.
     const eventState: SessionSeedEventState = 'detached'
-    return { eventState, events: this.backend.readEvents(db, this.id, this.header, from, take) }
+    return { eventState, events: await this.backend.readEvents(db, this.id, this.header, from, take) }
   }
 
   /**
@@ -450,7 +489,7 @@ class SqliteSessionHandle implements SessionHandle {
     assertContiguous(this.id, batch, this.cursor)
     const db = await this.backend.database()
     options?.signal?.throwIfAborted()
-    this.backend.appendEvents(db, this.id, { meta: this.header, inheritedEventCount: this.inheritedEventCount }, batch)
+    await this.backend.appendEvents(db, this.id, { meta: this.header, inheritedEventCount: this.inheritedEventCount }, batch)
     this.materialized = true
     this.cursor += batch.length
   }
@@ -466,7 +505,7 @@ class SqliteSessionHandle implements SessionHandle {
     if (this.materialized) return
     const db = await this.backend.database()
     options?.signal?.throwIfAborted()
-    this.backend.flushSession(db, this.id, { meta: this.header, inheritedEventCount: this.inheritedEventCount })
+    await this.backend.flushSession(db, this.id, { meta: this.header, inheritedEventCount: this.inheritedEventCount })
     this.materialized = true
   }
 
@@ -501,13 +540,13 @@ class SqliteSessionHandle implements SessionHandle {
 }
 
 /**
- * Mount the SQLite Session-persistence backend as `ctx.sessionPersistence`.
+ * Mount the Turso Session-persistence backend as `ctx.sessionPersistence`.
  * @param ctx - the owning plugin context.
  * @param config - the database path and journal mode.
  */
 export async function apply(ctx: Context, config: Config): Promise<void> {
-  const backend = new SqliteSessionPersistence(ctx, config)
-  ctx.effect(() => () => backend.close(), 'session-persistence-sqlite.close')
+  const backend = new TursoSessionPersistence(ctx, config)
+  ctx.effect(() => () => backend.close(), 'session-persistence-turso.close')
   // An unusable database (foreign schema version, unwritable path) fails the
   // mount rather than every later session operation.
   await backend.database()

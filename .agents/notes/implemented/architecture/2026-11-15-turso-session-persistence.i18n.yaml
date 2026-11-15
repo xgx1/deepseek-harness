@@ -1,0 +1,19 @@
+# Bilingual-pair consistency record for 2026-11-15-turso-session-persistence.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-11-15-turso-session-persistence.md
+/agent-note-a-thin-turso-session-persistence-provider-beside-jsonl:
+  en: 4050852847071a2f
+  zh: 944a0d6b00e9fe83
+/agent-note-a-thin-turso-session-persistence-provider-beside-jsonl/problem:
+  en: bdb35264a9309670
+  zh: 8935bc51b04e42a9
+/agent-note-a-thin-turso-session-persistence-provider-beside-jsonl/decision:
+  en: be98990b3e516bc1
+  zh: 95d8499b55a10f80
+/agent-note-a-thin-turso-session-persistence-provider-beside-jsonl/alternatives-considered:
+  en: f87cc18279d218f9
+  zh: 873fdf4a516f1a9e
+/agent-note-a-thin-turso-session-persistence-provider-beside-jsonl/consequences:
+  en: 563ad0d3ad15819f
+  zh: f698e594a122e425

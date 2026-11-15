@@ -1,11 +1,11 @@
 /**
  * Database open sequence, physical layout version, and session tables for the
- * SQLite Session-persistence backend: one row per stored Session header, one
- * row per stored event, no compression.
- * @module @deepseek-ai/dsh-session-persistence-sqlite/schema
+ * Turso Session-persistence backend: one row per stored Session header, one row
+ * per stored event, no compression.
+ * @module @deepseek-ai/dsh-session-persistence-turso/schema
  */
 
-import { DatabaseSync } from 'node:sqlite'
+import { connect, type Database } from '@tursodatabase/database'
 import { mkdir, open } from 'node:fs/promises'
 import { dirname, resolve } from 'node:path'
 
@@ -14,7 +14,7 @@ import { dirname, resolve } from 'node:path'
  * by policy: a breaking layout change bumps it. Any other non-zero value
  * rejects rather than being migrated in place.
  */
-export const SESSION_SQLITE_SCHEMA_VERSION = 1
+export const SESSION_TURSO_SCHEMA_VERSION = 1
 
 /**
  * Journal modes this backend runs under. `wal` is the default; the
@@ -46,34 +46,42 @@ async function createDatabaseFile(path: string): Promise<void> {
  * @param journalMode - validated journal pragma.
  * @returns the open handle with the session tables ensured.
  */
-export async function openDatabase(path: string, journalMode: JournalMode): Promise<DatabaseSync> {
+export async function openDatabase(path: string, journalMode: JournalMode): Promise<Database> {
   const actual = path === ':memory:' ? path : resolve(path)
   if (actual !== ':memory:') {
     await mkdir(dirname(actual), { recursive: true, mode: 0o700 })
     await createDatabaseFile(actual)
   }
-  const db = new DatabaseSync(actual)
+  const db = await connect(actual)
   try {
-    configureDatabase(db, actual, journalMode)
+    await configureDatabase(db, actual, journalMode)
     return db
   } catch (error: unknown) {
-    db.close()
+    await db.close()
     throw error
   }
 }
 
-function configureDatabase(db: DatabaseSync, path: string, journalMode: JournalMode): void {
-  db.exec('PRAGMA foreign_keys = ON')
+/**
+ * Apply the pragmas and ensure the session tables of an already-open database.
+ * @param db - the open connection.
+ * @param path - the database identity, for diagnostics.
+ * @param journalMode - validated journal pragma.
+ */
+async function configureDatabase(db: Database, path: string, journalMode: JournalMode): Promise<void> {
+  await db.exec('PRAGMA foreign_keys = ON')
   // The validated union is safe to interpolate into a non-bindable PRAGMA.
-  db.exec(`PRAGMA journal_mode = ${journalMode.toUpperCase()}`)
-  const { user_version: onDisk } = db.prepare('PRAGMA user_version').get() as { user_version: number }
-  if (onDisk !== 0 && onDisk !== SESSION_SQLITE_SCHEMA_VERSION) {
+  await db.exec(`PRAGMA journal_mode = ${journalMode.toUpperCase()}`)
+  const version = await db.prepare('PRAGMA user_version')
+  const row = await version.get() as { user_version?: number } | undefined
+  const onDisk = row?.user_version ?? 0
+  if (onDisk !== 0 && onDisk !== SESSION_TURSO_SCHEMA_VERSION) {
     throw new Error(
-      `session database at "${path}" has schema version ${onDisk}, incompatible with this build (${SESSION_SQLITE_SCHEMA_VERSION})`,
+      `session database at "${path}" has schema version ${onDisk}, incompatible with this build (${SESSION_TURSO_SCHEMA_VERSION})`,
     )
   }
   /* jscpd:ignore-end */
-  db.exec(`
+  await db.exec(`
     CREATE TABLE IF NOT EXISTS sessions (
       id                    TEXT PRIMARY KEY,
       header                TEXT NOT NULL,
@@ -81,7 +89,7 @@ function configureDatabase(db: DatabaseSync, path: string, journalMode: JournalM
       revision              INTEGER NOT NULL
     ) STRICT
   `)
-  db.exec(`
+  await db.exec(`
     CREATE TABLE IF NOT EXISTS events (
       session_id TEXT NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
       seq        INTEGER NOT NULL,
@@ -91,6 +99,6 @@ function configureDatabase(db: DatabaseSync, path: string, journalMode: JournalM
   `)
   if (onDisk === 0) {
     // Stamp fresh databases LAST: the stamp asserts the layout is complete.
-    db.exec(`PRAGMA user_version = ${SESSION_SQLITE_SCHEMA_VERSION}`)
+    await db.exec(`PRAGMA user_version = ${SESSION_TURSO_SCHEMA_VERSION}`)
   }
 }

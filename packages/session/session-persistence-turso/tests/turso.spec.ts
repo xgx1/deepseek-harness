@@ -1,18 +1,18 @@
 import { describe, expect, it } from 'vitest'
-import { DatabaseSync } from 'node:sqlite'
+import { connect } from '@tursodatabase/database'
 import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { Context } from '@deepseek-ai/cordis'
 import type { SessionPersistence } from '@deepseek-ai/dsh-session-persistence'
 import { meta, oneTurnLog, runPersistenceContract } from '../../session-persistence/tests/contract.ts'
-import * as SqliteSessionPersistence from '../src/index.ts'
-import { SESSION_SQLITE_SCHEMA_VERSION } from '../src/schema.ts'
+import * as TursoSessionPersistence from '../src/index.ts'
+import { SESSION_TURSO_SCHEMA_VERSION } from '../src/schema.ts'
 
 /** One backend instance over `path`, plus its teardown. */
 async function instance(path: string): Promise<{ persistence: SessionPersistence; dispose: () => Promise<void> }> {
   const ctx = new Context()
-  const fiber = await ctx.plugin(SqliteSessionPersistence, { path })
+  const fiber = await ctx.plugin(TursoSessionPersistence, { path })
   return {
     persistence: ctx.sessionPersistence,
     dispose: async () => { await fiber.dispose() },
@@ -28,8 +28,8 @@ function eventRows(rows: unknown[]): Array<{ seq: number; event: string }> {
   })
 }
 
-runPersistenceContract('sqlite', async () => {
-  const dir = await mkdtemp(join(tmpdir(), 'dsh-sqlite-persistence-'))
+runPersistenceContract('turso', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'dsh-turso-persistence-'))
   const dbPath = join(dir, 'sessions.db')
   const primary = await instance(dbPath)
   return {
@@ -42,9 +42,9 @@ runPersistenceContract('sqlite', async () => {
   }
 })
 
-describe('sqlite physical layout', () => {
+describe('turso physical layout', () => {
   it('stores one uncompressed JSON row per event', async () => {
-    const dir = await mkdtemp(join(tmpdir(), 'dsh-sqlite-layout-'))
+    const dir = await mkdtemp(join(tmpdir(), 'dsh-turso-layout-'))
     try {
       const dbPath = join(dir, 'sessions.db')
       const backend = await instance(dbPath)
@@ -53,14 +53,15 @@ describe('sqlite physical layout', () => {
       await handle.close()
       await backend.dispose()
 
-      const db = new DatabaseSync(dbPath)
+      const db = await connect(dbPath)
       try {
-        const rows = eventRows(db.prepare('SELECT seq, event FROM events ORDER BY seq').all())
+        const statement = await db.prepare('SELECT seq, event FROM events ORDER BY seq')
+        const rows = eventRows(await statement.all())
         expect(rows).toHaveLength(oneTurnLog().length)
         // No compression layer: the stored text is the event itself.
         expect(JSON.parse(rows.at(0)?.event ?? 'null')).toEqual(oneTurnLog().at(0))
       } finally {
-        db.close()
+        await db.close()
       }
     } finally {
       await rm(dir, { recursive: true, force: true })
@@ -68,12 +69,12 @@ describe('sqlite physical layout', () => {
   })
 
   it('refuses a database stamped by another schema version', async () => {
-    const dir = await mkdtemp(join(tmpdir(), 'dsh-sqlite-version-'))
+    const dir = await mkdtemp(join(tmpdir(), 'dsh-turso-version-'))
     try {
       const dbPath = join(dir, 'sessions.db')
-      const db = new DatabaseSync(dbPath)
-      db.exec(`PRAGMA user_version = ${SESSION_SQLITE_SCHEMA_VERSION + 1}`)
-      db.close()
+      const db = await connect(dbPath)
+      await db.exec(`PRAGMA user_version = ${SESSION_TURSO_SCHEMA_VERSION + 1}`)
+      await db.close()
       await expect(instance(dbPath)).rejects.toThrow(/incompatible with this build/)
     } finally {
       await rm(dir, { recursive: true, force: true })

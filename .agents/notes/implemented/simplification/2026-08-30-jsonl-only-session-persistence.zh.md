@@ -14,7 +14,7 @@ SQLite 全文 Session-query provider 不是另一种权威 store。它通过 `ct
 
 `@deepseek-ai/dsh-session-persistence-jsonl` 是 `ctx.sessionPersistence` 唯一的 first-party 实现。抽象 Service Definition 保持后端无关，使仓库外 provider 仍可实现同一服务，但仓库只拥有并测试一种权威 Session 物理格式。
 
-仓库不再包含 `@deepseek-ai/dsh-session-persistence-sqlite` package、其 schema resource、后端专用测试、配置接口与 Windows differential lane。跨 package 持久化测试使用真实 JSONL provider 或 owner-local fake。`@deepseek-ai/dsh-session-query-sqlite` 继续作为可选 FTS5 query provider 使用独立、可重建的数据库，`@deepseek-ai/dsh-storage-sqlite` 继续作为通用 domain-KV provider。此后回归了一个更窄的 SQLite provider 且不改动本默认值：[2026-11-15](../architecture/2026-11-15-sqlite-session-persistence.zh.md) 每个事件存一行、不压缩，只由部署自己的 profile patch 选择，因此任何已发布 bundle 挂载的仍然只有 JSONL。
+仓库不再包含 `@deepseek-ai/dsh-session-persistence-sqlite` package、其 schema resource、后端专用测试、配置接口与 Windows differential lane。跨 package 持久化测试使用真实 JSONL provider 或 owner-local fake。`@deepseek-ai/dsh-session-query-sqlite` 继续作为可选 FTS5 query provider 使用独立、可重建的数据库，`@deepseek-ai/dsh-storage-sqlite` 继续作为通用 domain-KV provider。此后回归了一个更窄的 SQLite provider 且不改动本默认值：[2026-11-15](../architecture/2026-11-15-turso-session-persistence.zh.md) 每个事件存一行、不压缩，只由部署自己的 profile patch 选择，因此任何已发布 bundle 挂载的仍然只有 JSONL。
 
 当前 build 不打开或迁移已删除 provider 写出的现有数据库。需要其中内容的 operator 必须先使用仍包含该 provider 的 build 导出逻辑 Session，再执行升级。
 

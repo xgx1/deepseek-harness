@@ -1,8 +1,8 @@
-# Agent Note: 与 JSONL 并行的轻量 SQLite 会话持久化后端
+# Agent Note: 与 JSONL 并行的轻量 Turso 会话持久化后端
 
 Status: implemented
 
-[English](2026-11-15-sqlite-session-persistence.md) | 中文
+[English](2026-11-15-turso-session-persistence.md) | 中文
 
 ## 问题
 
@@ -10,7 +10,7 @@ Status: implemented
 
 ## 决定
 
-`@deepseek-ai/dsh-session-persistence-sqlite` 在一个 `node:sqlite` 数据库之上实现 `ctx.sessionPersistence`，每个已存储事件一行、写为纯 JSON 文本，不带打包或压缩层。`SessionPersistence` 保持与后端无关，因此该后端与 JSONL 后端通过同一套 `runPersistenceContract` 套件，并且与它并存而不是取而代之：基础 bundle 仍保留 `session-persistence-jsonl`，由部署在自己的 profile patch 中选择本后端。
+`@deepseek-ai/dsh-session-persistence-turso` 在一个 Turso 数据库之上实现 `ctx.sessionPersistence`，每个已存储事件一行、写为纯 JSON 文本，不带打包或压缩层。Turso 仍然兼容 SQLite 文件格式，但提供的是异步驱动，因此本后端自己串行化写入，并等待每个事务完成。`SessionPersistence` 保持与后端无关，因此该后端与 JSONL 后端通过同一套 `runPersistenceContract` 套件，并且与它并存而不是取而代之：基础 bundle 仍保留 `session-persistence-jsonl`，由部署在自己的 profile patch 中选择本后端。
 
 ## 考虑过的替代方案
 

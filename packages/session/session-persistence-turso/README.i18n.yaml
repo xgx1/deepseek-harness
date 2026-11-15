@@ -1,0 +1,64 @@
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write packages/session/session-persistence-turso/README.md
+/:
+  en: 2e63dd3557b59569
+  zh: 877bb8660fbe67d0
+/deepseek-ai-dsh-session-persistence-turso:
+  en: f787816872b8a043
+  zh: 572565cf5f4e82a8
+/deepseek-ai-dsh-session-persistence-turso/summary:
+  en: 39ceeabd59a2968a
+  zh: 6d10799100a74e82
+/deepseek-ai-dsh-session-persistence-turso/table-of-contents:
+  en: 2b2e5fabe161fd9e
+  zh: 8cb52db8babcf434
+/deepseek-ai-dsh-session-persistence-turso/use-this-package:
+  en: 87ab8a1aaac97a6f
+  zh: 32ac797a355b97c1
+/deepseek-ai-dsh-session-persistence-turso/use-this-package/when-to-choose-it:
+  en: 21220c7cc047a561
+  zh: ec8079a381733ac7
+/deepseek-ai-dsh-session-persistence-turso/use-this-package/configuration:
+  en: 585b92a5572e7bc7
+  zh: c8bc6d6116746f13
+/deepseek-ai-dsh-session-persistence-turso/use-this-package/observable-behavior:
+  en: 784eb7b689adcd34
+  zh: 8c61a2384d264735
+/deepseek-ai-dsh-session-persistence-turso/understand-the-implementation:
+  en: 07e9e1fff2cd559c
+  zh: b0dd626f9f13251f
+/deepseek-ai-dsh-session-persistence-turso/understand-the-implementation/design-concept:
+  en: 0f7e5b005d2d2a5e
+  zh: 8c7718b953e2fff6
+/deepseek-ai-dsh-session-persistence-turso/understand-the-implementation/open-sequence:
+  en: e28c5dd5b0d06843
+  zh: 080d934893170f6f
+/deepseek-ai-dsh-session-persistence-turso/understand-the-implementation/source-map:
+  en: 71b2d97c0bb47be3
+  zh: e985d2e7f5337308
+/deepseek-ai-dsh-session-persistence-turso/further-exploration:
+  en: d8b67ac11665bf7b
+  zh: b052fccf19e13e3e
+/deepseek-ai-dsh-session-persistence-turso/model-experience:
+  en: 215e7ba838619b7b
+  zh: a311da3843709f90
+/deepseek-ai-dsh-session-persistence-turso/model-experience/stored-session-logs:
+  en: 424161732233264f
+  zh: 8e615df7d1a0d9a6
+/deepseek-ai-dsh-session-persistence-turso/model-experience/stored-session-logs/what-the-model-sees:
+  en: d5b670834140141e
+  zh: c67052ffcc2aea8f
+/deepseek-ai-dsh-session-persistence-turso/model-experience/stored-session-logs/token-effect:
+  en: e6cd6d5a9a500cb7
+  zh: 3cc5a14f2d0e875b
+/deepseek-ai-dsh-session-persistence-turso/model-experience/stored-session-logs/kv-cache-effect:
+  en: acba1df6538c3166
+  zh: b1db056e8908e0f5
+/deepseek-ai-dsh-session-persistence-turso/known-limitations-and-deferred-work:
+  en: 69d85042c2d78193
+  zh: 99445573bf3ce513
+/deepseek-ai-dsh-session-persistence-turso/known-limitations-and-deferred-work/dev-note:
+  en: e67f633dc6fe7773
+  zh: 6f5a05a57518223b
