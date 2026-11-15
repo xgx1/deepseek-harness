@@ -2735,33 +2735,6 @@ describe('PTC standing file policy and sandbox outcomes', () => {
     } finally { await ctx.fiber.dispose() }
   })
 
-  it.each(['line', 'line\n', 'line\n\n'])('keeps written line breaks before sandbox diagnostics: %j', async (log) => {
-    const { ctx, runtime } = await setup()
-    try {
-      runtime.behavior = async () => ({ output: [{ type: 'text', text: log }],
-        error: { kind: 'exception', message: 'failed' }, sandbox: { mode: 'read-only', denied: false } })
-      const result = await runCode(ctx, 'inspect("line"); throw new Error("failed")')
-      const text = result.content.filter(block => block.type === 'text').map(block => block.text).join('')
-      const written = log === 'line' ? 'line\n' : log
-      expect(text).toBe(`Error: code run failed (exception): failed\nCaptured output:\n${written}File sandbox: read-only.`)
-    } finally { await ctx.fiber.dispose() }
-  })
-
-  it.each([
-    { mode: 'danger-full-access' as const, denied: false },
-    { mode: 'read-only' as const, denied: true, enforcement: 'full' as const },
-  ])('includes the available sandbox facts with a failed program ($mode)', async (sandbox) => {
-    const { ctx, runtime } = await setup()
-    try {
-      runtime.behavior = async () => ({ output: [], error: { kind: 'exception', message: 'failed' }, sandbox })
-      const result = await runCode(ctx, 'throw new Error("failed")')
-      expect(result.isError).toBe(true)
-      const text = result.content.filter(block => block.type === 'text').map(block => block.text).join('\n')
-      expect(text).toContain(`File sandbox: ${sandbox.mode}`)
-      expect(text.includes('enforcement: full')).toBe('enforcement' in sandbox)
-      expect(text.includes('operation denied')).toBe(sandbox.denied)
-    } finally { await ctx.fiber.dispose() }
-  })
 })
 
 describe('per-program execution controls', () => {
@@ -2948,7 +2921,6 @@ describe('per-program execution controls', () => {
       const result = await execute({})
       expect(result.isError).toBe(true)
       expect(JSON.stringify(result.content)).toContain('first effect completed')
-      expect(JSON.stringify(result.content)).toContain('Earlier effects may already have completed')
       expect(effects).toBe(1)
       expect(ask).not.toHaveBeenCalled()
     } finally { await ctx.fiber.dispose() }

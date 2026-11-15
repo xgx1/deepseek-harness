@@ -89,8 +89,8 @@ describe('the project agent-config chip', () => {
     renderChip(ROSTER)
     await screen.findByRole('button', { name: /^Configs: / })
     expect(openMenu().map(row => row.textContent)).toEqual([
-      'frontend2 skills · 1 MCP',
-      'backend1 skills · 0 MCP',
+      'frontend2 skills · 1 MCP · 0 tools',
+      'backend1 skills · 0 MCP · 2 tools',
     ])
   })
 

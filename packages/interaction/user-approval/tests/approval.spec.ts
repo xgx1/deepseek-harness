@@ -353,7 +353,7 @@ describe('ApprovalService.request', () => {
 })
 
 describe('approval policy (the approval/policy fold)', () => {
-  const NEVER_SENTENCE = '本次会话已禁用审批提示：需要审批的操作会被自动拒绝——不要请求沙箱升级（不要设置 `sandbox_permissions`）。'
+  const NEVER_SENTENCE = '本次会话已禁用审批提示：需要审批的操作会被自动拒绝。'
   const ASK_SENTENCE = '本次会话已启用审批提示：需要审批的操作可能会通过已配置的应答方发起询问；如果没有可用的应答方，请求会被拒绝（fail closed）。'
 
   /**

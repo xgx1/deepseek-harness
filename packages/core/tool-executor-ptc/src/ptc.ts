@@ -129,7 +129,10 @@ function controlParameters(runtime: PtcRuntime) {
       timeoutMs: { ...RUN_CODE_CONTROLS.timeoutMs,
         description: `Positive elapsed-time budget in milliseconds, including nested tool and approval waits. Default ${runtime.timeout.defaultMs}; capped at ${runtime.timeout.maxMs}. Zero does not disable the deadline.` },
     },
-    ...runtime.sandboxMode === undefined ? {} : {
+    // Escalation is only offered when a wider mode exists: with no confining policy
+    // (danger-full-access) every call already has full access, so advertising it
+    // would teach the model a parameter that changes nothing.
+    ...runtime.sandboxMode === undefined || runtime.sandboxMode === 'danger-full-access' ? {} : {
       sandbox_permissions: RUN_CODE_CONTROLS.sandbox_permissions,
       justification: RUN_CODE_CONTROLS.justification,
     },
@@ -704,12 +707,10 @@ export function createRunCodeTransport(
             } else {
               const logsText = logs.length > 0 && !hasImages
                 ? `\nCaptured output:\n${logs.join('')}` : ''
-              const sandboxText = result.sandbox === undefined ? ''
-                : `${logsText.endsWith('\n') ? '' : '\n'}File sandbox: ${result.sandbox.mode}${result.sandbox.enforcement === undefined ? '' : `; enforcement: ${result.sandbox.enforcement}`}${result.sandbox.denied ? '; operation denied' : ''}.`
               const failureText = limitError === undefined || limitError.message === result.error.message
                 ? result.error.message : `${limitError.message}\n${result.error.message}`
               const diagnosticText = result.error.diagnostic === undefined ? '' : `\n[diagnostic] ${result.error.diagnostic}`
-              failure = new CodeRunFailedError(`code run failed (${result.error.kind}): ${failureText}${logsText}${sandboxText}${diagnosticText}${result.sandbox?.denied ? escalationGuidance(runtime.sandboxMode) : ''}`)
+              failure = new CodeRunFailedError(`code run failed (${result.error.kind}): ${failureText}${logsText}${diagnosticText}`)
             }
             if (hasImages) inspections.set(exec, {
               failure: {

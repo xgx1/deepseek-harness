@@ -125,8 +125,7 @@ function bashDescription(): string {
     + 'Long output is truncated to its tail; the full output is saved to a file whose path is reported when available. '
     + 'Provide `description` before `command` in the arguments. '
     + 'Before any delete or move, verify that the resolved absolute target path is the intended one; never run it against a computed path you have not checked. '
-    + 'An unset variable expands to an empty string, so guard variables in such paths with `${VAR:?}`. '
-    + 'Commands may run under a file sandbox; a blocked file operation is reported as `[sandbox: file access denied under <mode> mode]`, a policy denial: do not retry another way.'
+    + 'An unset variable expands to an empty string, so guard variables in such paths with `${VAR:?}`.'
 }
 
 /**
@@ -249,7 +248,9 @@ export function apply(ctx: Context, config: Config = {}): void {
   // tools to collect and stop it, and the registry itself at execution time.
   const promoteOnTimeout = (config.promoteOnTimeout ?? true) && backgroundEnabled
   const defaultMode = ctx.shell.sandboxMode
-  const escalationModes: readonly SandboxMode[] = defaultMode === undefined ? [] : ESCALATION_TARGETS
+  // No wider mode exists under danger-full-access, so offering one would teach a
+  // parameter that changes nothing.
+  const escalationModes: readonly SandboxMode[] = defaultMode === undefined || defaultMode === 'danger-full-access' ? [] : ESCALATION_TARGETS
   const sandboxPolicy: SandboxPolicyService | undefined = defaultMode === undefined ? undefined : ctx.get('sandboxPolicy')
   if (defaultMode !== undefined && sandboxPolicy === undefined) {
     throw new Error('tool-bash: the mounted bash executor confines but ctx.sandboxPolicy is missing')
@@ -496,14 +497,18 @@ export function apply(ctx: Context, config: Config = {}): void {
                     spillPath: { type: 'string' },
                   },
                 },
-                sandbox: {
-                  type: 'object',
-                  additionalProperties: false,
-                  properties: {
-                    mode: { type: 'string', required: true },
-                    denied: { type: 'boolean', required: true },
-                    enforcement: { type: 'string' },
-                    runnerFailed: { type: 'boolean' },
+                // Advertised only with a confining executor: an unconfined host never
+                // fills it, and naming it would imply a sandbox the composition lacks.
+                ...defaultMode === undefined ? {} : {
+                  sandbox: {
+                    type: 'object',
+                    additionalProperties: false,
+                    properties: {
+                      mode: { type: 'string', required: true },
+                      denied: { type: 'boolean', required: true },
+                      enforcement: { type: 'string' },
+                      runnerFailed: { type: 'boolean' },
+                    },
                   },
                 },
               },

@@ -8,7 +8,7 @@ export const zh = {
   'chip.none': '配置：无',
   'chip.count': '配置：{count}',
   'chip.hint': '为这个项目选择技能与 MCP 配置',
-  'option.summary': '{skills} 项技能 · {mcp} 个 MCP',
+  'option.summary': '{skills} 项技能 · {mcp} 个 MCP · {tools} 个工具',
 } satisfies Record<string, string>
 
 /** The agentConfig namespace key union. */
@@ -19,5 +19,5 @@ export const en = {
   'chip.none': 'Configs: none',
   'chip.count': 'Configs: {count}',
   'chip.hint': 'Choose the skill and MCP configs for this project',
-  'option.summary': '{skills} skills · {mcp} MCP',
+  'option.summary': '{skills} skills · {mcp} MCP · {tools} tools',
 } satisfies Record<AgentConfigKey, string>

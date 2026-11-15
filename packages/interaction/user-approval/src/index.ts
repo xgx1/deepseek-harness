@@ -72,7 +72,7 @@ export type ApprovalPolicy = 'ask' | 'never'
 export const APPROVAL_POLICIES: readonly ApprovalPolicy[] = ['ask', 'never']
 
 /** Model-facing statement for the deterministic `'never'` policy. */
-const NEVER_SENTENCE = '本次会话已禁用审批提示：需要审批的操作会被自动拒绝——不要请求沙箱升级（不要设置 `sandbox_permissions`）。'
+const NEVER_SENTENCE = '本次会话已禁用审批提示：需要审批的操作会被自动拒绝。'
 /** Model-facing statement for an interactive policy that may still fail closed. */
 const ASK_SENTENCE = '本次会话已启用审批提示：需要审批的操作可能会通过已配置的应答方发起询问；如果没有可用的应答方，请求会被拒绝（fail closed）。'
 /** Model-facing policy names in switch notices; a bare `never` reads as "approval is never granted". */

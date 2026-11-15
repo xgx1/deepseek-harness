@@ -102,7 +102,7 @@ export function AgentConfigChip({ cwd, read, save, t }: AgentConfigChipProps) {
           <span className={css.item}>
             <span className={css.itemName}>{config.name}</span>
             <span className={css.itemDesc}>
-              {t('option.summary', { skills: config.skills.length, mcp: config.mcp.length })}
+              {t('option.summary', { skills: config.skills.length, mcp: config.mcp.length, tools: config.tools.length })}
             </span>
           </span>
         ),
