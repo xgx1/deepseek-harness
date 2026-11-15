@@ -7,6 +7,7 @@
 import type { Context } from '@deepseek-ai/cordis'
 import type { McpResourceProvider } from '@deepseek-ai/dsh-mcp-resources'
 import type {} from '@deepseek-ai/dsh-system-prompt'
+import type {} from '@deepseek-ai/dsh-tools'
 
 /** Connection-owned values used by the resource and prompt consumers. */
 export interface ServerContext {
@@ -29,12 +30,17 @@ export function registerServerContext(ctx: Context, server: string, connection: 
   ctx.inject(['mcpResources'], (inner) => {
     inner.mcpResources.register(server, connection.resources)
   })
-  ctx.inject(['systemPrompt'], (inner) => {
+  ctx.inject(['systemPrompt', 'tools'], (inner) => {
     inner.systemPrompt.section({
       name: `mcp:${server}`,
       order: inner.systemPrompt.getSectionOrder('MCP_SERVERS'),
       interpolate: false,
-      text: () => connection.instructions(),
+      // A scope that masks every tool of this server does not use it, so its instructions take no prompt space.
+      text: ({ scope }) => {
+        const owns = (view?: Parameters<typeof inner.tools.definitions>[0]): boolean => inner.tools
+          .definitions(view).some(definition => definition.name.startsWith(`mcp__${server}__`))
+        return owns() && !owns(scope) ? '' : connection.instructions()
+      },
     })
   })
 }

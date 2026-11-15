@@ -45,6 +45,29 @@ describe('MCP server context', () => {
     expect(result.isError).toBe(true)
   })
 
+  it('withdraws instructions when every tool of the server is masked in the viewing scope', async () => {
+    const ctx = await setup()
+    ctx.tools.register({
+      name: 'mcp__docs__search',
+      description: 'search docs',
+      parameters: { type: 'object', properties: {} },
+      output: { schema: { type: 'null' }, render: () => [] },
+      async execute() { return null },
+    })
+    await ctx.plugin({ apply(inner: Context) {
+      registerServerContext(inner, 'docs', {
+        resources: { request: async () => ({ resources: [] }) },
+        instructions: () => 'Docs server instructions.',
+      })
+    } })
+    const scopeKey = {}
+    await ctx.plugin({ inject: ['tools'], apply(inner: Context) {
+      createScope(inner, scopeKey).ctx.tools.restrict({ deny: ['mcp__docs__search'] })
+    } })
+    expect(renderPrompt(await ctx.systemPrompt.assemble())).toContain('Docs server instructions.')
+    expect(renderPrompt(await ctx.systemPrompt.assemble({ scope: scopeKey }))).not.toContain('Docs server instructions.')
+  })
+
   it('shows scoped server instructions only to the owning scope', async () => {
     const ctx = await setup()
     const scopeKey = {}
