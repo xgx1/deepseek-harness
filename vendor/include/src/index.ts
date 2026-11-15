@@ -7,6 +7,7 @@ import { setTimeout as sleep } from 'node:timers/promises'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import * as yaml from 'js-yaml'
 import { applyJournal, flatten, type Journal, merge, reconcile, record } from './journal.ts'
+import { parseEntryToml, stringifyEntryToml } from './toml.ts'
 import { applyPatches, ensureIds, ensureInsertIds, PatchIndex, type PatchOptions, routeJournal } from './patch.ts'
 /** Shared patch semantics used by config dumps and mounting. */
 export { applyPatches as applyEntryPatches } from './patch.ts'
@@ -65,6 +66,7 @@ const types: Record<string, string> = {
   '.json': 'application/json',
   '.yaml': 'application/yaml',
   '.yml': 'application/yaml',
+  '.toml': 'application/toml',
 }
 
 type ConfigStage = 'read' | 'parse' | 'validate'
@@ -292,7 +294,9 @@ export class Include extends EntryTree {
     try {
       data = this.type === 'application/yaml'
         ? parseEntryYaml(content)
-        : JSON.parse(content)
+        : this.type === 'application/toml'
+          ? parseEntryToml(content)
+          : JSON.parse(content)
     } catch (error) {
       throw new ConfigFileError('parse', this.filename, error)
     }
@@ -429,9 +433,9 @@ export class Include extends EntryTree {
   }
 
   private dump(data: EntryOptions[]) {
-    return this.type === 'application/yaml'
-      ? yaml.dump(data, { schema })
-      : JSON.stringify(data, null, 2)
+    if (this.type === 'application/yaml') return yaml.dump(data, { schema })
+    if (this.type === 'application/toml') return stringifyEntryToml(data)
+    return JSON.stringify(data, null, 2)
   }
 
   /**
