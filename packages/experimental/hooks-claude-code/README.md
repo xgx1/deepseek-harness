@@ -35,12 +35,14 @@ Use it when you own a Claude Code `hooks.json` (or a settings file whose `hooks`
 
 ### Smallest working setup
 
-```yaml
-- name: '@deepseek-ai/dsh-hooks-claude-code'
-  config:
-    configPath: ./.claude/hooks.json
-    pluginRoot: ./.claude/plugins/my-plugin
-    projectDir: .
+```toml
+[[entry]]
+name = "@deepseek-ai/dsh-hooks-claude-code"
+
+[entry.config]
+configPath = "./.claude/hooks.json"
+pluginRoot = "./.claude/plugins/my-plugin"
+projectDir = "."
 ```
 
 | Field | Default | Meaning |

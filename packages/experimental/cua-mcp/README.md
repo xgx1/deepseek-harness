@@ -80,14 +80,17 @@ On macOS the profile prepares the signed Computer Use helper on first start and 
 
 On native Windows the profile mounts the [Windows provider](../cua-windows/README.md), which owns helper setup: a source checkout builds the helper with the .NET 10 SDK on PATH, and an npm installation ships none. For such an installation, name the helper with `helperPath` on the `cua-mcp-provider-windows` row in the profile's `cordis.patch.yml`: the absolute path of `dsh-cua-windows.exe`, from the extracted standalone ZIP on x64 or a matching build on ARM64. A patch replaces the row's whole config, so restate the bundle's fields:
 
-```yaml
-- id: cua-mcp-provider-windows
-  config:
-    agentPreset: ptc
-    screenshotTarget:
-      longEdge: 2048
-      maxBytes: 2097152
-    helperPath: 'C:\absolute\path\to\dsh-cua-windows.exe'
+```toml
+[[entry]]
+id = "cua-mcp-provider-windows"
+
+[entry.config]
+agentPreset = "ptc"
+helperPath = "C:\\absolute\\path\\to\\dsh-cua-windows.exe"
+
+[entry.config.screenshotTarget]
+longEdge = 2048
+maxBytes = 2097152
 ```
 
 That provider does not launch applications and offers no `Always allow` grant: open the application before a program selects it, and under `elicit` every connection asks for consent again. The profile does not mount it under WSL.

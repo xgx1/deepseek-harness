@@ -80,14 +80,17 @@ claude mcp add-json dsh_cua '{"type":"stdio","command":"/absolute/path/to/dsh","
 
 在原生 Windows 上，profile 挂载 [Windows 提供方](../cua-windows/README.zh.md)，helper 的准备由它负责：源码检出用 PATH 上的 .NET 10 SDK 构建 helper；npm 安装不附带 helper。此时要在 profile 的 `cordis.patch.yml` 中用 `cua-mcp-provider-windows` 行的 `helperPath` 指明 helper：即 `dsh-cua-windows.exe` 的绝对路径，x64 取自解压后的独立 ZIP，ARM64 取自对应架构的构建。patch 会替换该行的整个 config，因此要重述组合包的字段：
 
-```yaml
-- id: cua-mcp-provider-windows
-  config:
-    agentPreset: ptc
-    screenshotTarget:
-      longEdge: 2048
-      maxBytes: 2097152
-    helperPath: 'C:\absolute\path\to\dsh-cua-windows.exe'
+```toml
+[[entry]]
+id = "cua-mcp-provider-windows"
+
+[entry.config]
+agentPreset = "ptc"
+helperPath = "C:\\absolute\\path\\to\\dsh-cua-windows.exe"
+
+[entry.config.screenshotTarget]
+longEdge = 2048
+maxBytes = 2097152
 ```
 
 该提供方不启动应用，也不提供 `Always allow` 授权：程序选中应用之前要先打开它，在 `elicit` 模式下每个连接都会重新询问授权。profile 不在 WSL 下挂载它。

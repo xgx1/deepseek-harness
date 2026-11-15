@@ -33,9 +33,10 @@ Choose it when you need to compare turns or steps by prompt length, cache reuse,
 
 ### Minimal configuration
 
-```yaml
-- id: ui-stats
-  name: '@deepseek-ai/dsh-experimental-client-ui-stats'
+```toml
+[[entry]]
+id = "ui-stats"
+name = "@deepseek-ai/dsh-experimental-client-ui-stats"
 ```
 
 -----

@@ -29,15 +29,20 @@ kind: "package-reference"
 
 ### 最小配置
 
-```yaml
-- name: '@deepseek-ai/dsh-browser-use'
-- name: '@deepseek-ai/dsh-experimental-browser-use-stagehand-native'
-  config:
-    mode: launch
-    headless: true
-    model:
-      modelName: openai/gpt-5.4-mini
-      apiKey: !!js process.env.OPENAI_API_KEY
+```toml
+[[entry]]
+name = "@deepseek-ai/dsh-browser-use"
+
+[[entry]]
+name = "@deepseek-ai/dsh-experimental-browser-use-stagehand-native"
+
+[entry.config]
+mode = "launch"
+headless = true
+
+[entry.config.model]
+modelName = "openai/gpt-5.4-mini"
+apiKey = "process.env.OPENAI_API_KEY"
 ```
 
 使用此示例前设置 `OPENAI_API_KEY`。即使只使用导航，也必须提供 `model`。固定版本 SDK 接受其目录中的 OpenAI、Anthropic、Google、Groq 和 Cerebras 模型；不支持 DeepSeek 端点或 `baseURL` 覆盖。

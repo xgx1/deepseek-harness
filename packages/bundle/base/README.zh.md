@@ -57,12 +57,14 @@ kind: "package-bundle"
 
 内置 `working_directory` 工具改变后续操作使用的目录，已有进程与写权限保持独立。当前目录信息出现在用户上下文中。默认文件编辑使用 `read`、`write` 和 `edit`。`str_replace_editor` 工具仍可显式启用。要将它加入基于 base 的 profile，请在 profile、home 或逐次调用 patch 中添加以下条目：
 
-```yaml
-- insert:
-    - id: tool-str-replace-editor
-      name: '@deepseek-ai/dsh-tool-str-replace-editor'
-      config:
-        maxOutputChars: 16000
+```toml
+[[entry]]
+[[entry.insert]]
+id = "tool-str-replace-editor"
+name = "@deepseek-ai/dsh-tool-str-replace-editor"
+
+[entry.insert.config]
+maxOutputChars = 16000
 ```
 
 本 bundle 统一挂载 [MCP 资源](../../mcp/mcp-resources/README.zh.md)一次。只需为所需服务器配置 [MCP 客户端条目](../../mcp/mcp-client/README.zh.md)。其他提供方挂载的客户端在所属作用域中也属于已配置状态。调用方作用域中没有已配置服务器时，不会获得 MCP 工具或提示词文本。

@@ -27,11 +27,15 @@ kind: "package-reference"
 
 在 forge 注册表之后挂载提供方，并显式列出每个 GitHub Enterprise 主机。
 
-```yaml
-- name: '@deepseek-ai/dsh-experimental-forge'
-- name: '@deepseek-ai/dsh-experimental-forge-github'
-  config:
-    hosts: [github.com, ghe.example.com]
+```toml
+[[entry]]
+name = "@deepseek-ai/dsh-experimental-forge"
+
+[[entry]]
+name = "@deepseek-ai/dsh-experimental-forge-github"
+
+[entry.config]
+hosts = [ "github.com", "ghe.example.com" ]
 ```
 
 即使 Session 在其他执行环境中运行命令，提供方也以宿主进程的形式运行 `gh`。每个主机执行一次 `gh auth login --hostname <host>` 完成登录。子进程继承的宿主环境去掉了 `DSH_*` 变量以及名称包含 `KEY`、`PASSWORD`、`SECRET` 或 `TOKEN` 的变量，因此 `GH_TOKEN` 与 `GITHUB_TOKEN` 不会被转发，`gh` 使用自己的凭据存储。交互提示、更新提醒、分页器与颜色输出均被关闭。`maxOutputBytes`、`maxReviewThreads`、`maxCommits` 与 `maxViewedFiles` 必须是正安全整数；只有 `timeoutMs` 受运行时定时器上限约束。`ghCommand`、`hosts`、`timeoutMs`、`maxOutputBytes`、`maxReviewThreads`、`maxCommits` 与 `maxViewedFiles` 见[配置目录](../../../docs/config-catalog.zh.md#deepseek-aidsh-experimental-forge-github)。

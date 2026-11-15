@@ -35,12 +35,13 @@ Choose this tool when one model-facing entry should select among independent, on
 
 With `oar-codex` and `oar-claude` already registered, mount this row in the composition:
 
-```yaml
-- name: '@deepseek-ai/dsh-experimental-tool-subagent-oar'
-  config:
-    providers:
-      codex: oar-codex
-      claude: oar-claude
+```toml
+[[entry]]
+name = "@deepseek-ai/dsh-experimental-tool-subagent-oar"
+
+[entry.config.providers]
+codex = "oar-codex"
+claude = "oar-claude"
 ```
 
 | Field | Default | Meaning |

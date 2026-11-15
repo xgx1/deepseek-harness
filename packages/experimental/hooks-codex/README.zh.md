@@ -35,11 +35,13 @@ kind: "package-reference"
 
 ### 最小配置
 
-```yaml
-- name: '@deepseek-ai/dsh-hooks-codex'
-  config:
-    configPath: ./.codex/hooks.json
-    model: deepseek-v4
+```toml
+[[entry]]
+name = "@deepseek-ai/dsh-hooks-codex"
+
+[entry.config]
+configPath = "./.codex/hooks.json"
+model = "deepseek-v4"
 ```
 
 | 字段 | 默认值 | 含义 |

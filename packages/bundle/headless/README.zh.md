@@ -61,13 +61,18 @@ DeepSeek Search 与 Fetch API [跟随会话的 DeepSeek 凭据](../../web/web-de
 
 要恢复存储认证，请把以下行加入 `$DSH_HOME/profiles/headless/cordis.patch.yml` 或 `--patch` 覆盖文件：
 
-```yaml
-- id: credentials
-  disabled: false
-- id: authorization
-  disabled: false
-- id: deepseek-account
-  disabled: false
+```toml
+[[entry]]
+id = "credentials"
+disabled = false
+
+[[entry]]
+id = "authorization"
+disabled = false
+
+[[entry]]
+id = "deepseek-account"
+disabled = false
 ```
 
 恢复后，存储仍按[已保存凭据优先于环境后备](../../credentials/credentials-local/README.zh.md)解析。Web、SDK 和 ACP profile 保留这一默认顺序。headless 的会话、settings 和工具行为不变；这种 profile 配置选择不构成文件系统访问边界。

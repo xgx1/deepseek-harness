@@ -42,10 +42,15 @@ Enable these tools when the composition mounts a terminal backend and the model 
 
 ### Composition
 
-```yaml
-- name: '@deepseek-ai/dsh-terminal'
-- name: '@deepseek-ai/dsh-terminal-bash'
-- name: '@deepseek-ai/dsh-tool-terminal'
+```toml
+[[entry]]
+name = "@deepseek-ai/dsh-terminal"
+
+[[entry]]
+name = "@deepseek-ai/dsh-terminal-bash"
+
+[[entry]]
+name = "@deepseek-ai/dsh-tool-terminal"
 ```
 
 The tools need `ctx.terminals` — a backend must be mounted — and the system-prompt service for the guidance section. Background sends additionally require the jobs service and its model-facing controller (`@deepseek-ai/dsh-tool-jobs`).

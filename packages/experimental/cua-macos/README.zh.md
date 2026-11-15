@@ -45,12 +45,13 @@ pnpm dsh headless --patch packages/experimental/cua-macos/examples/macos.cordis.
 
 源码构建默认使用 `sourceSigning: ad-hoc` 临时签名，不创建证书或钥匙串。二进制变化后可能需要重新授权。需要减少开发重建和跨 worktree 的授权次数时，在 DSH home 的 `cordis.patch.yml` 中选择已有证书及其钥匙串绝对路径；`cua-macos` 是加载 `@deepseek-ai/dsh-cua-macos` 的节点 ID：
 
-```yaml
-- id: cua-macos
-  config:
-    sourceSigning:
-      identity: "<certificate SHA-1 fingerprint>"
-      keychain: "/Users/<user>/.cua-macos-keys/dev/signing.keychain-db"
+```toml
+[[entry]]
+id = "cua-macos"
+
+[entry.config.sourceSigning]
+identity = "<certificate SHA-1 fingerprint>"
+keychain = "/Users/<user>/.cua-macos-keys/dev/signing.keychain-db"
 ```
 
 `identity` 是已有证书名称或 SHA-1 指纹，`keychain` 是必填的绝对路径。开发者负责生成和解锁钥匙串；构建只使用所选证书。合并配置时保留该节点已有的其他字段。仓库的[开发者签名 skill](../../../.agents/skills/dsh-cua-macos-signing/SKILL.md)指导 Agent 在 `~/.cua-macos-keys/` 中生成、复用和移除身份，并只将选择身份的配置写入 DSH home。

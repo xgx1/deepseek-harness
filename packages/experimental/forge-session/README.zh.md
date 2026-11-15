@@ -27,11 +27,18 @@ kind: "package-reference"
 
 将服务与 forge 注册表、一个提供方以及 Session 投影注册表一起挂载。
 
-```yaml
-- name: '@deepseek-ai/dsh-session-projection'
-- name: '@deepseek-ai/dsh-experimental-forge'
-- name: '@deepseek-ai/dsh-experimental-forge-github'
-- name: '@deepseek-ai/dsh-experimental-forge-session'
+```toml
+[[entry]]
+name = "@deepseek-ai/dsh-session-projection"
+
+[[entry]]
+name = "@deepseek-ai/dsh-experimental-forge"
+
+[[entry]]
+name = "@deepseek-ai/dsh-experimental-forge-github"
+
+[[entry]]
+name = "@deepseek-ai/dsh-experimental-forge-session"
 ```
 
 `ctx.forgeSession.changeRequests(session)` 按首次记录的顺序返回可见的绑定。每一项包含 URL、其 `origin`（`created`、`referenced`、`discovered` 或 `tracked`）、提供方引用（没有提供方服务该 URL 时为 `null`）以及最近一次轮询结果（尚无结果时为 `null`）。`watch(session, listener)` 是调用方 fiber 上的 effect：Session 有监听方期间，提供方服务的每个可见绑定都会被轮询；此后每次绑定变化、提供方注册变化或轮询结果到达时，监听方都会收到完整列表。提供方变化会重新同步已有监听，包括此前没有提供方服务的 URL。`track(session, url)` 以提供方的规范形式绑定 URL，或恢复已隐藏的绑定；没有提供方识别该 URL 时抛错。`dismiss(session, url)` 隐藏一个可见绑定；其他 URL 不会改变日志。`discoverBranch(session, remote, branch)` 为位于 `remote` 远端的分支执行推送之后的那次查找，记录完绑定或失败后 resolve；没有提供方服务的远端不会带来任何变化。

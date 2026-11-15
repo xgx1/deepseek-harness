@@ -33,9 +33,10 @@ kind: "package-reference"
 
 ### 最小配置
 
-```yaml
-- id: ui-stats
-  name: '@deepseek-ai/dsh-experimental-client-ui-stats'
+```toml
+[[entry]]
+id = "ui-stats"
+name = "@deepseek-ai/dsh-experimental-client-ui-stats"
 ```
 
 -----

@@ -31,32 +31,33 @@ kind: "package-reference"
 
 在组合中将此提供方和 `@deepseek-ai/dsh-experimental-tool-subagent-oar` 声明为依赖，然后通过 Profile 补丁添加这些行：
 
-```yaml
-- insert:
-    - id: experimental-subagent-oar-codex
-      name: '@deepseek-ai/dsh-experimental-subagent-oar'
-      config:
-        runtime: codex
-        providerName: oar-codex
-        launchArgs:
-          - -c
-          - sandbox_mode="workspace-write"
-    - id: experimental-subagent-oar-claude
-      name: '@deepseek-ai/dsh-experimental-subagent-oar'
-      config:
-        runtime: claude
-        providerName: oar-claude
-        launchArgs:
-          - --permission-mode
-          - dontAsk
-          - --permission-prompts
-          - none
-    - id: tool-subagent-oar
-      name: '@deepseek-ai/dsh-experimental-tool-subagent-oar'
-      config:
-        providers:
-          codex: oar-codex
-          claude: oar-claude
+```toml
+[[entry]]
+[[entry.insert]]
+id = "experimental-subagent-oar-codex"
+name = "@deepseek-ai/dsh-experimental-subagent-oar"
+
+[entry.insert.config]
+runtime = "codex"
+providerName = "oar-codex"
+launchArgs = [ "-c", "sandbox_mode=\"workspace-write\"" ]
+
+[[entry.insert]]
+id = "experimental-subagent-oar-claude"
+name = "@deepseek-ai/dsh-experimental-subagent-oar"
+
+[entry.insert.config]
+runtime = "claude"
+providerName = "oar-claude"
+launchArgs = [ "--permission-mode", "dontAsk", "--permission-prompts", "none" ]
+
+[[entry.insert]]
+id = "tool-subagent-oar"
+name = "@deepseek-ai/dsh-experimental-tool-subagent-oar"
+
+[entry.insert.config.providers]
+codex = "oar-codex"
+claude = "oar-claude"
 ```
 
 通过 `dsh` Profile 启动完成后的组合。此示例为每个提供方分配不同名称，并在模型可以委派任务之前固定原生权限参数。

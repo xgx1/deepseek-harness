@@ -35,12 +35,13 @@ kind: "package-reference"
 
 在 `oar-codex` 和 `oar-claude` 已注册的情况下，在组合中挂载此行：
 
-```yaml
-- name: '@deepseek-ai/dsh-experimental-tool-subagent-oar'
-  config:
-    providers:
-      codex: oar-codex
-      claude: oar-claude
+```toml
+[[entry]]
+name = "@deepseek-ai/dsh-experimental-tool-subagent-oar"
+
+[entry.config.providers]
+codex = "oar-codex"
+claude = "oar-claude"
 ```
 
 | 字段 | 默认值 | 含义 |

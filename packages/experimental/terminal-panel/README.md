@@ -27,15 +27,22 @@ Show an Agent's persistent terminals in the Web sidebar. The package registers a
 
 Mount the plugin in a group that isolates `terminals`, beside the registry and the tools, in a composition that already mounts the terminal controller, as the Web and Desktop compositions do:
 
-```yaml
-- name: cordis:group
-  group: true
-  isolate:
-    terminals: true
-  config:
-    - name: '@deepseek-ai/dsh-terminal'
-    - name: '@deepseek-ai/dsh-terminal-panel'
-    - name: '@deepseek-ai/dsh-tool-terminal'
+```toml
+[[entry]]
+name = "cordis:group"
+group = true
+
+[entry.isolate]
+terminals = true
+
+[[entry.config]]
+name = "@deepseek-ai/dsh-terminal"
+
+[[entry.config]]
+name = "@deepseek-ai/dsh-terminal-panel"
+
+[[entry.config]]
+name = "@deepseek-ai/dsh-tool-terminal"
 ```
 
 ### Agent terminals

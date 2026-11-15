@@ -29,15 +29,20 @@ Mount this provider in a profile that supplies Agents, Sessions, the tool regist
 
 ### Minimal configuration
 
-```yaml
-- name: '@deepseek-ai/dsh-browser-use'
-- name: '@deepseek-ai/dsh-experimental-browser-use-stagehand-native'
-  config:
-    mode: launch
-    headless: true
-    model:
-      modelName: openai/gpt-5.4-mini
-      apiKey: !!js process.env.OPENAI_API_KEY
+```toml
+[[entry]]
+name = "@deepseek-ai/dsh-browser-use"
+
+[[entry]]
+name = "@deepseek-ai/dsh-experimental-browser-use-stagehand-native"
+
+[entry.config]
+mode = "launch"
+headless = true
+
+[entry.config.model]
+modelName = "openai/gpt-5.4-mini"
+apiKey = "process.env.OPENAI_API_KEY"
 ```
 
 Set `OPENAI_API_KEY` before using this example. `model` is required even for navigation-only use. The pinned SDK accepts its cataloged OpenAI, Anthropic, Google, Groq, and Cerebras models; DeepSeek endpoints and `baseURL` overrides are unsupported.

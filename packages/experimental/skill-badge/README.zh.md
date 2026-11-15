@@ -37,10 +37,11 @@ agent（智能体）可以通过该内置提供方加载官方「powered by dsh�
 
 将 `@deepseek-ai/dsh-skill-badge` 安装到 profile，并插入插件行。默认组合不声明该行。
 
-```yaml
-- insert:
-    - id: skill-badge
-      name: '@deepseek-ai/dsh-skill-badge'
+```toml
+[[entry]]
+[[entry.insert]]
+id = "skill-badge"
+name = "@deepseek-ai/dsh-skill-badge"
 ```
 
 启用后，`dsh-badge` 会出现在会话目录的可用 skill 中。该 skill 覆盖远程 Markdown 徽章（基于 Shields.io）和随包分发的 PNG 徽章资源，后者用于无法可靠获取远程图片的目标环境。

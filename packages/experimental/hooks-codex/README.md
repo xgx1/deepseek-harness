@@ -35,11 +35,13 @@ Use it when you own a Codex `hooks.json` and its command hooks should gate promp
 
 ### Smallest working setup
 
-```yaml
-- name: '@deepseek-ai/dsh-hooks-codex'
-  config:
-    configPath: ./.codex/hooks.json
-    model: deepseek-v4
+```toml
+[[entry]]
+name = "@deepseek-ai/dsh-hooks-codex"
+
+[entry.config]
+configPath = "./.codex/hooks.json"
+model = "deepseek-v4"
 ```
 
 | Field | Default | Meaning |

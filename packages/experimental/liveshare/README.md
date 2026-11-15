@@ -39,16 +39,18 @@ A dsh installation ships this package as a runtime dependency, but no shipped pr
 
 Enable it by inserting its one entry into the active profile's patch file, `$DSH_HOME/profiles/<profile>/cordis.patch.yml`. That file is one YAML sequence of Loader patches; this is the entry the bundle's own [patch](cordis.patch.toml) inserts, and `!!js` expressions are allowed there:
 
-```yaml
-- insert:
-    - id: liveshare-share-host
-      name: '@deepseek-ai/dsh-experimental-liveshare'
-      config:
-        ownerIdentityProvider: <provider-id>
-        ownerIdentityTenant: <tenant-id>
-        ownerIdentitySubject: <subject-id>
-        allowedSubjectIds: []
-        ownerStateFile: /path/to/owner-shares.json
+```toml
+[[entry]]
+[[entry.insert]]
+id = "liveshare-share-host"
+name = "@deepseek-ai/dsh-experimental-liveshare"
+
+[entry.insert.config]
+ownerIdentityProvider = "<provider-id>"
+ownerIdentityTenant = "<tenant-id>"
+ownerIdentitySubject = "<subject-id>"
+allowedSubjectIds = []
+ownerStateFile = "/path/to/owner-shares.json"
 ```
 
 Replace every `<...>` placeholder with the deployment's own value: the identity provider, tenant, and subject are the ones its Liveshare server deployment was configured with, and the example holdings are placeholders rather than real identities. The environment layer works too: set `LIVESHARE_*` in `$DSH_HOME/.env` and keep the bundle's own `!!js process.env.…` expressions. The Liveshare server address is not part of this configuration: the owner enters it in the Share dialog on first use, as Owner configuration below describes.

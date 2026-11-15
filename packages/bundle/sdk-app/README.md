@@ -69,7 +69,7 @@ Enabling `plugin_manager` changes the tool-schema prefix from earlier SDK versio
 - **A profile can omit the SDK server** — a custom profile selected by the TypeScript client must retain this bundle or another `dsh-sdk-jsonrpc-server` row; client initialization fails when no peer answers.
 - **User plugins can violate stdout purity** — profile and per-launch patches are trusted application composition. The shipped bundle writes no non-protocol stdout, but it cannot contain an arbitrary inserted plugin.
 - **Plugin changes share a profile** — saved changes affect `<DSH_HOME>/profiles/sdk` and other embeddings using that home on their next launch; use separate `dshHome` directories for independent compositions. The Python launcher uses Node/pnpm from its selected downloaded runtime; without that payload or an external pnpm, package operations fail.
-- **Configuration changes require restart** — the `sdk-app` bundle disables HMR in YAML so one stdio connection never observes a replacement server or Agent dependency.
+- **Configuration changes require restart** — the `sdk-app` bundle disables HMR in its patch file so one stdio connection never observes a replacement server or Agent dependency.
 
 
 <a id="dev-note"></a>

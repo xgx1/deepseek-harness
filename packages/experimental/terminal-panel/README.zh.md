@@ -27,15 +27,22 @@ kind: "package-reference"
 
 在隔离 `terminals` 的分组中挂载本插件，与注册表和工具放在一起，并且所在组合已经挂载终端控制器，Web 与 Desktop 组合就是如此：
 
-```yaml
-- name: cordis:group
-  group: true
-  isolate:
-    terminals: true
-  config:
-    - name: '@deepseek-ai/dsh-terminal'
-    - name: '@deepseek-ai/dsh-terminal-panel'
-    - name: '@deepseek-ai/dsh-tool-terminal'
+```toml
+[[entry]]
+name = "cordis:group"
+group = true
+
+[entry.isolate]
+terminals = true
+
+[[entry.config]]
+name = "@deepseek-ai/dsh-terminal"
+
+[[entry.config]]
+name = "@deepseek-ai/dsh-terminal-panel"
+
+[[entry.config]]
+name = "@deepseek-ai/dsh-tool-terminal"
 ```
 
 ### Agent 终端

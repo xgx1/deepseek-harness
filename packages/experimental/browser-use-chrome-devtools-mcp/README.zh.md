@@ -27,12 +27,16 @@ kind: "package-reference"
 
 在创建或恢复 Session 前，将以下条目挂载到已提供 Agent、工具、系统提示词和工作目录服务的 profile 组合中。加载或重新加载此提供方不会接管已经活动的 Session。浏览器安装遵循上游运行时；使用 `executablePath` 选择已有 Chromium 安装。
 
-```yaml
-- name: '@deepseek-ai/dsh-browser-use'
-- name: '@deepseek-ai/dsh-experimental-browser-use-chrome-devtools-mcp'
-  config:
-    mode: launch
-    headless: true
+```toml
+[[entry]]
+name = "@deepseek-ai/dsh-browser-use"
+
+[[entry]]
+name = "@deepseek-ai/dsh-experimental-browser-use-chrome-devtools-mcp"
+
+[entry.config]
+mode = "launch"
+headless = true
 ```
 
 使用 `mode: attach`，并在 `endpoint` 中设置 HTTP(S) 调试 URL 或 WS(S) 浏览器端点，即可操作已有浏览器。新的活动 Session 在初始化时占用附加连接，并持续保留直到卸载。如果连接已被占用，本次激活不使用该浏览器，但继续运行，后续轮次不会重试。连接释放后，新创建或恢复的激活可以获取它。其他 Session 的直接调用会失败。清理只断开连接，保留外部浏览器及其页面。

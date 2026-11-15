@@ -27,9 +27,12 @@ Create an isolated checkout from a local commit and continue the same Session in
 
 Mount the service alongside `workingDirectory`, `fs`, `subprocess`, `sandbox`, `sandboxPolicy`, and `sessionProjections` providers. Archive cleanup additionally needs `workspaceRegistry` and `sessionQuery`, and uses `sessionProjectionCache` when it is mounted; without the first two the service only creates and restores. Add the tool package when models need the operation.
 
-```yaml
-- name: '@deepseek-ai/dsh-experimental-worktree'
-- name: '@deepseek-ai/dsh-experimental-tool-worktree'
+```toml
+[[entry]]
+name = "@deepseek-ai/dsh-experimental-worktree"
+
+[[entry]]
+name = "@deepseek-ai/dsh-experimental-tool-worktree"
 ```
 
 `ctx.worktrees.create(agent, { name?, from? }, signal?, onPhase?)` creates a new branch and checkout, then enters the canonical checkout directory through `ctx.workingDirectory.set`. `from` resolves to a local commit before creation and defaults to `HEAD`; staged, unstaged, untracked, and ignored source files are not copied. `baseCommit` reports the resolved commit object name; repository-local replacement refs still apply to the checked-out content. Checkout disables configured Git clean, smudge, and process filters without changing repository configuration. An existing branch or checkout path is an error. The returned record contains `path`, `branch`, `baseCommit`, and `repositoryRoot`. An optional fourth argument, `onPhase`, receives `prepare` before validation, directory allocation, and branch creation, and `checkout` before the files are written and the checkout is entered; it must not throw.

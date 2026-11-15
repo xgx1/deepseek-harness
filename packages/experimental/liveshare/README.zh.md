@@ -39,16 +39,18 @@ dsh 安装会把本包作为运行时依赖一起安装，但没有任何随发�
 
 要启用它，把它的一条条目插入当前 profile 的 patch 文件 `$DSH_HOME/profiles/<profile>/cordis.patch.yml`。该文件是一个 YAML 序列的 Loader patch；这一条就是组合包自己的 [patch](cordis.patch.toml) 插入的条目，其中允许使用 `!!js` 表达式：
 
-```yaml
-- insert:
-    - id: liveshare-share-host
-      name: '@deepseek-ai/dsh-experimental-liveshare'
-      config:
-        ownerIdentityProvider: <provider-id>
-        ownerIdentityTenant: <tenant-id>
-        ownerIdentitySubject: <subject-id>
-        allowedSubjectIds: []
-        ownerStateFile: /path/to/owner-shares.json
+```toml
+[[entry]]
+[[entry.insert]]
+id = "liveshare-share-host"
+name = "@deepseek-ai/dsh-experimental-liveshare"
+
+[entry.insert.config]
+ownerIdentityProvider = "<provider-id>"
+ownerIdentityTenant = "<tenant-id>"
+ownerIdentitySubject = "<subject-id>"
+allowedSubjectIds = []
+ownerStateFile = "/path/to/owner-shares.json"
 ```
 
 把每个 `<...>` 占位符换成部署自己的值：身份 provider、tenant 与 subject 是该部署的 Liveshare 服务端配置使用的值，示例中的都是占位符而非真实身份。环境层同样可用：在 `$DSH_HOME/.env` 里设置 `LIVESHARE_*`，并保留组合包自己的 `!!js process.env.…` 表达式。Liveshare 服务端地址不属于这里的配置：首次使用时由所有者在分享弹窗里填写，见下文的所有者配置。

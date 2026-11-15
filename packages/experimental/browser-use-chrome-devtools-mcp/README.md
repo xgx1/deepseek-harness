@@ -27,12 +27,16 @@ Use Chrome DevTools MCP to inspect pages and operate Chromium through its upstre
 
 Mount both entries before creating or resuming a Session, in a profile composition that supplies Agents, tools, system prompts, and the working-directory service. Loading or reloading this provider does not adopt Sessions that are already active. Browser installation follows the upstream runtime; select an existing Chromium installation with `executablePath`.
 
-```yaml
-- name: '@deepseek-ai/dsh-browser-use'
-- name: '@deepseek-ai/dsh-experimental-browser-use-chrome-devtools-mcp'
-  config:
-    mode: launch
-    headless: true
+```toml
+[[entry]]
+name = "@deepseek-ai/dsh-browser-use"
+
+[[entry]]
+name = "@deepseek-ai/dsh-experimental-browser-use-chrome-devtools-mcp"
+
+[entry.config]
+mode = "launch"
+headless = true
 ```
 
 Use `mode: attach` and set `endpoint` to an HTTP(S) debugging URL or WS(S) browser endpoint to operate an existing browser. The new live Session claims the attachment during initialization and retains it until unloading. If the attachment is busy, that activation continues without this browser and does not retry on later turns. After release, a newly created or resumed activation can acquire it. Direct calls from another Session fail. Cleanup disconnects and leaves the external browser and its pages running.

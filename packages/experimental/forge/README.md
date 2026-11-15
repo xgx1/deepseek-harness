@@ -27,9 +27,12 @@ Read and act on pull requests and merge requests without coupling consumers to o
 
 Mount the registry with at least one provider package, such as the GitHub provider.
 
-```yaml
-- name: '@deepseek-ai/dsh-experimental-forge'
-- name: '@deepseek-ai/dsh-experimental-forge-github'
+```toml
+[[entry]]
+name = "@deepseek-ai/dsh-experimental-forge"
+
+[[entry]]
+name = "@deepseek-ai/dsh-experimental-forge-github"
 ```
 
 `ctx.forge.register(provider)` is an effect on the calling fiber and returns an async disposer that cancels and drains that registration's calls. Results arriving after cancellation are discarded. One provider serves one forge family; registering a second provider for the same family throws. Registration changes announce `forge/providers-changed`; registering a provider polls its existing watches immediately. `repositoryFromRemote(url)` and `changeRequestFromUrl(url)` ask providers in registration order and return the first match. `changeRequestUrl(ref)`, `findByHead(repository, branch, signal)`, and `readiness(repository, signal)` delegate to the provider of the reference's forge and throw when none is registered; `readiness` reports whether the provider can reach the host with current credentials.

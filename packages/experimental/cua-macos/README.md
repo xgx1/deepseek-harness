@@ -45,12 +45,13 @@ The dump command checks profile composition without a model request. For a real 
 
 Source builds default to `sourceSigning: ad-hoc`, without creating certificates or keychains. Changed binaries can require new permission grants. To reduce repeated grants during rebuilds and across worktrees, select an existing certificate and its absolute keychain path in the DSH home’s `cordis.patch.yml`; `cua-macos` is the entry ID loading `@deepseek-ai/dsh-cua-macos`:
 
-```yaml
-- id: cua-macos
-  config:
-    sourceSigning:
-      identity: "<certificate SHA-1 fingerprint>"
-      keychain: "/Users/<user>/.cua-macos-keys/dev/signing.keychain-db"
+```toml
+[[entry]]
+id = "cua-macos"
+
+[entry.config.sourceSigning]
+identity = "<certificate SHA-1 fingerprint>"
+keychain = "/Users/<user>/.cua-macos-keys/dev/signing.keychain-db"
 ```
 
 `identity` is an existing certificate name or SHA-1 fingerprint; `keychain` is a required absolute path. Developers own creating and unlocking the keychain; builds only use the selected certificate. Preserve the entry’s other configuration fields when merging this patch. The repository’s [developer signing skill](../../../.agents/skills/dsh-cua-macos-signing/SKILL.md) guides Agents through creating, reusing, and removing identities under `~/.cua-macos-keys/`, with only their selection stored in DSH home.

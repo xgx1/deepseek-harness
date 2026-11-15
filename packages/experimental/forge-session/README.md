@@ -27,11 +27,18 @@ List the pull requests a Session is working on without a separate registry. A pr
 
 Mount the service with the forge registry, a provider, and the Session projection registry.
 
-```yaml
-- name: '@deepseek-ai/dsh-session-projection'
-- name: '@deepseek-ai/dsh-experimental-forge'
-- name: '@deepseek-ai/dsh-experimental-forge-github'
-- name: '@deepseek-ai/dsh-experimental-forge-session'
+```toml
+[[entry]]
+name = "@deepseek-ai/dsh-session-projection"
+
+[[entry]]
+name = "@deepseek-ai/dsh-experimental-forge"
+
+[[entry]]
+name = "@deepseek-ai/dsh-experimental-forge-github"
+
+[[entry]]
+name = "@deepseek-ai/dsh-experimental-forge-session"
 ```
 
 `ctx.forgeSession.changeRequests(session)` returns the visible bindings in first-recorded order. Each entry carries the URL, its `origin` (`created`, `referenced`, `discovered`, or `tracked`), the provider reference or `null` when no provider serves the URL, and the latest polling result or `null`. `watch(session, listener)` is an effect on the calling fiber: while a Session has a watcher, every visible binding that a provider serves is polled, and listeners receive the complete list after each later binding change, provider registration change, or polling result. Provider changes resynchronize existing watches, including URLs that were previously unserved. `track(session, url)` binds a URL under the provider's canonical form, or restores a dismissed binding, and throws when no provider recognizes the URL. `dismiss(session, url)` hides a visible binding; other URLs leave the log unchanged. `discoverBranch(session, remote, branch)` runs the lookup that follows a push for a branch on the remote at `remote` and resolves once it has recorded its bindings or failed; a remote that no provider serves changes nothing.

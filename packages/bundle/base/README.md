@@ -57,12 +57,14 @@ The `tool-subagent-control` row sets `interrupt: false`, so ordinary subagents a
 
 The built-in `working_directory` tool changes the directory for subsequent operations while existing processes and write permissions remain independent. Current directory information appears in user context. Default file editing uses `read`, `write`, and `edit`. The `str_replace_editor` tool remains available as an explicit opt-in. To add it to a base-backed profile, put this entry in the profile, home, or invocation patch:
 
-```yaml
-- insert:
-    - id: tool-str-replace-editor
-      name: '@deepseek-ai/dsh-tool-str-replace-editor'
-      config:
-        maxOutputChars: 16000
+```toml
+[[entry]]
+[[entry.insert]]
+id = "tool-str-replace-editor"
+name = "@deepseek-ai/dsh-tool-str-replace-editor"
+
+[entry.insert.config]
+maxOutputChars = 16000
 ```
 
 The bundle mounts [MCP resources](../../mcp/mcp-resources/README.md) once. Configure only [MCP client entries](../../mcp/mcp-client/README.md) for the servers you need. Clients mounted by another provider also count as configured in their scope. Callers with no configured server in scope receive no MCP tools or prompt text.

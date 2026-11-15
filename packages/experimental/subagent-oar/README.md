@@ -31,32 +31,33 @@ Install and authenticate the native Codex and Claude Code CLIs before delegating
 
 Declare this provider and `@deepseek-ai/dsh-experimental-tool-subagent-oar` as dependencies of your composition, then add these rows through a profile patch:
 
-```yaml
-- insert:
-    - id: experimental-subagent-oar-codex
-      name: '@deepseek-ai/dsh-experimental-subagent-oar'
-      config:
-        runtime: codex
-        providerName: oar-codex
-        launchArgs:
-          - -c
-          - sandbox_mode="workspace-write"
-    - id: experimental-subagent-oar-claude
-      name: '@deepseek-ai/dsh-experimental-subagent-oar'
-      config:
-        runtime: claude
-        providerName: oar-claude
-        launchArgs:
-          - --permission-mode
-          - dontAsk
-          - --permission-prompts
-          - none
-    - id: tool-subagent-oar
-      name: '@deepseek-ai/dsh-experimental-tool-subagent-oar'
-      config:
-        providers:
-          codex: oar-codex
-          claude: oar-claude
+```toml
+[[entry]]
+[[entry.insert]]
+id = "experimental-subagent-oar-codex"
+name = "@deepseek-ai/dsh-experimental-subagent-oar"
+
+[entry.insert.config]
+runtime = "codex"
+providerName = "oar-codex"
+launchArgs = [ "-c", "sandbox_mode=\"workspace-write\"" ]
+
+[[entry.insert]]
+id = "experimental-subagent-oar-claude"
+name = "@deepseek-ai/dsh-experimental-subagent-oar"
+
+[entry.insert.config]
+runtime = "claude"
+providerName = "oar-claude"
+launchArgs = [ "--permission-mode", "dontAsk", "--permission-prompts", "none" ]
+
+[[entry.insert]]
+id = "tool-subagent-oar"
+name = "@deepseek-ai/dsh-experimental-tool-subagent-oar"
+
+[entry.insert.config.providers]
+codex = "oar-codex"
+claude = "oar-claude"
 ```
 
 Launch the completed composition through a `dsh` profile. The example assigns each provider a distinct name and fixes its native permission arguments before the model can delegate work.

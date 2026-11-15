@@ -28,9 +28,10 @@ In the GUI, open the Plugins page, click "More" to open "Experimental plugins", 
 
 The bundle inserts one Host row, which an explicit composition can also mount:
 
-```yaml
-- id: deepseek-chat-import
-  name: '@deepseek-ai/dsh-deepseek-chat-import'
+```toml
+[[entry]]
+id = "deepseek-chat-import"
+name = "@deepseek-ai/dsh-deepseek-chat-import"
 ```
 
 The Host half injects `typert`, `connection`, `sessionPersistence`, and `workspaceRegistry`, and reads `sessionProjectionCache` and `attachments` when they are mounted. The browser half injects `remote`, `slots`, `locale`, and `sessions`, and wraps the ui-sidebar New Session row through its `sidebar.session.action` HOC slot: it returns the row content followed by its own button, or the content alone for a Peer that may not import. Only the owner imports: the upload route admits only owner Peers, `limits()` refuses every other principal, and the button shows only for a Peer that may call `deepseekChatImport/limits`.

@@ -35,12 +35,14 @@ kind: "package-reference"
 
 ### 最小配置
 
-```yaml
-- name: '@deepseek-ai/dsh-hooks-claude-code'
-  config:
-    configPath: ./.claude/hooks.json
-    pluginRoot: ./.claude/plugins/my-plugin
-    projectDir: .
+```toml
+[[entry]]
+name = "@deepseek-ai/dsh-hooks-claude-code"
+
+[entry.config]
+configPath = "./.claude/hooks.json"
+pluginRoot = "./.claude/plugins/my-plugin"
+projectDir = "."
 ```
 
 | 字段 | 默认值 | 含义 |

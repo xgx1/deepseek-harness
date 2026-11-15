@@ -42,10 +42,15 @@ kind: "package-reference"
 
 ### 组合方式
 
-```yaml
-- name: '@deepseek-ai/dsh-terminal'
-- name: '@deepseek-ai/dsh-terminal-bash'
-- name: '@deepseek-ai/dsh-tool-terminal'
+```toml
+[[entry]]
+name = "@deepseek-ai/dsh-terminal"
+
+[[entry]]
+name = "@deepseek-ai/dsh-terminal-bash"
+
+[[entry]]
+name = "@deepseek-ai/dsh-tool-terminal"
 ```
 
 工具需要 `ctx.terminals`——必须挂载一个后端——以及用于指引章节的系统提示词服务。后台发送还额外要求任务服务及其面向模型的控制器（`@deepseek-ai/dsh-tool-jobs`）。

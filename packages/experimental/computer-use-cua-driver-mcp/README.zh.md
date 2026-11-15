@@ -31,12 +31,16 @@ kind: "package-reference"
 
 将以下条目加入已提供 tools 和 system-prompt 服务的组合。截图还需要附件存储，以及声明支持图像输入的模型路由。
 
-```yaml
-- name: '@deepseek-ai/dsh-computer-use'
-- name: '@deepseek-ai/dsh-experimental-computer-use-cua-driver-mcp'
-  config:
-    command: cua-driver
-    args: [mcp]
+```toml
+[[entry]]
+name = "@deepseek-ai/dsh-computer-use"
+
+[[entry]]
+name = "@deepseek-ai/dsh-experimental-computer-use-cua-driver-mcp"
+
+[entry.config]
+command = "cua-driver"
+args = [ "mcp" ]
 ```
 
 | 字段 | 默认值 | 含义 |

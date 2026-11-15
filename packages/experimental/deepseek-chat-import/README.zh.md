@@ -28,9 +28,10 @@ kind: "package-bundle"
 
 该 bundle 插入一个 Host 行，显式组合也可以直接挂载：
 
-```yaml
-- id: deepseek-chat-import
-  name: '@deepseek-ai/dsh-deepseek-chat-import'
+```toml
+[[entry]]
+id = "deepseek-chat-import"
+name = "@deepseek-ai/dsh-deepseek-chat-import"
 ```
 
 Host 半包注入 `typert`、`connection`、`sessionPersistence` 和 `workspaceRegistry`，挂载了 `sessionProjectionCache` 与 `attachments` 时读取它们。浏览器半包注入 `remote`、`slots`、`locale` 和 `sessions`，通过 ui-sidebar 的 `sidebar.session.action` HOC 插槽包裹新建会话行：原样返回行内容并追加自己的按钮，对不能导入的 Peer 则只返回行内容。只有 owner 能导入：上传路由只接受 owner Peer，`limits()` 拒绝其他所有 principal，按钮也只对能调用 `deepseekChatImport/limits` 的 Peer 显示。

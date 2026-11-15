@@ -27,11 +27,15 @@ Read GitHub and GitHub Enterprise pull requests for `ctx.forge` with the GitHub 
 
 Mount the provider after the forge registry and list every GitHub Enterprise host explicitly.
 
-```yaml
-- name: '@deepseek-ai/dsh-experimental-forge'
-- name: '@deepseek-ai/dsh-experimental-forge-github'
-  config:
-    hosts: [github.com, ghe.example.com]
+```toml
+[[entry]]
+name = "@deepseek-ai/dsh-experimental-forge"
+
+[[entry]]
+name = "@deepseek-ai/dsh-experimental-forge-github"
+
+[entry.config]
+hosts = [ "github.com", "ghe.example.com" ]
 ```
 
 The provider runs `gh` as a host process, even when Sessions execute commands in another execution world. Sign in once per host with `gh auth login --hostname <host>`. The child receives the host environment without `DSH_*` variables and without variables whose names contain `KEY`, `PASSWORD`, `SECRET`, or `TOKEN`, so `GH_TOKEN` and `GITHUB_TOKEN` are not forwarded and `gh` uses its own credential store. Prompts, update notices, pagers, and colors are disabled. `maxOutputBytes`, `maxReviewThreads`, `maxCommits`, and `maxViewedFiles` must be positive safe integers; only `timeoutMs` is bounded by the runtime timer limit. `ghCommand`, `hosts`, `timeoutMs`, `maxOutputBytes`, `maxReviewThreads`, `maxCommits`, and `maxViewedFiles` are listed in the [configuration catalog](../../../docs/config-catalog.md#deepseek-aidsh-experimental-forge-github).

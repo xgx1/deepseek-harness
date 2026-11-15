@@ -61,13 +61,18 @@ Unset an empty launch variable to allow its `.env` fallback; an exported empty v
 
 To restore stored authentication, add these rows to `$DSH_HOME/profiles/headless/cordis.patch.yml` or a `--patch` overlay:
 
-```yaml
-- id: credentials
-  disabled: false
-- id: authorization
-  disabled: false
-- id: deepseek-account
-  disabled: false
+```toml
+[[entry]]
+id = "credentials"
+disabled = false
+
+[[entry]]
+id = "authorization"
+disabled = false
+
+[[entry]]
+id = "deepseek-account"
+disabled = false
 ```
 
 The restored store uses [saved credentials before environment fallbacks](../../credentials/credentials-local/README.md). Web, SDK and ACP profiles keep that default ordering. Headless sessions, settings and tool behavior are unchanged; this profile choice is not a filesystem access boundary.

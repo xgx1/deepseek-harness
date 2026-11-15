@@ -29,9 +29,12 @@ In the GUI, enable [Change requests & worktrees](../forge-bundle/README.md). The
 
 For an explicit composition, mount this function plugin after the worktree runtime and tool registry.
 
-```yaml
-- name: '@deepseek-ai/dsh-experimental-worktree'
-- name: '@deepseek-ai/dsh-experimental-tool-worktree'
+```toml
+[[entry]]
+name = "@deepseek-ai/dsh-experimental-worktree"
+
+[[entry]]
+name = "@deepseek-ai/dsh-experimental-tool-worktree"
 ```
 
 Call `create_worktree({ name?: string, from?: string })`. Success returns the canonical checkout `path`, new `branch`, pinned `baseCommit`, and source `repositoryRoot`, and changes the calling Session's current working directory. To leave, call `working_directory({ cd: path })`; the checkout and branch remain. The [generated tool catalog](../../../docs/tool-catalog.md#deepseek-aidsh-experimental-tool-worktree) owns the exact schema and model-facing description.

@@ -36,12 +36,18 @@ declare const register: (on: ModOn, options: Readonly<Record<string, unknown>>) 
 export default defineMod({ name: 'token-weather', version: '0.1.0', root: import.meta.dirname, register })
 ```
 
-```yaml
-- name: '@deepseek-ai/dsh-experimental-claude-code-mods'
-- name: './mods/blast-radius/index.ts'
-- name: './mods/token-weather/index.ts'
-  config:
-    history: 12
+```toml
+[[entry]]
+name = "@deepseek-ai/dsh-experimental-claude-code-mods"
+
+[[entry]]
+name = "./mods/blast-radius/index.ts"
+
+[[entry]]
+name = "./mods/token-weather/index.ts"
+
+[entry.config]
+history = 12
 ```
 
 | 桥接字段 | 默认值 | 含义 |
