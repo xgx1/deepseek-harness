@@ -6,7 +6,7 @@ English | [中文](2026-09-19-config-only-hmr.zh.md)
 
 ## Problem
 
-[DSH HMR](../../../../packages/boot/hmr/src/index.ts) owns both serialized profile configuration refresh and running JavaScript module replacement. Module replacement adds Node-loader internals, dependency traversal, cache backup, old/new plugin fibers, rollback, module watches, and import-error formatting. The [base composition](../../../../packages/bundle/base/cordis.patch.yml) uses `root: []`; other shipped profiles disable or omit HMR. The default product requires configuration refresh, while source replacement serves an explicit custom-profile opt-in.
+[DSH HMR](../../../../packages/boot/hmr/src/index.ts) owns both serialized profile configuration refresh and running JavaScript module replacement. Module replacement adds Node-loader internals, dependency traversal, cache backup, old/new plugin fibers, rollback, module watches, and import-error formatting. The [base composition](../../../../packages/bundle/base/cordis.patch.toml) uses `root: []`; other shipped profiles disable or omit HMR. The default product requires configuration refresh, while source replacement serves an explicit custom-profile opt-in.
 
 That opt-in is real supported behavior: [profile tests](../../../../apps/cli/tests/profile-hmr.spec.ts), module tests, and a [built CLI test](../../../../apps/cli/tests/built-bin.e2e.ts) exercise it, and generated inspection APIs advertise its methods and events. This proposal trades developer continuity for a smaller maintained subsystem; it does not classify the code as unreachable.
 

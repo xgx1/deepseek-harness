@@ -37,7 +37,7 @@ The switch changes the title provider for existing and new Sessions. Eligible hu
 <details>
 <summary>Implementation details — click to expand</summary>
 
-[`cordis.patch.yml`](cordis.patch.yml) contributes the provider on the host. Later profile patches can override its settings. The [profile composer](../../boot/app-boot/README.md) owns patch ordering and errors. The layer disables `session-title-llm` before selecting its replacement; deselection restores the default provider.
+[`cordis.patch.yml`](cordis.patch.toml) contributes the provider on the host. Later profile patches can override its settings. The [profile composer](../../boot/app-boot/README.md) owns patch ordering and errors. The layer disables `session-title-llm` before selecting its replacement; deselection restores the default provider.
 
 </details>
 

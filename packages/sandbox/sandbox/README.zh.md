@@ -33,7 +33,7 @@ kind: "package-reference"
 
 ### 隔离命令
 
-挂载服务、后端与受限执行器；随附的组合由[基础组合包（base bundle）](../../bundle/base/cordis.patch.yml)定义。
+挂载服务、后端与受限执行器；随附的组合由[基础组合包（base bundle）](../../bundle/base/cordis.patch.toml)定义。
 
 ```yaml
 - id: sandbox

@@ -142,7 +142,7 @@ A completed final `turn/end` exits 0; any other outcome — aborted, error, or n
 | [`src/index.ts`](src/index.ts) | The `headless-runner` plugin: run flow, session resolution, output contract, exit mapping |
 | [`src/startup.ts`](src/startup.ts) | The `headless-startup` provider: task input, Session identity, permission options, and output selection |
 | [`src/json-stream.ts`](src/json-stream.ts) | The `--json` projection: event vocabulary, commit-point emission, string bounding |
-| [`cordis.patch.yml`](cordis.patch.yml) | The one-shot patch over `dsh-base` |
+| [`cordis.patch.yml`](cordis.patch.toml) | The one-shot patch over `dsh-base` |
 | [`tests/headless.spec.ts`](tests/headless.spec.ts) | Run flow, aggregation, flush, session adoption, and exit mapping |
 | [`tests/json-stream.spec.ts`](tests/json-stream.spec.ts) | Projection ordering, commit-point emission, bounding, and disposal |
 | [`tests/startup.spec.ts`](tests/startup.spec.ts) | Command-line parsing over a real Loader tree |

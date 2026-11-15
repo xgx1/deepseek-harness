@@ -10,7 +10,7 @@ Status: implemented
 
 ## 决策
 
-[Web bundle](../../../../packages/bundle/web-app/cordis.patch.yml) 和 [SDK bundle](../../../../packages/bundle/sdk-app/cordis.patch.yml) 在 Desktop、普通 `dsh web` 和 SDK 中都挂载 [`skill-office`](../../../../packages/skill/skill-office/README.zh.md)。这取代了[渐进式 Office 技能](2026-09-27-progressive-office-skills.zh.md)中的挂载决策；其技能结构仍然有效，[按需激活的 Office 工具](2026-10-31-native-office-tool.zh.md)取代了其 shell 执行方式。
+[Web bundle](../../../../packages/bundle/web-app/cordis.patch.toml) 和 [SDK bundle](../../../../packages/bundle/sdk-app/cordis.patch.toml) 在 Desktop、普通 `dsh web` 和 SDK 中都挂载 [`skill-office`](../../../../packages/skill/skill-office/README.zh.md)。这取代了[渐进式 Office 技能](2026-09-27-progressive-office-skills.zh.md)中的挂载决策；其技能结构仍然有效，[按需激活的 Office 工具](2026-10-31-native-office-tool.zh.md)取代了其 shell 执行方式。
 
 所有部署都从 `skill-office` 包的 `assets/` 读取 Office 技能，该目录只包含 `SKILL.md` 文件。Host 直接读取这些文件：Desktop 的 Electron Host 在 `app.asar` 内读取，SDK 可执行程序则内嵌这些文件，因此没有载体把技能复制到单独的资源目录。组合可以通过 `assetRoot` 选择其他目录，或用同名文件系统技能覆盖单个技能。
 

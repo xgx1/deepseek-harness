@@ -37,7 +37,7 @@ kind: "package-bundle"
 <details>
 <summary>实现细节 — 点击展开</summary>
 
-[`cordis.patch.yml`](cordis.patch.yml) 在 Host 上添加提供者。后续配置补丁可以覆盖其设置。[配置组合器](../../boot/app-boot/README.zh.md) 负责补丁顺序和错误处理。 此层禁用 `session-title-llm` 后选择替代提供者；取消选择会恢复默认提供者。
+[`cordis.patch.yml`](cordis.patch.toml) 在 Host 上添加提供者。后续配置补丁可以覆盖其设置。[配置组合器](../../boot/app-boot/README.zh.md) 负责补丁顺序和错误处理。 此层禁用 `session-title-llm` 后选择替代提供者；取消选择会恢复默认提供者。
 
 </details>
 

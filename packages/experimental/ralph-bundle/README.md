@@ -37,7 +37,7 @@ With HMR enabled, enabling or disabling the bundle registers or removes its glob
 <details>
 <summary>Implementation details — click to expand</summary>
 
-[`cordis.patch.yml`](cordis.patch.yml) inserts the Host group `optional-ralph`, which isolates its own `workflowEngine` and registers `tool-ralph` in the global tool layer. Later profile patches can replace the tool's configuration or disable it by row id; an override alone does not select the bundle. The [profile composer](../../boot/app-boot/README.md) owns patch ordering and errors.
+[`cordis.patch.yml`](cordis.patch.toml) inserts the Host group `optional-ralph`, which isolates its own `workflowEngine` and registers `tool-ralph` in the global tool layer. Later profile patches can replace the tool's configuration or disable it by row id; an override alone does not select the bundle. The [profile composer](../../boot/app-boot/README.md) owns patch ordering and errors.
 
 </details>
 

@@ -6,7 +6,7 @@ English | [中文](2026-11-15-turso-session-persistence.zh.md)
 
 ## Problem
 
-The shipped product stores every Session as a compressed JSONL log, and 2026-08-30 removed the SQLite provider to keep exactly one authoritative physical format ([`2026-08-30`](../simplification/2026-08-30-jsonl-only-session-persistence.md)). A deployment that wants Session data in the database it already backs up and queries therefore has no supported store, and the removed provider cannot simply return: the handle seam was replaced afterwards (`bec6805d6a`, −2266/+554 lines), so the removed package targets an interface that no longer exists, and its packed-row zstd layout contradicts a requirement for uncompressed, independently readable rows.
+The shipped product stores every Session as a compressed JSONL log, and 2026-08-30 removed the SQLite provider to keep exactly one authoritative physical format ([`2026-08-30`](../simplification/2026-08-30-jsonl-only-session-persistence.md)). A deployment that wants Session data in the database it already backs up and queries therefore has no supported store, and the removed provider cannot simply return: the handle seam was replaced afterwards (−2266/+554 lines), so the removed package targets an interface that no longer exists, and its packed-row zstd layout contradicts a requirement for uncompressed, independently readable rows.
 
 ## Decision
 

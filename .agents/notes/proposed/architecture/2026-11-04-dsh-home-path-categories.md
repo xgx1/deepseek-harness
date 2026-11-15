@@ -51,7 +51,7 @@ These entries have no user-facing convention. Each row names the category it bel
 |---|---|---|---|
 | `storages/` | `data` | storage-json root in the base bundle | Workspace, schedule, and other domain records; its `session_projcache` unit is a rebuildable cache, but storage-json has one root |
 | `attachments/v1/` | `data` | [attachment-local](../../../../packages/attachment/attachment-local/README.md) | User attachments; Session history records their absolute paths |
-| `dsh-runtimes/` | `data` | Desktop offline runtimes ([workspace-dependencies](../../../../packages/bundle/web-app/cordis.patch.yml)) | Installed software that may hold user additions |
+| `dsh-runtimes/` | `data` | Desktop offline runtimes ([workspace-dependencies](../../../../packages/bundle/web-app/cordis.patch.toml)) | Installed software that may hold user additions |
 | `liveshare/` | `data` | [liveshare](../../../../packages/experimental/liveshare/README.md) owner state and credential | Holds management tokens |
 | `.anonymous-user-id` | `state` | [anonymous-user-id](../../../../packages/identity/anonymous-user-id/README.md) | Losing it only issues a new id |
 | `logs/` | `state` | CLI startup failure reports | Logs |

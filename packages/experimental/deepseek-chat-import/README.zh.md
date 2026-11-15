@@ -102,7 +102,7 @@ Host 半包注入 `typert`、`connection`、`sessionPersistence` 和 `workspaceR
 | [`src/importer.ts`](src/importer.ts) | `importDeepseekChatExport()`：索引选择、图片扫描、会话扫描、写入与附加工作区 |
 | [`src/index.ts`](src/index.ts) | `DeepseekChatImportService`、它的 `Config`、单一导入槽位、路由注册与 `@Remote limits()` |
 | [`src/client/`](src/client/index.ts) | 按钮、对话框、经页面载体或 XHR 的浏览器上传，以及 locale 字典 |
-| [`cordis.patch.yml`](cordis.patch.yml) | 可选 bundle 的行 |
+| [`cordis.patch.yml`](cordis.patch.toml) | 可选 bundle 的行 |
 
 ### 上传
 

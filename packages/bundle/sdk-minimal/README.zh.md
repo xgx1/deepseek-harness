@@ -56,7 +56,7 @@ dsh --profile sdk-minimal
 
 | 文件 | 职责 |
 |---|---|
-| [`cordis.patch.yml`](cordis.patch.yml) | 完整独立 profile 配置树及其环境默认值 |
+| [`cordis.patch.yml`](cordis.patch.toml) | 完整独立 profile 配置树及其环境默认值 |
 | [`src/index.ts`](src/index.ts) | Bundle 包入口 |
 | [`tests/sdk-minimal.spec.ts`](tests/sdk-minimal.spec.ts) | 精确组合、profile 名称与平台选择检查 |
 

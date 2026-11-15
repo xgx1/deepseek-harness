@@ -33,7 +33,7 @@ Choose this package when a composition confines subprocesses on the host: it is 
 
 ### Confining a command
 
-Mount the service with a backend and a confined executor; the [base bundle](../../bundle/base/cordis.patch.yml) owns the shipped composition.
+Mount the service with a backend and a confined executor; the [base bundle](../../bundle/base/cordis.patch.toml) owns the shipped composition.
 
 ```yaml
 - id: sandbox

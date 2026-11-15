@@ -87,7 +87,7 @@ The bundle is a static patch document: one `insert` list applied over the empty 
 
 ### Composition mechanics
 
-A patch replaces the targeted row's whole `config` rather than merging into it. Later bundle layers and the user's profile `cordis.patch.yml` override rows by id, with the last write winning per row. Rows whose value differs by mode do not live here: each mode bundle restates its complete configuration, keeping any single row down to one bundle layer plus the user's. The full row set and its rationale are documented inline in [`cordis.patch.yml`](cordis.patch.yml); the [generated composition graph](../../../apps/cli/composition.md) renders it.
+A patch replaces the targeted row's whole `config` rather than merging into it. Later bundle layers and the user's profile `cordis.patch.yml` override rows by id, with the last write winning per row. Rows whose value differs by mode do not live here: each mode bundle restates its complete configuration, keeping any single row down to one bundle layer plus the user's. The full row set and its rationale are documented inline in [`cordis.patch.yml`](cordis.patch.toml); the [generated composition graph](../../../apps/cli/composition.md) renders it.
 
 ### Platform gating
 
@@ -97,7 +97,7 @@ The patch gates the two shell stacks by platform on its own rows: `bash-sandbox`
 
 | File | Role |
 |---|---|
-| [`cordis.patch.yml`](cordis.patch.yml) | The bundle substance: the base plugin rows, with per-row rationale as inline comments |
+| [`cordis.patch.yml`](cordis.patch.toml) | The bundle substance: the base plugin rows, with per-row rationale as inline comments |
 | [`src/index.ts`](src/index.ts) | Package entry; carries no runtime API |
 | [`tests/base.spec.ts`](tests/base.spec.ts) | Manifest declaration and platform-gating checks |
 

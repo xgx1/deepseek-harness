@@ -51,7 +51,7 @@ profile 目录内的文件，例如 `node_modules/`、`pnpm-lock.yaml`、`compat
 |---|---|---|---|
 | `storages/` | `data` | base bundle 中的 storage-json 根目录 | Workspace、schedule 及其他领域记录；其中 `session_projcache` 单元是可重建的缓存，但 storage-json 只有一个根目录 |
 | `attachments/v1/` | `data` | [attachment-local](../../../../packages/attachment/attachment-local/README.zh.md) | 用户附件；Session 历史记录了它们的绝对路径 |
-| `dsh-runtimes/` | `data` | Desktop 离线运行时（[workspace-dependencies](../../../../packages/bundle/web-app/cordis.patch.yml)） | 已安装的软件，可能包含用户添加的内容 |
+| `dsh-runtimes/` | `data` | Desktop 离线运行时（[workspace-dependencies](../../../../packages/bundle/web-app/cordis.patch.toml)） | 已安装的软件，可能包含用户添加的内容 |
 | `liveshare/` | `data` | [liveshare](../../../../packages/experimental/liveshare/README.zh.md) 的所有者状态和凭据 | 存放管理令牌 |
 | `.anonymous-user-id` | `state` | [anonymous-user-id](../../../../packages/identity/anonymous-user-id/README.zh.md) | 丢失后只会生成新的 id |
 | `logs/` | `state` | CLI 启动失败报告 | 日志 |

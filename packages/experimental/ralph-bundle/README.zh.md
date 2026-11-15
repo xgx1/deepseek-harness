@@ -37,7 +37,7 @@ kind: "package-bundle"
 <details>
 <summary>实现细节 — 点击展开</summary>
 
-[`cordis.patch.yml`](cordis.patch.yml) 插入 Host 组 `optional-ralph`，该组隔离自己的 `workflowEngine`，并在全局工具层注册 `tool-ralph`。后续配置补丁可以按条目 id 替换该工具的配置或禁用它；单独的覆盖不会选中组合包。[配置组合器](../../boot/app-boot/README.zh.md) 负责补丁顺序和错误处理。
+[`cordis.patch.yml`](cordis.patch.toml) 插入 Host 组 `optional-ralph`，该组隔离自己的 `workflowEngine`，并在全局工具层注册 `tool-ralph`。后续配置补丁可以按条目 id 替换该工具的配置或禁用它；单独的覆盖不会选中组合包。[配置组合器](../../boot/app-boot/README.zh.md) 负责补丁顺序和错误处理。
 
 </details>
 

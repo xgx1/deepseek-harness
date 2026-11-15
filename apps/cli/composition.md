@@ -7,7 +7,7 @@ The dsh-base bundle patch shared by the web, headless, sdk, and acp profiles; th
 
 ```mermaid
 flowchart LR
-  cfg["packages/bundle/base/cordis.patch.yml<br/>cordis.yml"]
+  cfg["packages/bundle/base/cordis.patch.toml<br/>cordis.yml"]
   plugin_dsh_base_tool_plugin_manager["tool-plugin-manager<br/>@deepseek-ai/dsh-plugin-manager/tools"]
   cfg --> plugin_dsh_base_tool_plugin_manager
   plugin_dsh_base_plugin_manager["plugin-manager<br/>@deepseek-ai/dsh-plugin-manager"]
@@ -310,6 +310,6 @@ flowchart LR
 | `llm-deepseek` | `@deepseek-ai/dsh-llm-deepseek-api-key` |
 | `llm-deepseek-account` | `@deepseek-ai/dsh-llm-deepseek-account` |
 
-Source config: [`packages/bundle/base/cordis.patch.yml`](../../packages/bundle/base/cordis.patch.yml).
+Source config: [`packages/bundle/base/cordis.patch.toml`](../../packages/bundle/base/cordis.patch.toml).
 
 Maintenance mode: hybrid: the patch row list is parsed from its `cordis.yml`; app package expansion is curated from package source.

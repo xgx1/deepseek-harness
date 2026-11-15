@@ -38,7 +38,7 @@ The [credential helpers](../../../../packages/llm/llm-deepseek/src/credential.ts
 
 ### Defaults and stored selections
 
-The [base composition](../../../../packages/bundle/base/cordis.patch.yml) sets `searchProvider: deepseek-search-api` and `fetchProvider: http`. Search defaults to the Search API because it returns sources without Harness starting an auxiliary model request. Fetch defaults to local HTTP fetch because it has no per-request API charge, applies Harness's own URL validation and resource limits, and reaches intranet and local addresses. The Fetch API remains one menu choice away.
+The [base composition](../../../../packages/bundle/base/cordis.patch.toml) sets `searchProvider: deepseek-search-api` and `fetchProvider: http`. Search defaults to the Search API because it returns sources without Harness starting an auxiliary model request. Fetch defaults to local HTTP fetch because it has no per-request API charge, applies Harness's own URL validation and resource limits, and reaches intranet and local addresses. The Fetch API remains one menu choice away.
 
 A stored selection, whether in the settings document or in a deployment's own composition, wins over the shipped default, and an upgrade does not rewrite it. A selection is never replaced at execution: when the selected provider is missing, unavailable, or fails, the operation fails with its structured error and does not fall back to another search or fetch provider. A fallback would send the query and credential to an endpoint the user did not choose and change billing without notice.
 

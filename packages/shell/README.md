@@ -35,7 +35,7 @@ The shell group provides command execution to agents: run a foreground command a
 | [`tool-pwsh`](tool-pwsh/README.md) | Exposes PowerShell execution to the model as the `pwsh` tool | registers on `ctx.tools` |
 | [`tool-pwsh-persistent`](tool-pwsh-persistent/README.md) | Runs model shell calls in one owner-isolated persistent PowerShell session | registers on `ctx.tools` |
 
-A profile layer selects exactly one executor implementation (the win32 layer swaps the POSIX rows for the pwsh ones; mounting two fails loudly at load time on the duplicate service registration) and the model-facing tools it needs. A sandboxed composition also selects a `ctx.sandbox` provider and `ctx.sandboxPolicy`; the [base bundle](../bundle/base/cordis.patch.yml) owns the shipped wiring.
+A profile layer selects exactly one executor implementation (the win32 layer swaps the POSIX rows for the pwsh ones; mounting two fails loudly at load time on the duplicate service registration) and the model-facing tools it needs. A sandboxed composition also selects a `ctx.sandbox` provider and `ctx.sandboxPolicy`; the [base bundle](../bundle/base/cordis.patch.toml) owns the shipped wiring.
 
 -----
 

@@ -38,7 +38,7 @@ Press **Ctrl/Cmd+Shift+.** to open or collapse **NodeJS inspector** in the botto
 <details>
 <summary>Implementation internals — click to expand</summary>
 
-[`cordis.patch.yml`](cordis.patch.yml) enables Session Inspector, the Statistics conversation view, and the NodeJS inspector backend with `captureFetch: true`, independently of debugging flags. See the Inspector [README](../inspector/README.md) for debugging and capture behavior. Each plugin owns its behavior and lifetime.
+[`cordis.patch.yml`](cordis.patch.toml) enables Session Inspector, the Statistics conversation view, and the NodeJS inspector backend with `captureFetch: true`, independently of debugging flags. See the Inspector [README](../inspector/README.md) for debugging and capture behavior. Each plugin owns its behavior and lifetime.
 
 </details>
 

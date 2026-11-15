@@ -37,7 +37,7 @@ Owner, viewer, and the Liveshare server must use matching protocol versions. The
 
 A dsh installation ships this package as a runtime dependency, but no shipped profile selects its bundle, so none of its plugins run and the plugin manager lists it in neither **Built-in plugin settings** nor **Experimental plugins**, including the **More** page. The bundle ID stays addressable, so a page that opens a bundle by ID still reaches this bundle's details.
 
-Enable it by inserting its one entry into the active profile's patch file, `$DSH_HOME/profiles/<profile>/cordis.patch.yml`. That file is one YAML sequence of Loader patches; this is the entry the bundle's own [patch](cordis.patch.yml) inserts, and `!!js` expressions are allowed there:
+Enable it by inserting its one entry into the active profile's patch file, `$DSH_HOME/profiles/<profile>/cordis.patch.yml`. That file is one YAML sequence of Loader patches; this is the entry the bundle's own [patch](cordis.patch.toml) inserts, and `!!js` expressions are allowed there:
 
 ```yaml
 - insert:

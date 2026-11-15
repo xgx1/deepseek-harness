@@ -24,7 +24,7 @@ kind: "package-reference"
 <a id="host-service"></a>
 ## Host 服务：`RemoteAccessService`（ctx key：`remoteAccess`）
 
-挂载 [API Gateway](../gateway/README.zh.md) 的组合都要挂载本服务：Gateway 注入 `remoteAccess`，没有它就不启动。[`bundle/base`](../../bundle/base/cordis.patch.yml) 紧随 `typert-gateway` 装配它。owner（`{ kind: 'owner' }`）从不受检查；下列成员都只针对非 owner principal。
+挂载 [API Gateway](../gateway/README.zh.md) 的组合都要挂载本服务：Gateway 注入 `remoteAccess`，没有它就不启动。[`bundle/base`](../../bundle/base/cordis.patch.toml) 紧随 `typert-gateway` 装配它。owner（`{ kind: 'owner' }`）从不受检查；下列成员都只针对非 owner principal。
 
 | 成员 | 契约 |
 |---|---|

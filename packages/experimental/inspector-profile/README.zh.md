@@ -38,7 +38,7 @@ kind: "package-bundle"
 <details>
 <summary>实现内部细节 — 点击展开</summary>
 
-[`cordis.patch.yml`](cordis.patch.yml) 启用会话数据诊断 和 NodeJS 诊断 后端，并设置 `captureFetch: true`，不依赖调试参数。调试与采集行为见 Inspector [README](../inspector/README.zh.md)。每个插件负责自身行为与生命周期。
+[`cordis.patch.yml`](cordis.patch.toml) 启用会话数据诊断 和 NodeJS 诊断 后端，并设置 `captureFetch: true`，不依赖调试参数。调试与采集行为见 Inspector [README](../inspector/README.zh.md)。每个插件负责自身行为与生命周期。
 
 </details>
 

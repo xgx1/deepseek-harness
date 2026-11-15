@@ -23,5 +23,5 @@ The headless bundle reads `--add-dir` through `headlessStartup` before activatin
        workspaceRoot: !!js process.cwd()
    ```
 
-2. If the overlay keeps command-line startup but replaces `headless-runner` or `sandbox-policy`, retain their `headlessStartup` bindings from the [headless bundle](../../../../packages/bundle/headless/cordis.patch.yml).
+2. If the overlay keeps command-line startup but replaces `headless-runner` or `sandbox-policy`, retain their `headlessStartup` bindings from the [headless bundle](../../../../packages/bundle/headless/cordis.patch.toml).
 3. Launch a small task through the custom profile and verify that its tools activate. If startup remains enabled, pass `--add-dir` and check that a write to the selected directory succeeds.

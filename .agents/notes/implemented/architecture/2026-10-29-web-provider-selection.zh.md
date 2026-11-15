@@ -38,7 +38,7 @@ Search 与 Fetch 各有一个计费方式设置 `web-deepseek-api.searchBilling`
 
 ### 默认值与已保存的选择
 
-[base 组合](../../../../packages/bundle/base/cordis.patch.yml)设置 `searchProvider: deepseek-search-api` 和 `fetchProvider: http`。搜索默认使用 Search API，因为它返回来源时无需 Harness 发起辅助模型请求。抓取默认使用本地 HTTP 抓取，因为它没有按次的 API 费用，执行 Harness 自身的 URL 校验和资源限制，并且可以访问内网和本地地址。Fetch API 仍可在下拉框中直接选择。
+[base 组合](../../../../packages/bundle/base/cordis.patch.toml)设置 `searchProvider: deepseek-search-api` 和 `fetchProvider: http`。搜索默认使用 Search API，因为它返回来源时无需 Harness 发起辅助模型请求。抓取默认使用本地 HTTP 抓取，因为它没有按次的 API 费用，执行 Harness 自身的 URL 校验和资源限制，并且可以访问内网和本地地址。Fetch API 仍可在下拉框中直接选择。
 
 已保存的选择——无论位于设置文档还是部署自身的组合中——优先于内置默认值，升级不会改写它。执行时从不替换选择：所选提供方缺失、不可用或失败时，操作以结构化错误失败，不会回退到其他搜索或抓取提供方。回退会把查询和凭据发往用户未选择的端点，并在不提示的情况下改变计费。
 

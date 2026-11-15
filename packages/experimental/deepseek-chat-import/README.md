@@ -102,7 +102,7 @@ A conversation file that is oversized, damaged, cannot be parsed or converted, o
 | [`src/importer.ts`](src/importer.ts) | `importDeepseekChatExport()`: index selection, the image pass, the conversation pass, writes, and Workspace attachment |
 | [`src/index.ts`](src/index.ts) | `DeepseekChatImportService`, its `Config`, the single import slot, the route registration, and `@Remote limits()` |
 | [`src/client/`](src/client/index.ts) | Button, dialog, browser upload over the page carrier or XHR, and locale dictionaries |
-| [`cordis.patch.yml`](cordis.patch.yml) | The optional bundle row |
+| [`cordis.patch.yml`](cordis.patch.toml) | The optional bundle row |
 
 ### Upload
 

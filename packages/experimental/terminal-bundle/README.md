@@ -25,7 +25,7 @@ Add six experimental global terminal tools to every Agent, plus two read-only to
 <a id="use-this-package"></a>
 ## Use this package
 
-In `$DSH_HOME/profiles/<name>/package.json` (default home: `~/.dsh`), add `@deepseek-ai/dsh-experimental-terminal-bundle` to `dsh.profile.bundles` to enable its profile layer; remove it from that list to disable it. Restart that profile to apply the change; see the [profile reference](../../../apps/cli/reference/README.md#profile-boot). The [minimal preset](../../bundle/web-app/presets/minimal.patch.yml) loads its own persistent shell independently of this bundle.
+In `$DSH_HOME/profiles/<name>/package.json` (default home: `~/.dsh`), add `@deepseek-ai/dsh-experimental-terminal-bundle` to `dsh.profile.bundles` to enable its profile layer; remove it from that list to disable it. Restart that profile to apply the change; see the [profile reference](../../../apps/cli/reference/README.md#profile-boot). The [minimal preset](../../bundle/web-app/presets/minimal.patch.toml) loads its own persistent shell independently of this bundle.
 
 The selected layer adds its global tools to every Agent in the Host, in every preset including minimal. Hiding the management entry preserves existing selections; the [upgrade guide](../../../docs/upgrade-guide/v0.2.1-rc.2/persistent-terminal-controls/guide.md) explains how to disable a previously enabled layer.
 
@@ -37,7 +37,7 @@ The selected layer adds its global tools to every Agent in the Host, in every pr
 <details>
 <summary>Implementation details — click to expand</summary>
 
-[`cordis.patch.yml`](cordis.patch.yml) inserts the Host group `optional-persistent-terminals`, which registers the tools in the global tool layer. Its `optional-terminal-panel` row prefers `pwsh`, then `powershell`, on Windows and the execution environment's default shell elsewhere. Later profile patches can override its rows by id. The [profile composer](../../boot/app-boot/README.md) owns patch ordering and errors.
+[`cordis.patch.yml`](cordis.patch.toml) inserts the Host group `optional-persistent-terminals`, which registers the tools in the global tool layer. Its `optional-terminal-panel` row prefers `pwsh`, then `powershell`, on Windows and the execution environment's default shell elsewhere. Later profile patches can override its rows by id. The [profile composer](../../boot/app-boot/README.md) owns patch ordering and errors.
 
 </details>
 

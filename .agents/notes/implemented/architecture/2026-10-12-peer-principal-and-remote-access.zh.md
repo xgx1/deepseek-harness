@@ -336,7 +336,7 @@ class RemoteAccessService {            // ctx.remoteAccess; Remote namespace rem
 | 求值时机 | 每次 `decide()`、`allows()` 与快照计算都调用一次 `bindings()`，不缓存；依赖时间的状态（如过期）即时生效，长流（如 `workspace/follow`、`session/control`）在 binding 增删后的下一次逐项判定即反映；快照只在 `invalidate()` 后重算，业务包在过期等时间事件发生时也须调用 `invalidate()` |
 | 通知 | 业务状态变化（授权、撤权、模式切换）改变 binding 或 condition 的结论时，业务包必须调用 `invalidate(principal?)`；快照只在 `invalidate()` 与 policy 注册、撤回后重算 |
 | `remote-access/denied` | 只有调用的拒绝变成错误，details `{ action, reason }`，reason 为 condition 或 `explain` 给出的原因、`no-allow`、`policy-failed`，或 Gateway 对非法资源给出的 `resource-invalid`；被拒的事件只是不推送 |
-| 必需服务 | Gateway `static inject = ['typert', 'remoteAccess']`；挂载 Gateway 的组合必须挂载 remote-access，[`bundle/base`](../../../../packages/bundle/base/cordis.patch.yml) 紧随 `typert-gateway` 装配；plugin manager 像保护 Gateway 一样保护它，插件页面无法禁用 |
+| 必需服务 | Gateway `static inject = ['typert', 'remoteAccess']`；挂载 Gateway 的组合必须挂载 remote-access，[`bundle/base`](../../../../packages/bundle/base/cordis.patch.toml) 紧随 `typert-gateway` 装配；plugin manager 像保护 Gateway 一样保护它，插件页面无法禁用 |
 
 #### 示例：分享读者
 

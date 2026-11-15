@@ -87,7 +87,7 @@ kind: "package-bundle"
 
 ### 组合机制
 
-patch 会替换目标行的整个 `config`，而不是合并进它。后续组合包层与用户的 profile `cordis.patch.yml` 按 id 覆盖行，每行最后一次写入生效。按模式取值不同的行不属于这里：每个模式组合包重述自己的完整配置，让任何单一行最多只属于一个组合包层加用户层。完整行集合及其设计依据以行内注释写在 [`cordis.patch.yml`](cordis.patch.yml) 里；[生成的组合图](../../../apps/cli/composition.md)负责渲染它。
+patch 会替换目标行的整个 `config`，而不是合并进它。后续组合包层与用户的 profile `cordis.patch.yml` 按 id 覆盖行，每行最后一次写入生效。按模式取值不同的行不属于这里：每个模式组合包重述自己的完整配置，让任何单一行最多只属于一个组合包层加用户层。完整行集合及其设计依据以行内注释写在 [`cordis.patch.yml`](cordis.patch.toml) 里；[生成的组合图](../../../apps/cli/composition.md)负责渲染它。
 
 ### 平台门控
 
@@ -97,7 +97,7 @@ patch 在自身上按平台门控两个 shell 栈：`bash-sandbox` 与 `tool-bas
 
 | 文件 | 职责 |
 |---|---|
-| [`cordis.patch.yml`](cordis.patch.yml) | 组合包的实体：基础插件行，附以行内注释说明各行依据 |
+| [`cordis.patch.yml`](cordis.patch.toml) | 组合包的实体：基础插件行，附以行内注释说明各行依据 |
 | [`src/index.ts`](src/index.ts) | 包入口；不携带任何运行时 API |
 | [`tests/base.spec.ts`](tests/base.spec.ts) | manifest（元数据清单）声明与平台门控检查 |
 

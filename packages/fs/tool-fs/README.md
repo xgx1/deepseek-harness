@@ -39,7 +39,7 @@ A backend, the policy plugin, then the tools; the attachment store is optional a
 - name: '@deepseek-ai/dsh-tool-fs'
 ```
 
-The policy plugin is optional: without it the tools run against the bare provider (unconditional write, overwrite, edit, and patch with no observed state), which is how the shipped compositions run — [`dsh-base`](../../bundle/base/cordis.patch.yml) lists the `fs-observation-policy` row `disabled: true`; set it to `false` to require prior reads and reject stale versions for every mutating tool. `read_image` registers only while a durable `ctx.attachments` service is mounted; execution additionally refuses on a route whose exact model does not declare image input, so a text route's durable history stays free of image blocks.
+The policy plugin is optional: without it the tools run against the bare provider (unconditional write, overwrite, edit, and patch with no observed state), which is how the shipped compositions run — [`dsh-base`](../../bundle/base/cordis.patch.toml) lists the `fs-observation-policy` row `disabled: true`; set it to `false` to require prior reads and reject stale versions for every mutating tool. `read_image` registers only while a durable `ctx.attachments` service is mounted; execution additionally refuses on a route whose exact model does not declare image input, so a text route's durable history stays free of image blocks.
 
 ### The tools
 
@@ -55,7 +55,7 @@ Field names are snake_case to match Claude Code and existing harness tool schema
 
 ### Configuration
 
-All keys are optional. The `read`, `readImage`, `write`, and `edit` switches default to `true`; set a switch to `false` to omit that tool and its guidance. `applyPatch` defaults to `false`; [`dsh-base`](../../bundle/base/cordis.patch.yml) and the Web `standard` preset enable it on their `tool-fs` rows, while the Web `ptc` and `cordis` presets state `applyPatch: false`, and changing that one line adds or drops the tool beside `edit`. All five tools may be disabled. Enabling `readImage` still requires an attachment store and an image-capable model. Read caps remain validated when `read` is disabled.
+All keys are optional. The `read`, `readImage`, `write`, and `edit` switches default to `true`; set a switch to `false` to omit that tool and its guidance. `applyPatch` defaults to `false`; [`dsh-base`](../../bundle/base/cordis.patch.toml) and the Web `standard` preset enable it on their `tool-fs` rows, while the Web `ptc` and `cordis` presets state `applyPatch: false`, and changing that one line adds or drops the tool beside `edit`. All five tools may be disabled. Enabling `readImage` still requires an attachment store and an image-capable model. Read caps remain validated when `read` is disabled.
 
 | Key | Default | Meaning |
 |---|---|---|

@@ -25,7 +25,7 @@ kind: "package-reference"
 <a id="use-this-package"></a>
 ## 使用本包
 
-在 `ctx.sandbox` 后挂载此提供方并配一个受限执行器，执行器 spawn 的每条命令都会在你解析的策略下受限运行。随附的[基础组合包](../../bundle/base/cordis.patch.yml)拥有默认策略与执行器接线。
+在 `ctx.sandbox` 后挂载此提供方并配一个受限执行器，执行器 spawn 的每条命令都会在你解析的策略下受限运行。随附的[基础组合包](../../bundle/base/cordis.patch.toml)拥有默认策略与执行器接线。
 
 ### 何时选择
 

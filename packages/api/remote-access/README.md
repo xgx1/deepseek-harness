@@ -24,7 +24,7 @@ Decides which Remote methods a non-owner Peer may call and which forwarded event
 <a id="host-service"></a>
 ## Host service: `RemoteAccessService` (ctx key: `remoteAccess`)
 
-Every composition that mounts [API Gateway](../gateway/README.md) mounts this service: the Gateway injects `remoteAccess` and does not start without it. [`bundle/base`](../../bundle/base/cordis.patch.yml) loads it beside `typert-gateway`. The owner (`{ kind: 'owner' }`) is never checked; every method below concerns non-owner principals.
+Every composition that mounts [API Gateway](../gateway/README.md) mounts this service: the Gateway injects `remoteAccess` and does not start without it. [`bundle/base`](../../bundle/base/cordis.patch.toml) loads it beside `typert-gateway`. The owner (`{ kind: 'owner' }`) is never checked; every method below concerns non-owner principals.
 
 | Member | Contract |
 |---|---|

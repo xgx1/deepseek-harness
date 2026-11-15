@@ -6,7 +6,7 @@ Status: proposed
 
 ## 问题
 
-[DSH HMR](../../../../packages/boot/hmr/src/index.ts) 同时拥有串行 profile 配置刷新和运行中的 JavaScript 模块替换。模块替换增加了 Node loader 内部接口、依赖遍历、缓存备份、新旧插件 fiber、回滚、模块监听与导入错误格式化。[基础组合](../../../../packages/bundle/base/cordis.patch.yml) 使用 `root: []`；其他随产品发布的 profile 禁用或省略 HMR（热模块替换）。默认产品需要配置刷新，而源码替换服务于自定义 profile 的显式启用。
+[DSH HMR](../../../../packages/boot/hmr/src/index.ts) 同时拥有串行 profile 配置刷新和运行中的 JavaScript 模块替换。模块替换增加了 Node loader 内部接口、依赖遍历、缓存备份、新旧插件 fiber、回滚、模块监听与导入错误格式化。[基础组合](../../../../packages/bundle/base/cordis.patch.toml) 使用 `root: []`；其他随产品发布的 profile 禁用或省略 HMR（热模块替换）。默认产品需要配置刷新，而源码替换服务于自定义 profile 的显式启用。
 
 该选项是真实受支持的行为：[profile 测试](../../../../apps/cli/tests/profile-hmr.spec.ts)、模块测试和[构建后 CLI 测试](../../../../apps/cli/tests/built-bin.e2e.ts) 都覆盖它，生成的检查 API 也展示其方法和事件。本提案以开发连续性换取更小的维护子系统，并不将代码判定为不可达。
 

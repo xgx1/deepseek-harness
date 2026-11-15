@@ -39,7 +39,7 @@ This bundle enables Agent search tools. Sidebar search keeps its existing behavi
 <details>
 <summary>Implementation details — click to expand</summary>
 
-[`cordis.patch.yml`](cordis.patch.yml) inserts the Host group `optional-session-search`, which registers the tools in the global tool layer. Later profile patches can override its rows by id. The [profile composer](../../boot/app-boot/README.md) owns patch ordering and errors.
+[`cordis.patch.yml`](cordis.patch.toml) inserts the Host group `optional-session-search`, which registers the tools in the global tool layer. Later profile patches can override its rows by id. The [profile composer](../../boot/app-boot/README.md) owns patch ordering and errors.
 
 The group owns an isolated `sessionQuery` provider with a lazy `:memory:` index, released when the bundle is switched off. The host's metadata service keeps `openAt: never`.
 

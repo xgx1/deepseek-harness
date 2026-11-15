@@ -10,7 +10,7 @@ Office skills were mounted only by Desktop and the Python SDK, so ordinary `dsh 
 
 ## Decision
 
-The [Web bundle](../../../../packages/bundle/web-app/cordis.patch.yml) and the [SDK bundle](../../../../packages/bundle/sdk-app/cordis.patch.yml) mount [`skill-office`](../../../../packages/skill/skill-office/README.md) in Desktop, ordinary `dsh web`, and the SDK. This supersedes the mounting decision of [progressive Office skills](2026-09-27-progressive-office-skills.md); its skill structure remains current, and the [on-demand Office tools](2026-10-31-native-office-tool.md) replace its shell execution.
+The [Web bundle](../../../../packages/bundle/web-app/cordis.patch.toml) and the [SDK bundle](../../../../packages/bundle/sdk-app/cordis.patch.toml) mount [`skill-office`](../../../../packages/skill/skill-office/README.md) in Desktop, ordinary `dsh web`, and the SDK. This supersedes the mounting decision of [progressive Office skills](2026-09-27-progressive-office-skills.md); its skill structure remains current, and the [on-demand Office tools](2026-10-31-native-office-tool.md) replace its shell execution.
 
 Every deployment reads the Office skills from the `skill-office` package's `assets/`, which hold only `SKILL.md` files. The Host reads them with ordinary file reads: Desktop's Electron Host reads them inside `app.asar`, and the SDK executable embeds them, so no carrier copies the skills to a separate resource directory. A composition selects another directory through `assetRoot`, or overrides individual skills with same-name filesystem skills.
 

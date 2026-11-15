@@ -39,7 +39,7 @@ kind: "package-bundle"
 <details>
 <summary>实现细节 — 点击展开</summary>
 
-[`cordis.patch.yml`](cordis.patch.yml) 插入 Host 组 `optional-session-search`，在全局工具层注册这些工具。后续配置补丁可以按 id 覆盖其条目。[配置组合器](../../boot/app-boot/README.zh.md) 负责补丁顺序和错误处理。
+[`cordis.patch.yml`](cordis.patch.toml) 插入 Host 组 `optional-session-search`，在全局工具层注册这些工具。后续配置补丁可以按 id 覆盖其条目。[配置组合器](../../boot/app-boot/README.zh.md) 负责补丁顺序和错误处理。
 
 该组拥有独立的 `sessionQuery` 提供方和惰性打开的 `:memory:` 索引，关闭组合包时释放。Host 的元数据服务仍使用 `openAt: never`。
 
