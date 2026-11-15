@@ -670,6 +670,9 @@ importers:
       '@deepseek-ai/dsh-session-persistence-jsonl':
         specifier: workspace:*
         version: link:../../packages/session/session-persistence-jsonl
+      '@deepseek-ai/dsh-session-persistence-sqlite':
+        specifier: workspace:*
+        version: link:../../packages/session/session-persistence-sqlite
       '@deepseek-ai/dsh-session-query':
         specifier: workspace:*
         version: link:../../packages/session-query/session-query
@@ -16355,6 +16358,28 @@ importers:
       '@deepseek-ai/dsh-session-format-v0-to-v1':
         specifier: workspace:*
         version: link:../session-format-v0-to-v1
+      '@deepseek-ai/dsh-session-persistence':
+        specifier: workspace:*
+        version: link:../session-persistence
+
+  packages/session/session-persistence-sqlite:
+    dependencies:
+      '@deepseek-ai/schemastery':
+        specifier: link:../../../vendor/schemastery
+        version: link:../../../vendor/schemastery
+    devDependencies:
+      '@deepseek-ai/cordis':
+        specifier: workspace:~
+        version: link:../../../vendor/cordis
+      '@deepseek-ai/dsh-brand':
+        specifier: workspace:*
+        version: link:../../util/brand
+      '@deepseek-ai/dsh-llm':
+        specifier: workspace:*
+        version: link:../../llm/llm
+      '@deepseek-ai/dsh-session':
+        specifier: workspace:*
+        version: link:../../core/session
       '@deepseek-ai/dsh-session-persistence':
         specifier: workspace:*
         version: link:../session-persistence
