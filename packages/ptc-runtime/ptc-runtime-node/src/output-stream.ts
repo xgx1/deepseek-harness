@@ -32,15 +32,31 @@ export function drainOutput(stream: Readable | undefined, graceMs: number): Prom
 /**
  * Terminate a managed process and drain its pipes, including failures before output listeners attach.
  * @param handle - Process and streams owned by the runtime.
- * @param graceMs - Maximum pipe-drain wait after managed exit.
- * @returns Whether both output streams ended cleanly.
+ * @param graceMs - Maximum managed-range exit wait and, separately, pipe-drain wait.
+ * @returns Whether the managed range emptied and both output streams ended cleanly.
  */
 export async function terminateProcess(handle: SubprocessHandle, graceMs: number): Promise<boolean> {
   try {
     handle.terminate()
     handle.stdout?.resume()
     handle.stderr?.resume()
-    await Promise.all([handle.done.catch(() => {}), handle.waitForExit()])
+    // The range can outlive the spawned command: a program that leaves a detached
+    // descendant keeps `waitForExit` pending forever unless the wait itself is bound.
+    const bound = AbortSignal.timeout(graceMs)
+    const observation = handle.waitForExit(bound)
+    // The bound is enforced here rather than trusted to the provider: a handle whose
+    // signal support is missing would otherwise retain the run forever.
+    void observation.catch(() => {})
+    const emptied = await Promise.race([
+      observation,
+      new Promise<boolean>((resolve) => { bound.addEventListener('abort', () => { resolve(false) }, { once: true }) }),
+    ]).catch((error: unknown) => {
+      // An unobservable range stays a provider failure; only our own bound ends the wait.
+      if (!bound.aborted) throw error
+      return false
+    })
+    if (!emptied) return false
+    await handle.done.catch(() => {})
     const drained = await Promise.all([drainOutput(handle.stdout, graceMs), drainOutput(handle.stderr, graceMs)])
     return !drained.includes(false)
   } finally {

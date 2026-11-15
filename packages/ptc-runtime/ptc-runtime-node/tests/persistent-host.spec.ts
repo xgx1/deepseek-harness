@@ -668,7 +668,7 @@ it('releases a confirmed exited process even when its output pipe did not drain'
   const warn = vi.spyOn(h.ctx.logger, 'warn').mockImplementation(() => {})
   try {
     await expect(h.runtime.release(request.stateOwner!)).resolves.toBeUndefined()
-    expect(warn).toHaveBeenCalledWith('Node process exited but its output did not drain cleanly')
+    expect(warn).toHaveBeenCalledWith('Node process did not exit and drain cleanly')
     await expect(h.runtime.release(request.stateOwner!)).resolves.toBeUndefined()
   } finally { warn.mockRestore() }
 })
@@ -682,5 +682,5 @@ it('preserves logs in a result-level failure when temporary process pipes do not
   })
   const result = await h.start({ program: '1', bindings: [] })
   expect(result.output.filter(block => block.type === 'text').map(block => block.text)).toEqual(['captured before cleanup'])
-  expect(result.error).toEqual({ kind: 'worker-exit', message: 'managed process exited but its output did not drain cleanly' })
+  expect(result.error).toEqual({ kind: 'worker-exit', message: 'managed process did not exit and drain cleanly' })
 })

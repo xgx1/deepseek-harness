@@ -33,6 +33,8 @@ export interface Config {
   stopGraceMs?: number
   /** Managed process termination and output-drain grace in milliseconds. */
   graceMs?: number
+  /** Cleanup allowance added to a run deadline before the host reports an unsettled run. */
+  settleAllowanceMs?: number
 }
 
 /** Configuration after Loader defaults and executable selection. */
@@ -50,6 +52,7 @@ export const NodeConfig: z<Config> = z.object({
   maxPendingCalls: z.number().default(128),
   stopGraceMs: z.number().default(3_000),
   graceMs: z.number().default(3_000),
+  settleAllowanceMs: z.number().default(60_000),
   launch: z.union([
     z.object({ kind: z.const('node-script').required(), executable: z.string().required(), bootstrapPath: z.string() }),
     z.object({ kind: z.const('embedded').required(), executable: z.string().required() }),
@@ -76,7 +79,7 @@ export function validateConfig(config: ResolvedConfig): void {
   for (const [key, value] of Object.entries(config)) {
     if (typeof value === 'number' && (!Number.isFinite(value) || value <= 0)) throw new Error(`ptc-runtime-node: ${key} must be positive and finite`)
   }
-  for (const key of ['timeoutMs', 'maxTimeoutMs', 'graceMs', 'stopGraceMs'] as const) {
+  for (const key of ['timeoutMs', 'maxTimeoutMs', 'graceMs', 'stopGraceMs', 'settleAllowanceMs'] as const) {
     if (config[key] > MAX_TIMER_DELAY_MS) throw new Error(`ptc-runtime-node: ${key} exceeds the supported timer range`)
   }
   if (!Number.isSafeInteger(config.maxOutputBytes) || config.maxOutputBytes < 4) throw new Error('ptc-runtime-node: maxOutputBytes must be an integer of at least 4')

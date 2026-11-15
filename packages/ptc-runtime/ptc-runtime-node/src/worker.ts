@@ -111,7 +111,7 @@ export class ProgramWorker {
     this.running = true
     const sandbox: PtcRunSandbox = { mode: this.policy.mode, denied: false }
     try {
-      const result = await this.evaluate(spec, bindings)
+      const result = await this.settleWithin(spec, this.evaluate(spec, bindings))
       if (this.confined !== undefined) {
         sandbox.enforcement = this.confined.enforcement
         sandbox.denied ||= result.error?.kind !== 'sandbox-unavailable' && this.confined.denialSignatures.some(signature =>
@@ -119,6 +119,27 @@ export class ProgramWorker {
       }
       return { ...result, sandbox }
     } finally { this.running = false }
+  }
+
+  /**
+   * Collect one evaluation and, when its cleanup never settles, release the
+   * environment instead of retaining the owner and the tool call forever.
+   * @param spec - Resolved program inputs whose deadline the budget extends.
+   * @param pending - Evaluation that already enforces its own execution deadline.
+   * @returns The settled result or the unsettled-cleanup failure.
+   */
+  private async settleWithin(spec: PtcRunSpec, pending: Promise<PtcRunResult>): Promise<PtcRunResult> {
+    const budget = (spec.timeoutMs ?? this.config.maxTimeoutMs) + this.config.settleAllowanceMs
+    const unsettled = Promise.withResolvers<'unsettled'>()
+    const timer = setTimeout(() => { unsettled.resolve('unsettled') }, budget)
+    try {
+      const settled = await Promise.race([pending, unsettled.promise])
+      if (settled !== 'unsettled') return settled
+    } finally { clearTimeout(timer) }
+    const message = `execution did not settle within ${budget}ms; the environment was released`
+    this.ctx.logger.warn(`ptc-runtime-node: ${message}`)
+    void this.terminate().catch((error: unknown) => { this.ctx.logger.warn(messageOf(error)) })
+    return this.output().failure([], { kind: 'worker-exit', message: this.message(message) })
   }
 
   private output(): OutputLedger {
@@ -206,7 +227,7 @@ export class ProgramWorker {
           const completed = complete()
           // The final interruption diagnostic also consumes output budget.
           if (completed.error?.kind === 'output-limit' && preserved) drained = await this.terminate()
-          return drained ? completed : ledger.failure(output, { kind: 'worker-exit', message: 'managed process exited but its output did not drain cleanly' })
+          return drained ? completed : ledger.failure(output, { kind: 'worker-exit', message: 'managed process did not exit and drain cleanly' })
         }
         void cleanup().then((completed) => {
           this.active = undefined
@@ -273,15 +294,19 @@ export class ProgramWorker {
     this.controller.abort()
     this.channel?.$close()
     this.termination = (async () => {
-      await this.starting?.catch((_error: unknown) => {
-        // Evaluation reports startup failure; cleanup still owns any process already created.
-      })
+      const starting = this.starting
+      if (starting !== undefined) {
+        // A start that never settles must not retain termination: the caller already owns a deadline.
+        await Promise.race([starting.catch((_error: unknown) => {}), new Promise<void>((resolve) => {
+          setTimeout(resolve, this.config.graceMs).unref?.()
+        })])
+      }
       const handle = this.handle
       return handle === undefined || await terminateProcess(handle, this.config.graceMs)
     })().then((drained) => {
       this.unregister?.()
       this.cleanupPending = false
-      if (!drained) this.ctx.logger.warn('Node process exited but its output did not drain cleanly')
+      if (!drained) this.ctx.logger.warn('Node process did not exit and drain cleanly')
       return drained
     }, (error: unknown) => { this.termination = undefined; throw error })
     return this.termination

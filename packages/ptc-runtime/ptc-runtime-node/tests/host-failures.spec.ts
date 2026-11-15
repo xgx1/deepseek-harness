@@ -416,7 +416,7 @@ describe('Node runtime host failures', () => {
       const pending = h.start()
       await cleaning.promise
       await vi.advanceTimersByTimeAsync(5)
-      expect((await pending).error).toEqual({ kind: 'worker-exit', message: 'managed process exited but its output did not drain cleanly' })
+      expect((await pending).error).toEqual({ kind: 'worker-exit', message: 'managed process did not exit and drain cleanly' })
       expect(h.stdout.destroyed).toBe(true)
       expect(h.stderr.destroyed).toBe(true)
     } finally { vi.useRealTimers() }
