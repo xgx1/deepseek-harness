@@ -40,14 +40,20 @@ export class FakeWebSocket extends EventEmitter {
 
   /** Whether the worker terminated this socket rather than closing it cleanly. */
   terminated = false
+  readonly url: URL
+  readonly options: { readonly headers?: Readonly<Record<string, string>> }
+
+
 
   /**
    * Record one construction by the worker.
    * @param url Registration URL the worker built.
    * @param options Socket options carrying the handshake headers.
    */
-  constructor(readonly url: URL, readonly options: { readonly headers?: Readonly<Record<string, string>> }) {
+  constructor(url: URL, options: { readonly headers?: Readonly<Record<string, string>> }) {
     super()
+    this.url = url
+    this.options = options
     FakeWebSocket.instances.push(this)
   }
 

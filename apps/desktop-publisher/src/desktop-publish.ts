@@ -37,8 +37,12 @@ export type DesktopPublishResult = { readonly status: 'complete' } | { readonly 
 
 /** A publication failure that requires reconciliation rather than a blind retry. */
 export class DesktopPublishError extends Error {
-  constructor(readonly code: 'conflict' | 'superseded' | 'invalid-plan' | 'remote-changed' | 'verification-failed', message: string) {
+  readonly code: 'conflict' | 'superseded' | 'invalid-plan' | 'remote-changed' | 'verification-failed'
+
+
+  constructor(code: 'conflict' | 'superseded' | 'invalid-plan' | 'remote-changed' | 'verification-failed', message: string) {
     super(message)
+    this.code = code
     this.name = 'DesktopPublishError'
   }
 }

@@ -42,7 +42,12 @@ class ProgramModel extends LlmAdapter {
   readonly requests: GenerateOptions[] = []
   /** Requests a test holds back until it has finished acting between two model steps. */
   readonly gates = new Map<number, Promise<void>>()
-  constructor(private readonly programs: readonly string[]) { super() }
+  private readonly programs: readonly string[]
+
+
+  constructor(programs: readonly string[]) { super()
+    this.programs = programs
+  }
   override resolveModel(provider: string, model: string): Promise<LlmResolvedModelInfo> {
     return Promise.resolve({ provider, id: model, name: model, inputModalities: ['text', 'image'] })
   }

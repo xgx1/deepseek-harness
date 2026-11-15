@@ -6,8 +6,14 @@ const workers: FakeWorker[] = []
 
 class FakeWorker extends EventEmitter {
   readonly terminate = vi.fn(() => Promise.resolve(0))
-  constructor(readonly entry: URL, readonly options: { workerData: unknown; transferList: unknown[] }) {
+  readonly entry: URL
+  readonly options: { workerData: unknown; transferList: unknown[] }
+
+
+  constructor(entry: URL, options: { workerData: unknown; transferList: unknown[] }) {
     super()
+    this.entry = entry
+    this.options = options
     workers.push(this)
   }
 }

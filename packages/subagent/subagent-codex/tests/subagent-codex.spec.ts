@@ -97,11 +97,15 @@ class ProtocolPeer {
   private buffer = ''
   private readonly frames: JsonObject[] = []
   private readonly wakeups = new Set<() => void>()
+  private readonly output: PassThrough
+
+
 
   constructor(
     input: PassThrough,
-    private readonly output: PassThrough,
+    output: PassThrough,
   ) {
+    this.output = output
     input.on('data', (chunk: Buffer | string) => {
       this.buffer += chunk.toString()
       for (;;) {

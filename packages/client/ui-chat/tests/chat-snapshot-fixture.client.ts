@@ -80,10 +80,14 @@ function toolCallName(call: ToolCallBlock): string | null {
 class FixtureSource<Value> {
   private readonly listeners = new Set<() => void>()
   private published: Value
+  private readonly read: () => Value
+
+
 
   constructor(
-    private readonly read: () => Value,
+    read: () => Value,
   ) {
+    this.read = read
     this.published = read()
   }
 

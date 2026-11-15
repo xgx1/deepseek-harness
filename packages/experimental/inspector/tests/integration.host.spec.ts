@@ -26,8 +26,12 @@ class TestCdpClient {
     disconnect(): void
   }>()
   readonly events: CdpMessage[] = []
+  private readonly socket: WebSocket
 
-  private constructor(private readonly socket: WebSocket) {
+
+
+  private constructor(socket: WebSocket) {
+    this.socket = socket
     socket.on('message', (data) => {
       const message = JSON.parse(rawText(data)) as CdpMessage
       if (message.id !== undefined) this.pending.get(message.id)?.respond(message)

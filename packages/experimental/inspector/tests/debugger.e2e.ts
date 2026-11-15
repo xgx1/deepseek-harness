@@ -17,8 +17,12 @@ class CdpClient {
   private readonly pending = new Map<number, (message: CdpMessage) => void>()
   private readonly events: CdpMessage[] = []
   private readonly eventWaiters = new Set<() => void>()
+  private readonly socket: WebSocket
 
-  private constructor(private readonly socket: WebSocket) {
+
+
+  private constructor(socket: WebSocket) {
+    this.socket = socket
     socket.on('message', (data) => {
       const message = JSON.parse(rawText(data)) as CdpMessage
       if (message.id !== undefined) this.pending.get(message.id)?.(message)

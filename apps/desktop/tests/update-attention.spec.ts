@@ -11,7 +11,12 @@ const native = await vi.hoisted(async () => {
     static isSupported = vi.fn(() => true)
     show = vi.fn()
     close = vi.fn()
-    constructor(readonly options: unknown) { super(); notices.push(this) }
+    readonly options: unknown
+
+
+    constructor(options: unknown) { super()
+      this.options = options
+      notices.push(this) }
   }
   return { notices, Notice, dock: { bounce: vi.fn(() => 17), cancelBounce: vi.fn() } }
 })

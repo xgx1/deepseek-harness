@@ -106,11 +106,20 @@ interface RootTransition {
 }
 
 class PersistenceChangeFailure extends Error {
+  readonly code: string
+  readonly changes: readonly ReportedChange[]
+  readonly roots: readonly RootTransition[]
+
+
   constructor(
-    message: string, readonly code: string, readonly changes: readonly ReportedChange[] = [],
-    readonly roots: readonly RootTransition[] = [],
+    message: string, code: string, changes: readonly ReportedChange[] = [],
+    roots: readonly RootTransition[] = [],
   ) {
     super(message)
+    this.code = code
+    this.changes = changes
+    this.roots = roots
+
   }
 }
 

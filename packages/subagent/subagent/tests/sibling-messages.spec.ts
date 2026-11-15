@@ -27,9 +27,14 @@ type Reply = StreamChunk[] | 'hang'
 /** Routes each request to the reply queue of the task marker found in its history. */
 class RoutedAdapter extends MockAdapter {
   readonly routed: GenerateOptions[] = []
+  private readonly replies: Map<string, Reply[]>
 
-  constructor(private readonly replies: Map<string, Reply[]>) {
+
+
+  constructor(replies: Map<string, Reply[]>) {
     super([])
+    this.replies = replies
+
   }
 
   override async * stream(options: GenerateOptions): AsyncIterable<StreamChunk> {

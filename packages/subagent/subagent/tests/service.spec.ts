@@ -53,15 +53,24 @@ class StubProvider implements SubagentProvider {
   readonly inheritsParentContext = false
   startCount = 0
   lastRequest: SubagentStartRequest | undefined
+  readonly name: string
+  readonly capabilities: SubagentCapabilities
+  private readonly outcome: SubagentResult
+
+
 
   constructor(
-    readonly name: string,
-    readonly capabilities: SubagentCapabilities = ALL_CAPS,
-    private readonly outcome: SubagentResult = {
+    name: string,
+    capabilities: SubagentCapabilities = ALL_CAPS,
+    outcome: SubagentResult = {
       output: [{ type: 'text', text: 'ok' }],
       stopReason: 'completed',
     },
-  ) {}
+  ) {
+    this.name = name
+    this.capabilities = capabilities
+    this.outcome = outcome
+  }
 
   async start(request: SubagentStartRequest): Promise<SubagentRun> {
     this.startCount += 1

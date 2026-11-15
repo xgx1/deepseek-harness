@@ -35,9 +35,14 @@ it('keeps the browser-safe retry payload identical to the session event', () => 
 class ScriptedAdapter extends LlmAdapter {
   readonly requests: GenerateOptions[] = []
   private retryPolicies: Readonly<Record<string, ResolvedRetryPolicy | undefined>> = {}
+  private readonly entries: ScriptEntry[]
 
-  constructor(private readonly entries: ScriptEntry[]) {
+
+
+  constructor(entries: ScriptEntry[]) {
     super()
+    this.entries = entries
+
   }
 
   async * stream(options: GenerateOptions): AsyncIterable<StreamChunk> {

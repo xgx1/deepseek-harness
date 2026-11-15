@@ -111,8 +111,13 @@ const harness = await vi.hoisted(async () => {
     readonly setTitleBarOverlay = vi.fn()
     readonly setVibrancy = vi.fn()
     readonly setBackgroundColor = vi.fn()
-    constructor(readonly options: { show: boolean; modal?: boolean }) {
-      super(); if (windowFailure !== undefined) throw windowFailure; windows.push(this)
+    readonly options: { show: boolean; modal?: boolean }
+
+
+    constructor(options: { show: boolean; modal?: boolean }) {
+      super()
+      this.options = options
+      if (windowFailure !== undefined) throw windowFailure; windows.push(this)
     }
     isDestroyed() { return this.destroyed }
     fullscreen = false
@@ -166,14 +171,37 @@ const harness = await vi.hoisted(async () => {
       this.ready.reject(new Error('child stopped'))
       return this.exited.promise
     })
+    readonly node: string
+    readonly runtime: string
+    readonly profile: string
+    readonly inspectPort: (number) | undefined
+    readonly environment: (NodeJS.ProcessEnv) | undefined
+    readonly onFailure: ((error: Error) => void) | undefined
+    readonly primaryRuntime: (string) | undefined
+    readonly packageManager: ({ pnpm: string; nodeBin: string }) | undefined
+    readonly onPlatformSession: ConstructorParameters<typeof DesktopHostProcess>[8]
+    readonly onPluginOperation: ConstructorParameters<typeof DesktopHostProcess>[9]
+
+
     constructor(
-      readonly node: string, readonly runtime: string, readonly profile: string,
-      readonly inspectPort?: number, readonly environment?: NodeJS.ProcessEnv, readonly onFailure?: (error: Error) => void,
-      readonly primaryRuntime?: string,
-      readonly packageManager?: { pnpm: string; nodeBin: string },
-      readonly onPlatformSession?: ConstructorParameters<typeof DesktopHostProcess>[8],
-      readonly onPluginOperation?: ConstructorParameters<typeof DesktopHostProcess>[9],
-    ) { hosts.push(this) }
+      node: string, runtime: string, profile: string,
+      inspectPort?: number, environment?: NodeJS.ProcessEnv, onFailure?: (error: Error) => void,
+      primaryRuntime?: string,
+      packageManager?: { pnpm: string; nodeBin: string },
+      onPlatformSession?: ConstructorParameters<typeof DesktopHostProcess>[8],
+      onPluginOperation?: ConstructorParameters<typeof DesktopHostProcess>[9],
+    ) {
+      this.node = node
+      this.runtime = runtime
+      this.profile = profile
+      this.inspectPort = inspectPort
+      this.environment = environment
+      this.onFailure = onFailure
+      this.primaryRuntime = primaryRuntime
+      this.packageManager = packageManager
+      this.onPlatformSession = onPlatformSession
+      this.onPluginOperation = onPluginOperation
+      hosts.push(this) }
   }
   const app = Object.assign(new EventEmitter(), {
     isPackaged: true,
@@ -215,7 +243,12 @@ const harness = await vi.hoisted(async () => {
     readonly setToolTip = vi.fn()
     readonly setContextMenu = vi.fn()
     readonly destroy = vi.fn()
-    constructor(readonly image: unknown) { super(); trays.push(this) }
+    readonly image: unknown
+
+
+    constructor(image: unknown) { super()
+      this.image = image
+      trays.push(this) }
   }
   const backgroundNotice = { close: vi.fn((hide: () => void) => { hide() }), dispose: vi.fn(), markerPath: undefined as string | undefined }
   const shellDialog = { isOpen: false, focus: vi.fn() }

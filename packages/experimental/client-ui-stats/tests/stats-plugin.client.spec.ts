@@ -94,7 +94,12 @@ function stream(at: number): readonly { readonly type: 'chunk'; readonly time: n
 
 /** A definition registry over the Definitions captured from registration. */
 class TestEventDefinitions {
-  constructor(readonly definitions: readonly ConversationNodeDefinition[]) {}
+  readonly definitions: readonly ConversationNodeDefinition[]
+
+
+  constructor(definitions: readonly ConversationNodeDefinition[]) {
+    this.definitions = definitions
+  }
 
   entries(): readonly ConversationNodeDefinition[] {
     return this.definitions
@@ -107,7 +112,12 @@ class TestEventDefinitions {
 
 /** A view registry over the builders captured from registration. */
 class TestViewDefinitions {
-  constructor(readonly definitions: readonly ConversationViewDefinition[]) {}
+  readonly definitions: readonly ConversationViewDefinition[]
+
+
+  constructor(definitions: readonly ConversationViewDefinition[]) {
+    this.definitions = definitions
+  }
 
   entries(): readonly ConversationViewDefinition[] {
     return this.definitions

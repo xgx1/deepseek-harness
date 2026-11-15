@@ -31,7 +31,12 @@ export interface ContinuationReport {
 
 class SyntheticAdapter extends LlmAdapter {
   requests = 0
-  constructor(private readonly toolsPerTurn: number) { super() }
+  private readonly toolsPerTurn: number
+
+
+  constructor(toolsPerTurn: number) { super()
+    this.toolsPerTurn = toolsPerTurn
+   }
 
   override resolveModel(provider: string, model: string): Promise<LlmResolvedModelInfo> {
     return Promise.resolve({ provider, id: model, name: model })

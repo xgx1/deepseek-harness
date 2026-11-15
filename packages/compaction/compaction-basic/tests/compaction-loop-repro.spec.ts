@@ -34,8 +34,13 @@ class ReproCompactionEngine extends BasicCompactionEngine {
 /** Each call emits one tool-call until exhausted, then a final text answer. */
 class StepwiseToolAdapter extends LlmAdapter {
   calls = 0
-  constructor(private toolSteps: number) {
+  private toolSteps: number
+
+
+  constructor(toolSteps: number) {
     super()
+    this.toolSteps = toolSteps
+
   }
 
   override resolveModel(provider: string, model: string): Promise<LlmResolvedModelInfo> {

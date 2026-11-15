@@ -16,9 +16,14 @@ interface GuestLease {
 export class DesktopBrowserGuests {
   private readonly partitions = new Map<string, string>()
   private readonly leases = new Map<DesktopBrowserLeaseId, GuestLease>()
+  private readonly hostUrl: () => string | undefined
+
+
 
   /** @param hostUrl - current authenticated DSH Host, which guests cannot request. */
-  constructor(private readonly hostUrl: () => string | undefined) {}
+  constructor(hostUrl: () => string | undefined) {
+    this.hostUrl = hostUrl
+  }
 
   /**
    * Reserve one guest in a workspace's process-lifetime partition.

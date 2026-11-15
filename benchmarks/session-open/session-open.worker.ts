@@ -149,12 +149,21 @@ class SessionBenchmarkHost {
   private historyAbort: AbortController | undefined
   private historyIterator: AsyncIterator<unknown> | undefined
   private retained: unknown
+  private readonly ctx: Context
+  private readonly scenario: SessionOpenBenchmarkScenario
+  private readonly history: WebController | undefined
+
+
 
   private constructor(
-    private readonly ctx: Context,
-    private readonly scenario: SessionOpenBenchmarkScenario,
-    private readonly history: WebController | undefined,
-  ) {}
+    ctx: Context,
+    scenario: SessionOpenBenchmarkScenario,
+    history: WebController | undefined,
+  ) {
+    this.ctx = ctx
+    this.scenario = scenario
+    this.history = history
+  }
 
   static async create(root: string, scenario: SessionOpenBenchmarkScenario): Promise<SessionBenchmarkHost> {
     const ctx = new Context()

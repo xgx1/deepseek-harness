@@ -35,11 +35,16 @@ import {
 
 /** The preparation step a signal stopped, so the failure is not reported as a command's. */
 class Interrupted extends Error {
+  readonly stage: string
+
+
   /**
    * @param stage - the step that was running when the signal arrived.
    */
-  constructor(readonly stage: string) {
+  constructor(stage: string) {
     super(`interrupted during ${stage}`)
+    this.stage = stage
+
   }
 }
 

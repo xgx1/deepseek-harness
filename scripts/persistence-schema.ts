@@ -240,12 +240,18 @@ class SchemaExtractor {
   private readonly checker: ts.TypeChecker
   private readonly sourcePolicies: ReadonlyMap<ts.Declaration, readonly SourceCompatibility[]>
   private readonly reservedProperties: ReadonlySet<ts.Declaration>
+  private readonly root: string
+  private readonly declarationSources: ReadonlyMap<ts.Type, readonly ts.Node[]>
+
+
 
   constructor(
-    private readonly root: string,
+    root: string,
     program: ts.Program,
-    private readonly declarationSources: ReadonlyMap<ts.Type, readonly ts.Node[]>,
+    declarationSources: ReadonlyMap<ts.Type, readonly ts.Node[]>,
   ) {
+    this.root = root
+    this.declarationSources = declarationSources
     this.checker = program.getTypeChecker()
     this.sourcePolicies = sourceCompatibilityAnnotations(root, program)
     this.reservedProperties = reservedPropertyAnnotations(root, program)

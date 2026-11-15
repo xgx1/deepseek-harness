@@ -26,9 +26,14 @@ type ScriptEntry = StreamChunk[] | (() => never)
 class ScriptedAdapter extends LlmAdapter {
   readonly requests: GenerateOptions[] = []
   serializeSummary = false
+  readonly script: ScriptEntry[]
 
-  constructor(readonly script: ScriptEntry[]) {
+
+
+  constructor(script: ScriptEntry[]) {
     super()
+    this.script = script
+
   }
 
   async * stream(options: GenerateOptions): AsyncIterable<StreamChunk> {

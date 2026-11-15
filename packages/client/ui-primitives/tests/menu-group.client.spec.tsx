@@ -17,7 +17,11 @@ class StubIntersectionObserver implements IntersectionObserver {
   unobserve = vi.fn<(target: Element) => void>()
   disconnect = vi.fn<() => void>()
   takeRecords = vi.fn<() => IntersectionObserverEntry[]>(() => [])
-  constructor(private readonly callback: IntersectionObserverCallback, options: IntersectionObserverInit = {}) {
+  private readonly callback: IntersectionObserverCallback
+
+
+  constructor(callback: IntersectionObserverCallback, options: IntersectionObserverInit = {}) {
+    this.callback = callback
     this.root = options.root ?? null
     this.rootMargin = options.rootMargin ?? '0px'
     this.thresholds = typeof options.threshold === 'number' ? [options.threshold] : options.threshold ?? [0]
@@ -30,7 +34,12 @@ class StubResizeObserver implements ResizeObserver {
   observe = vi.fn<(target: Element, options?: ResizeObserverOptions) => void>()
   unobserve = vi.fn<(target: Element) => void>()
   disconnect = vi.fn<() => void>()
-  constructor(private readonly callback: ResizeObserverCallback) { sizes.push(this) }
+  private readonly callback: ResizeObserverCallback
+
+
+  constructor(callback: ResizeObserverCallback) {
+    this.callback = callback
+    sizes.push(this) }
   notify(target: Element, height = 200): void {
     const size: ResizeObserverSize = { blockSize: height, inlineSize: 200 }
     this.callback([{

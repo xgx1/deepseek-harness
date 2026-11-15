@@ -47,9 +47,15 @@ const generatorRoots = vi.hoisted(() => [] as string[])
 /** A Worker Thread double whose terminal events each test emits explicitly. */
 class FakeWorker extends EventEmitter {
   readonly terminate = vi.fn(() => Promise.resolve(1))
+  readonly entry: URL
+  readonly options: { readonly workerData: unknown; readonly execArgv?: readonly string[] }
 
-  constructor(readonly entry: URL, readonly options: { readonly workerData: unknown; readonly execArgv?: readonly string[] }) {
+
+
+  constructor(entry: URL, options: { readonly workerData: unknown; readonly execArgv?: readonly string[] }) {
     super()
+    this.entry = entry
+    this.options = options
     workers.push(this)
   }
 }

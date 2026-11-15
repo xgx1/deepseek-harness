@@ -27,9 +27,14 @@ type ScriptEntry = StreamChunk[] | Error | 'hang' | ((options: GenerateOptions) 
 /** Small request-recording adapter with controllable failure and cancellation. */
 class ScriptedAdapter extends LlmAdapter {
   readonly requests: GenerateOptions[] = []
+  private readonly script: ScriptEntry[]
 
-  constructor(private readonly script: ScriptEntry[]) {
+
+
+  constructor(script: ScriptEntry[]) {
     super()
+    this.script = script
+
   }
 
   override async * stream(options: GenerateOptions): AsyncIterable<StreamChunk> {

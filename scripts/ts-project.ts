@@ -109,12 +109,16 @@ export class TypeScriptProject {
   readonly program: ts.Program
   /** The checker shared by every semantic query in this project. */
   readonly checker: ts.TypeChecker
+  readonly projectRoot: string
+
+
 
   /**
    * @param projectRoot - repository root the program is seeded and reported from.
    * @param face - which compiler face aggregate to flatten.
    */
-  constructor(readonly projectRoot: string, face: CompilerFace = 'host') {
+  constructor(projectRoot: string, face: CompilerFace = 'host') {
+    this.projectRoot = projectRoot
     const graph = loadProjectGraph(projectRoot, face)
     this.program = ts.createProgram(graph.rootNames, semanticCompilerOptions(graph.options))
     this.checker = this.program.getTypeChecker()

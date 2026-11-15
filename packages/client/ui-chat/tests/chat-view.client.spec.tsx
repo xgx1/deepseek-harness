@@ -1151,7 +1151,12 @@ describe('ChatView', () => {
     const observers = new Set<Observer>()
     class Observer implements ResizeObserver {
       readonly targets = new Set<Element>()
-      constructor(readonly callback: ResizeObserverCallback) { observers.add(this) }
+      readonly callback: ResizeObserverCallback
+
+
+      constructor(callback: ResizeObserverCallback) {
+        this.callback = callback
+        observers.add(this) }
       observe(target: Element): void { this.targets.add(target) }
       unobserve(target: Element): void { this.targets.delete(target) }
       disconnect(): void { observers.delete(this) }

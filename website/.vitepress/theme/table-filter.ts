@@ -12,14 +12,22 @@ class FilterableTable {
   readonly #events = new AbortController()
   readonly #rows: { element: HTMLTableRowElement; text: string; hidden: HTMLTableRowElement['hidden'] }[]
   #empty = ''
+  private readonly table: HTMLTableElement
+  private readonly head: HTMLTableSectionElement
+  private readonly changed: () => void
+
+
 
   constructor(
-    private readonly table: HTMLTableElement,
-    private readonly head: HTMLTableSectionElement,
+    table: HTMLTableElement,
+    head: HTMLTableSectionElement,
     rows: HTMLTableRowElement[],
     copy: typeof messages.en,
-    private readonly changed: () => void,
+    changed: () => void,
   ) {
+    this.table = table
+    this.head = head
+    this.changed = changed
     const doc = table.ownerDocument
     this.#rows = rows.map(element => ({
       element,
@@ -106,12 +114,18 @@ export class DocumentTables {
   readonly #events = new AbortController()
   readonly #sizes: ResizeObserver
   #frame: number | undefined
+  private readonly doc: Document
+  private readonly language: () => string
+
+
 
   /**
    * @param doc Browser document containing the rendered VitePress article.
    * @param language Current VitePress language, read again on content refresh.
    */
-  constructor(private readonly doc: Document, private readonly language: () => string) {
+  constructor(doc: Document, language: () => string) {
+    this.doc = doc
+    this.language = language
     this.#sizes = new ResizeObserver(() => { this.#schedule() })
     const content = doc.querySelector('#VPContent')
     if (content) this.#sizes.observe(content)

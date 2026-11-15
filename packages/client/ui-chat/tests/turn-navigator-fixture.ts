@@ -11,7 +11,12 @@ export function installTurnNavigatorObserver(initialHeight: number | null = 300)
   let height = initialHeight
 
   class Observer implements ResizeObserver {
-    constructor(private readonly callback: ResizeObserverCallback) {}
+    private readonly callback: ResizeObserverCallback
+
+
+    constructor(callback: ResizeObserverCallback) {
+      this.callback = callback
+    }
 
     observe(element: Element): void {
       if (!(element instanceof HTMLElement) || element.parentElement?.tagName !== 'NAV') return

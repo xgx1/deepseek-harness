@@ -150,12 +150,17 @@ export class ReadinessTimeline {
   private readonly origin = performance.now()
   private hostFactsText: string | undefined
   private seq = 0
+  private readonly hostFacts: () => string
+
+
 
   /**
    * @param hostFacts - host, shell, and console facts for the header; evaluated once, on the
    * first `format()` call, so a passing case never pays for a shell probe.
    */
-  constructor(private readonly hostFacts: () => string = () => '') {}
+  constructor(hostFacts: () => string = () => '') {
+    this.hostFacts = hostFacts
+  }
 
   private readonly events: TimelineEvent[] = []
   private readonly sends: SendWindow[] = []

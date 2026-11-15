@@ -373,7 +373,11 @@ it('offers the instruction toggle only while the collapsed instruction overflows
     readonly observe = vi.fn()
     readonly unobserve = vi.fn()
     readonly disconnect = vi.fn()
-    constructor(private readonly callback: ResizeObserverCallback) {
+    private readonly callback: ResizeObserverCallback
+
+
+    constructor(callback: ResizeObserverCallback) {
+      this.callback = callback
       FakeResizeObserver.made.push(this)
     }
 

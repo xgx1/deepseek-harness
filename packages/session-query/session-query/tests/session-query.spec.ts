@@ -61,12 +61,21 @@ function eventLog(text = 'hello'): SessionEvent[] {
 
 class TestHandle implements SessionHandle {
   readonly inheritedEventCount = SessionLogOffset(0)
+  readonly id: SessionIdType
+  readonly header: SessionHeader
+  readonly access: SessionAccess
+
+
 
   constructor(
-    readonly id: SessionIdType,
-    readonly header: SessionHeader,
-    readonly access: SessionAccess,
-  ) {}
+    id: SessionIdType,
+    header: SessionHeader,
+    access: SessionAccess,
+  ) {
+    this.id = id
+    this.header = header
+    this.access = access
+  }
 
   read(offset = 0, length?: number, options?: SessionHandleReadOptions): Promise<SessionHandleReadResult> {
     TestPersistence.readCalls.push(this.id)

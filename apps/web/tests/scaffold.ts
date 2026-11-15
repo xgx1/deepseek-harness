@@ -234,8 +234,13 @@ const REPLAY_PROVIDERS = [{
  * not a product state.
  */
 class RouteOnlyAdapter extends LlmAdapter {
-  constructor(private readonly providers: typeof REPLAY_PROVIDERS) {
+  private readonly providers: typeof REPLAY_PROVIDERS
+
+
+  constructor(providers: typeof REPLAY_PROVIDERS) {
     super()
+    this.providers = providers
+
   }
 
   override providerInfo(provider: string): LlmProviderInfo {

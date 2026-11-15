@@ -38,9 +38,13 @@ class FakeChild extends EventEmitter {
   readonly kills: NodeJS.Signals[] = []
   stdinEnded = false
   readonly stdin: { end: () => void } | null
+  private readonly script: FakeChildScript
 
-  constructor(private readonly script: FakeChildScript = {}) {
+
+
+  constructor(script: FakeChildScript = {}) {
     super()
+    this.script = script
     this.stdin = script.stdin === false
       ? null
       : { end: () => { this.stdinEnded = true; this.maybeDie('eof') } }

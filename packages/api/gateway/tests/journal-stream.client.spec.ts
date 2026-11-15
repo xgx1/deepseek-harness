@@ -71,13 +71,21 @@ const STREAM_FACTORY = {
 }
 
 class FixtureJournal extends RemoteJournalStream<Page, Entry, number, PageRequest, string> {
+  private readonly generations: Generation[]
+  private readonly pages: PageSource[]
+  private readonly calls: string[]
+  private readonly pageRequests: PageRequest[]
+  private readonly pageCursors: number[]
+  private readonly followRequests: PageRequest[]
+
+
   constructor(
-    private readonly generations: Generation[],
-    private readonly pages: PageSource[],
-    private readonly calls: string[],
-    private readonly pageRequests: PageRequest[],
-    private readonly pageCursors: number[],
-    private readonly followRequests: PageRequest[],
+    generations: Generation[],
+    pages: PageSource[],
+    calls: string[],
+    pageRequests: PageRequest[],
+    pageCursors: number[],
+    followRequests: PageRequest[],
     changes: RemoteJournalChange<Page, Entry, string>[],
     failed: (error: unknown) => void,
     factory: RemoteStreamFactory = STREAM_FACTORY,
@@ -94,6 +102,13 @@ class FixtureJournal extends RemoteJournalStream<Page, Entry, number, PageReques
       publish: (change) => { changes.push(change) },
       failed,
     })
+    this.generations = generations
+    this.pages = pages
+    this.calls = calls
+    this.pageRequests = pageRequests
+    this.pageCursors = pageCursors
+    this.followRequests = followRequests
+
   }
 
   /** @inheritdoc */

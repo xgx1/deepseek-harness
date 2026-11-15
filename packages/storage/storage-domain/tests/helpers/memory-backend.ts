@@ -56,13 +56,24 @@ export class MemoryMediaPool {
 /** In-memory KV unit over one pooled medium. */
 class MemoryKvUnit implements KvUnit {
   private closed = false
+  private readonly pool: MemoryMediaPool
+  private readonly medium: MemoryMedium
+  private readonly descriptor: KvUnitDescriptor
+  private readonly onClose: () => void
+
+
 
   constructor(
-    private readonly pool: MemoryMediaPool,
-    private readonly medium: MemoryMedium,
-    private readonly descriptor: KvUnitDescriptor,
-    private readonly onClose: () => void,
-  ) {}
+    pool: MemoryMediaPool,
+    medium: MemoryMedium,
+    descriptor: KvUnitDescriptor,
+    onClose: () => void,
+  ) {
+    this.pool = pool
+    this.medium = medium
+    this.descriptor = descriptor
+    this.onClose = onClose
+  }
 
   private assertOpen(): void {
     if (this.closed) {
@@ -129,11 +140,15 @@ export class MemoryStorageBackend implements StorageBackend {
   readonly kv: KvFacet
   private readonly openUnits = new Set<string>()
   private closed = false
+  readonly pool: MemoryMediaPool
+
+
 
   /**
    * @param pool - Media shared across instances; a fresh private pool when omitted.
    */
-  constructor(readonly pool: MemoryMediaPool = new MemoryMediaPool()) {
+  constructor(pool: MemoryMediaPool = new MemoryMediaPool()) {
+    this.pool = pool
     this.kv = {
       open: async (descriptor: KvUnitDescriptor): Promise<KvUnit> => {
         if (this.closed) {

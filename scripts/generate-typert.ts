@@ -29,14 +29,21 @@ export type TypertGenerationStage = 'locate' | 'generate' | 'write'
 /** A failed bundle-free Typert pass; `cause` carries the generator or file-system failure. */
 export class TypertGenerationError extends Error {
   override name = 'TypertGenerationError'
+  readonly stage: TypertGenerationStage
+  readonly location: string
+
+
 
   /**
    * @param stage - stage that failed.
    * @param location - directory the stage worked on: the search start for `locate`, otherwise the workspace root.
    * @param cause - failure raised by the generator or the file system.
    */
-  constructor(readonly stage: TypertGenerationStage, readonly location: string, cause: unknown) {
+  constructor(stage: TypertGenerationStage, location: string, cause: unknown) {
     super(`generate-typert: ${STAGE_SUMMARIES[stage]} (${location})`, { cause })
+    this.stage = stage
+    this.location = location
+
   }
 }
 

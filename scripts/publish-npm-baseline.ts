@@ -118,16 +118,35 @@ interface PackOptions {
 
 /** Fixes the identity of one pack attempt before any expensive work begins. */
 class BaselinePackPlan {
+  readonly commit: string
+  readonly shortCommit: string
+  readonly timestamp: string
+  readonly baseVersion: string
+  readonly version: string
+  readonly distTag: string
+  readonly registry: string
+  readonly artifactDirectory: string
+
+
   constructor(
-    readonly commit: string,
-    readonly shortCommit: string,
-    readonly timestamp: string,
-    readonly baseVersion: string,
-    readonly version: string,
-    readonly distTag: string,
-    readonly registry: string,
-    readonly artifactDirectory: string,
-  ) {}
+    commit: string,
+    shortCommit: string,
+    timestamp: string,
+    baseVersion: string,
+    version: string,
+    distTag: string,
+    registry: string,
+    artifactDirectory: string,
+  ) {
+    this.commit = commit
+    this.shortCommit = shortCommit
+    this.timestamp = timestamp
+    this.baseVersion = baseVersion
+    this.version = version
+    this.distTag = distTag
+    this.registry = registry
+    this.artifactDirectory = artifactDirectory
+  }
 
   async confirm(assumeYes: boolean): Promise<void> {
     console.log('publish-npm-baseline: planned pack')
@@ -195,12 +214,23 @@ class CommandRunner {
 
 /** Owns a temporary detached worktree and removes it after staging. */
 class DetachedWorktree {
+  readonly path: string
+  private readonly temporaryRoot: string
+  private readonly repositoryRoot: string
+  private readonly runner: CommandRunner
+
+
   private constructor(
-    readonly path: string,
-    private readonly temporaryRoot: string,
-    private readonly repositoryRoot: string,
-    private readonly runner: CommandRunner,
-  ) {}
+    path: string,
+    temporaryRoot: string,
+    repositoryRoot: string,
+    runner: CommandRunner,
+  ) {
+    this.path = path
+    this.temporaryRoot = temporaryRoot
+    this.repositoryRoot = repositoryRoot
+    this.runner = runner
+  }
 
   static create(repositoryRoot: string, commit: string, runner: CommandRunner): DetachedWorktree {
     const temporaryRoot = mkdtempSync(join(tmpdir(), 'dsh-npm-baseline-'))
@@ -230,10 +260,17 @@ class DetachedWorktree {
 
 /** Discovers and stages every package published in one repository baseline. */
 class WorkspacePackageSet {
+  readonly packages: PackageTarget[]
+  readonly baseVersion: string
+
+
   private constructor(
-    readonly packages: PackageTarget[],
-    readonly baseVersion: string,
-  ) {}
+    packages: PackageTarget[],
+    baseVersion: string,
+  ) {
+    this.packages = packages
+    this.baseVersion = baseVersion
+  }
 
   static discover(root: string): WorkspacePackageSet {
     const manifestPaths = discoverNpmBaselineManifests(root)
@@ -290,10 +327,17 @@ class WorkspacePackageSet {
 
 /** Immutable local release bundle consumed by publish and verify. */
 class ReleaseBundle {
+  readonly directory: string
+  readonly manifest: ReleaseManifest
+
+
   private constructor(
-    readonly directory: string,
-    readonly manifest: ReleaseManifest,
-  ) {}
+    directory: string,
+    manifest: ReleaseManifest,
+  ) {
+    this.directory = directory
+    this.manifest = manifest
+  }
 
   static create(
     directory: string,
@@ -412,10 +456,17 @@ class ReleaseBundle {
 
 /** Installs one complete bundle outside the workspace and probes the shipped dsh entry. */
 class InstalledBundleSmoke {
+  private readonly bundle: ReleaseBundle
+  private readonly runner: CommandRunner
+
+
   constructor(
-    private readonly bundle: ReleaseBundle,
-    private readonly runner: CommandRunner,
-  ) {}
+    bundle: ReleaseBundle,
+    runner: CommandRunner,
+  ) {
+    this.bundle = bundle
+    this.runner = runner
+  }
 
   run(): void {
     const consumerRoot = mkdtempSync(join(tmpdir(), 'dsh-npm-consumer-'))
@@ -482,11 +533,20 @@ class InstalledBundleSmoke {
 
 /** Builds a release bundle without mutating the caller's checkout. */
 class BaselinePackager {
+  private readonly repositoryRoot: string
+  private readonly runner: CommandRunner
+  private readonly now: () => Date
+
+
   constructor(
-    private readonly repositoryRoot: string,
-    private readonly runner: CommandRunner,
-    private readonly now: () => Date = () => new Date(),
-  ) {}
+    repositoryRoot: string,
+    runner: CommandRunner,
+    now: () => Date = () => new Date(),
+  ) {
+    this.repositoryRoot = repositoryRoot
+    this.runner = runner
+    this.now = now
+  }
 
   plan(options: PackOptions): BaselinePackPlan {
     const timestamp = formatUtcTimestamp(this.now())
@@ -603,11 +663,18 @@ class BaselinePackager {
 class RegistryPublication {
   private readonly npmEnvironment = npmClientEnvironment()
   private readonly npmWorkingDirectory = tmpdir()
+  private readonly bundle: ReleaseBundle
+  private readonly runner: CommandRunner
+
+
 
   constructor(
-    private readonly bundle: ReleaseBundle,
-    private readonly runner: CommandRunner,
-  ) {}
+    bundle: ReleaseBundle,
+    runner: CommandRunner,
+  ) {
+    this.bundle = bundle
+    this.runner = runner
+  }
 
   async publish(assumeYes: boolean): Promise<void> {
     this.pingRegistry()

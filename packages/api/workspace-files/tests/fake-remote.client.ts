@@ -20,8 +20,12 @@ export class Source<T> implements AsyncIterable<T> {
   get aborted(): boolean {
     return this.signal.aborted
   }
+  private readonly signal: AbortSignal
 
-  constructor(private readonly signal: AbortSignal) {
+
+
+  constructor(signal: AbortSignal) {
+    this.signal = signal
     signal.addEventListener('abort', this.abort, { once: true })
   }
 

@@ -105,8 +105,13 @@ function workspaceState(
 
 class MutableSource<T> {
   private readonly listeners = new Set<() => void>()
+  private value: T
 
-  constructor(private value: T) {}
+
+
+  constructor(value: T) {
+    this.value = value
+  }
 
   getSnapshot(): T {
     return this.value

@@ -15,8 +15,15 @@ class RestartableServer {
   private closed: Promise<void> | undefined
   private output = ''
   readonly startupBlocked = Promise.withResolvers<undefined>()
+  private readonly world: string
+  private readonly modelUrl: string
 
-  constructor(private readonly world: string, private readonly modelUrl: string) {}
+
+
+  constructor(world: string, modelUrl: string) {
+    this.world = world
+    this.modelUrl = modelUrl
+  }
 
   async start(port: number, holdStartup = false): Promise<string> {
     if (this.child !== undefined) throw new Error('Server is already running')

@@ -624,7 +624,12 @@ it('isolates a failing notification listener and dispatches with a Context recei
 
 it('remounts instead of committing when an ordinary field parses into a fresh class instance', async () => {
   const ctx = await runtimeContext()
-  class Handle { constructor(public readonly name: string) {} }
+  class Handle {
+    public readonly name: string
+
+    constructor(name: string) {
+      this.name = name
+    } }
   const schema = z.object({ handle: z.transform(z.string(), value => new Handle(value)), live: z.string().volatile() })
   const mount = vi.fn()
   const fiber = await mountEntry(ctx, { Config: schema, apply: mount }, { handle: 'h', live: 'old' })

@@ -46,7 +46,14 @@ export function resetFixture(): void {
 /** A browser tab with only the operations exercised by the provider. */
 export class FixturePage {
   currentURL = 'about:blank'
-  constructor(readonly owner: FixtureBrowser, readonly pageId: string) {}
+  readonly owner: FixtureBrowser
+  readonly pageId: string
+
+
+  constructor(owner: FixtureBrowser, pageId: string) {
+    this.owner = owner
+    this.pageId = pageId
+  }
   async goto(url: string): Promise<void> { this.currentURL = url; await this.owner.track(Promise.resolve(fixture.navigate?.(this))) }
   async url(): Promise<string> { return this.currentURL }
   async title(): Promise<string> { return 'Fixture heading' }
@@ -77,7 +84,13 @@ export class FixtureBrowser {
     },
     setActivePage: async (page: FixturePage): Promise<void> => { this.active = page },
   }
-  constructor(readonly origin: 'launched' | 'connected', readonly options: unknown) {
+  readonly origin: 'launched' | 'connected'
+  readonly options: unknown
+
+
+  constructor(origin: 'launched' | 'connected', options: unknown) {
+    this.origin = origin
+    this.options = options
     this.active = new FixturePage(this, 'tab-1')
     this.pages.push(this.active)
   }
@@ -108,7 +121,14 @@ export const localBrowser = {
 /** Native wrapper with an independent model and drainable external operations. */
 export class Stagehand {
   private readonly closed: PromiseWithResolvers<void> = Promise.withResolvers()
-  constructor(readonly browser: FixtureBrowser, readonly model: ModelConfig) { browser.connectionClosed = this.closed.promise }
+  readonly browser: FixtureBrowser
+  readonly model: ModelConfig
+
+
+  constructor(browser: FixtureBrowser, model: ModelConfig) {
+    this.browser = browser
+    this.model = model
+    browser.connectionClosed = this.closed.promise }
   static async create(options: { browser: FixtureBrowser; model: ModelConfig }): Promise<Stagehand> {
     fixture.models.push(options.model)
     await fixture.create?.(options.model)

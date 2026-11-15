@@ -15,7 +15,12 @@ vi.mock('node:crypto', async importOriginal => ({
   X509Certificate: class {
     readonly ca = false
     readonly keyUsage = ['1.3.6.1.5.5.7.3.3']
-    constructor(private readonly contents: Buffer) {}
+    private readonly contents: Buffer
+
+
+    constructor(contents: Buffer) {
+      this.contents = contents
+    }
     toLegacyObject(): { subject: unknown } {
       return { subject: JSON.parse(this.contents.toString('utf8')) as unknown }
     }

@@ -16,8 +16,13 @@ import { estimateContent, estimateMessage } from '../src/estimate.ts'
 
 /** Adapter double declaring fixed per-occurrence image prices for one route. */
 class PricingAdapter extends LlmAdapter {
-  constructor(private readonly pricing: (model: string) => LlmImageRequestPricing | undefined) {
+  private readonly pricing: (model: string) => LlmImageRequestPricing | undefined
+
+
+  constructor(pricing: (model: string) => LlmImageRequestPricing | undefined) {
     super()
+    this.pricing = pricing
+
   }
 
   override imageRequestPricing(_provider: string, model: string): LlmImageRequestPricing | undefined {

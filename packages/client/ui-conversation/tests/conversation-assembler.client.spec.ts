@@ -62,7 +62,12 @@ class TestEventDefinitions {
 }
 
 class TestViewDefinitions {
-  constructor(readonly definitions: readonly ConversationViewDefinition[]) {}
+  readonly definitions: readonly ConversationViewDefinition[]
+
+
+  constructor(definitions: readonly ConversationViewDefinition[]) {
+    this.definitions = definitions
+  }
 
   entries(): readonly ConversationViewDefinition[] {
     return this.definitions

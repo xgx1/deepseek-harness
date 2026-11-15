@@ -20,7 +20,12 @@ class VisibilityObserver implements IntersectionObserver {
   readonly scrollMargin = '0px'
   readonly thresholds = [0]
   private target!: Element
-  constructor(private readonly callback: IntersectionObserverCallback) { observers.push(this) }
+  private readonly callback: IntersectionObserverCallback
+
+
+  constructor(callback: IntersectionObserverCallback) {
+    this.callback = callback
+    observers.push(this) }
   observe(target: Element): void { this.target = target; this.notify(intersecting) }
   unobserve(): void {}
   disconnect = disconnect

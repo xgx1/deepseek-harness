@@ -10,7 +10,12 @@ const native = await vi.hoisted(async () => {
     readonly setToolTip = vi.fn()
     readonly setContextMenu = vi.fn()
     readonly destroy = vi.fn()
-    constructor(readonly image: unknown) { super(); trays.push(this) }
+    readonly image: unknown
+
+
+    constructor(image: unknown) { super()
+      this.image = image
+      trays.push(this) }
   }
   const menus: MenuItemConstructorOptions[][] = []
   return {

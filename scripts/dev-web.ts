@@ -237,11 +237,16 @@ export interface StageStop {
 export class StageSupervisor {
   private readonly live = new Set<StageHandle>()
   private stopping = false
+  private readonly onStale: (stage: string, code: number | null) => void
+
+
 
   /**
    * @param onStale - receives the stage name and exit code when a stage exits before a stop was requested.
    */
-  constructor(private readonly onStale: (stage: string, code: number | null) => void) {}
+  constructor(onStale: (stage: string, code: number | null) => void) {
+    this.onStale = onStale
+  }
 
   /**
    * Track one started stage until it exits.

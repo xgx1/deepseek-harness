@@ -21,8 +21,14 @@ const revokeURL = vi.fn()
 
 class ControlledWorker extends EventTarget {
   readonly terminate = vi.fn()
-  constructor(readonly url: string, readonly options: WorkerOptions) {
+  readonly url: string
+  readonly options: WorkerOptions
+
+
+  constructor(url: string, options: WorkerOptions) {
     super()
+    this.url = url
+    this.options = options
     workers.push(this)
   }
   ready(): void { this.dispatchEvent(new MessageEvent('message', { data: { type: 'dsh-pdf-worker-ready' } })) }

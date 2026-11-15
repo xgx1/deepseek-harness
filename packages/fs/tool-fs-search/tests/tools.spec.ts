@@ -89,7 +89,12 @@ function runResult(
 
 /** A fixed-response collect-mode reader: the tools read each stream once, from 0, after settlement. */
 class FakeReader implements SubprocessOutputReader {
-  constructor(private readonly read: ScriptedStream) {}
+  private readonly read: ScriptedStream
+
+
+  constructor(read: ScriptedStream) {
+    this.read = read
+  }
 
   readFrom(_fromByte: number): SubprocessOutputRead {
     return {

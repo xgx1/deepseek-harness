@@ -133,9 +133,14 @@ function toolCallResponse(): StreamChunk[] {
 
 class ScriptedAdapter extends LlmAdapter {
   readonly requests: GenerateOptions[] = []
+  private readonly script: StreamChunk[][]
 
-  constructor(private readonly script: StreamChunk[][]) {
+
+
+  constructor(script: StreamChunk[][]) {
     super()
+    this.script = script
+
   }
 
   override async * stream(options: GenerateOptions): AsyncIterable<StreamChunk> {

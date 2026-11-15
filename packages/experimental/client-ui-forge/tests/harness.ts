@@ -195,8 +195,13 @@ export function sandboxRecord(): SandboxRecord {
 
 /** Sandbox double that records each confinement in its plugin config and returns the argv unchanged. */
 export class RecordingSandbox extends SandboxProvider {
-  constructor(ctx: Context, private readonly record: SandboxRecord) {
+  private readonly record: SandboxRecord
+
+
+  constructor(ctx: Context, record: SandboxRecord) {
     super(ctx)
+    this.record = record
+
   }
 
   async confine(argv: readonly string[], policy: SandboxPolicy): Promise<ConfinedArgv> {

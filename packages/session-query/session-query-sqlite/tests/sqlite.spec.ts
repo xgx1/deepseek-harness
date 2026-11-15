@@ -88,12 +88,21 @@ function replaceCursorOffset(
 
 class TestHandle implements SessionHandle {
   readonly inheritedEventCount = SessionLogOffset(0)
+  readonly id: SessionIdType
+  readonly header: SessionHeader
+  readonly access: SessionAccess
+
+
 
   constructor(
-    readonly id: SessionIdType,
-    readonly header: SessionHeader,
-    readonly access: SessionAccess,
-  ) {}
+    id: SessionIdType,
+    header: SessionHeader,
+    access: SessionAccess,
+  ) {
+    this.id = id
+    this.header = header
+    this.access = access
+  }
 
   async read(_offset = 0, _length?: number, options?: SessionHandleReadOptions): Promise<SessionHandleReadResult> {
     TestPersistence.reads.set(this.id, (TestPersistence.reads.get(this.id) ?? 0) + 1)

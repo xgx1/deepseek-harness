@@ -12,8 +12,12 @@ class IntersectionObserverStub {
   readonly observed = new Set<Element>()
   readonly unobserved = new Set<Element>()
   disconnected = false
+  private readonly callback: IntersectionObserverCallback
 
-  constructor(private readonly callback: IntersectionObserverCallback) {
+
+
+  constructor(callback: IntersectionObserverCallback) {
+    this.callback = callback
     IntersectionObserverStub.instances.push(this)
   }
 

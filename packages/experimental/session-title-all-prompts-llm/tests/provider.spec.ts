@@ -14,12 +14,19 @@ import * as providerPlugin from '@deepseek-ai/dsh-session-title-all-prompts-llm'
 
 class RecordingAdapter extends LlmAdapter {
   readonly requests: GenerateOptions[] = []
+  private readonly script: readonly StreamChunk[]
+  private readonly reasoningEfforts: (readonly string[]) | undefined
+
+
 
   constructor(
-    private readonly script: readonly StreamChunk[] = ALL_TITLE_SCRIPT,
-    private readonly reasoningEfforts?: readonly string[],
+    script: readonly StreamChunk[] = ALL_TITLE_SCRIPT,
+    reasoningEfforts?: readonly string[],
   ) {
     super()
+    this.script = script
+    this.reasoningEfforts = reasoningEfforts
+
   }
 
   override resolveModel(provider: string, model: string): Promise<LlmResolvedModelInfo> {

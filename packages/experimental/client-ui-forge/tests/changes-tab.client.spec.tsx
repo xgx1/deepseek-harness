@@ -896,7 +896,12 @@ describe('ChangesTab drawing work', () => {
     const watched = new Map<Element, IntersectionObserverCallback>()
     let root: Element | Document | null | undefined
     vi.stubGlobal('IntersectionObserver', class {
-      constructor(readonly report: IntersectionObserverCallback, options?: IntersectionObserverInit) { root = options?.root }
+      readonly report: IntersectionObserverCallback
+
+
+      constructor(report: IntersectionObserverCallback, options?: IntersectionObserverInit) {
+        this.report = report
+        root = options?.root }
       observe(element: Element): void { watched.set(element, this.report) }
       unobserve(element: Element): void { watched.delete(element) }
       disconnect(): void { watched.clear() }

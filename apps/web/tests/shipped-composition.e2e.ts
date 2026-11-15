@@ -98,9 +98,14 @@ function textChunks(text: string): StreamChunk[] {
 class ShippedAutoAdapter extends LlmAdapter {
   override async listModels(provider: string) { return [{ provider, id: AUTO_MODEL, name: AUTO_MODEL }] }
   readonly requests: GenerateOptions[] = []
+  private readonly targetPath: string
 
-  constructor(private readonly targetPath: string) {
+
+
+  constructor(targetPath: string) {
     super()
+    this.targetPath = targetPath
+
   }
 
   override resolveModel(provider: string, model: string): Promise<LlmResolvedModelInfo> {
@@ -204,13 +209,22 @@ class ShippedChildAutoAdapter extends LlmAdapter {
   private parentId: SessionId | undefined
   private continuableChildId: SessionId | undefined
   private parentPhase = 0
+  private readonly sourcePath: string
+  private readonly authorizedDeletePath: string
+  private readonly continuableDeletePath: string
+
+
 
   constructor(
-    private readonly sourcePath: string,
-    private readonly authorizedDeletePath: string,
-    private readonly continuableDeletePath: string,
+    sourcePath: string,
+    authorizedDeletePath: string,
+    continuableDeletePath: string,
   ) {
     super()
+    this.sourcePath = sourcePath
+    this.authorizedDeletePath = authorizedDeletePath
+    this.continuableDeletePath = continuableDeletePath
+
   }
 
   setParent(id: SessionId): void {

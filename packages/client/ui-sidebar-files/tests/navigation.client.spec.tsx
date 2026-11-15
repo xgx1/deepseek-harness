@@ -36,7 +36,12 @@ function harness() {
   const observers = new Set<MeasuredRow>()
   class MeasuredRow implements ResizeObserver {
     readonly targets = new Set<Element>()
-    constructor(private readonly callback: ResizeObserverCallback) {}
+    private readonly callback: ResizeObserverCallback
+
+
+    constructor(callback: ResizeObserverCallback) {
+      this.callback = callback
+    }
     observe(target: Element): void { this.targets.add(target); observers.add(this) }
     unobserve(target: Element): void { this.targets.delete(target) }
     disconnect(): void { this.targets.clear(); observers.delete(this) }

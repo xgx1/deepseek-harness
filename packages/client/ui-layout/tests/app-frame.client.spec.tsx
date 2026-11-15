@@ -24,7 +24,12 @@ const useSessionStatus: AppFrameProps['useSessionStatus'] = selector => selector
 let observers: ResizeObserverStub[]
 class ResizeObserverStub {
   disconnected = false
-  constructor(private callback: ResizeObserverCallback) { observers.push(this) }
+  private callback: ResizeObserverCallback
+
+
+  constructor(callback: ResizeObserverCallback) {
+    this.callback = callback
+    observers.push(this) }
   observe(): void {}
   unobserve(): void {}
   disconnect(): void { this.disconnected = true }

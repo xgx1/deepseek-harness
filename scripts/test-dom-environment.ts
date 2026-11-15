@@ -6,8 +6,13 @@ let installed = false
 
 class TestResizeObserver implements ResizeObserver {
   private readonly targets = new Set<Element>()
+  private readonly callback: ResizeObserverCallback
 
-  constructor(private readonly callback: ResizeObserverCallback) {}
+
+
+  constructor(callback: ResizeObserverCallback) {
+    this.callback = callback
+  }
 
   observe(target: Element): void {
     if (this.targets.has(target)) return

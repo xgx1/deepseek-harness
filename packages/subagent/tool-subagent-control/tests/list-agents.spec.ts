@@ -30,9 +30,14 @@ interface GatedEntry {
 /** Adapter whose entries can hold a model call open until the test releases it. */
 class GatedAdapter extends LlmAdapter {
   readonly requests: GenerateOptions[] = []
+  private script: GatedEntry[]
 
-  constructor(private script: GatedEntry[]) {
+
+
+  constructor(script: GatedEntry[]) {
     super()
+    this.script = script
+
   }
 
   async * stream(options: GenerateOptions): AsyncIterable<StreamChunk> {

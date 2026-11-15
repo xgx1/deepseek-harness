@@ -137,9 +137,14 @@ function programCall(commands: readonly string[]): ScriptedCall {
 
 class ScriptedModel extends LlmAdapter {
   readonly requests: GenerateOptions[] = []
+  private readonly calls: readonly ScriptedCall[]
 
-  constructor(private readonly calls: readonly ScriptedCall[]) {
+
+
+  constructor(calls: readonly ScriptedCall[]) {
     super()
+    this.calls = calls
+
   }
 
   override resolveModel(provider: string, model: string): Promise<LlmResolvedModelInfo> {

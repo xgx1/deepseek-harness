@@ -21,9 +21,13 @@ export default class DirectHelper extends Service {
   private closing: Promise<void> | undefined
   private diagnostic = ''
   private readonly deadline: NodeJS.Timeout
+  private readonly config: Config
 
-  constructor(ctx: Context, private readonly config: Config) {
+
+
+  constructor(ctx: Context, config: Config) {
     super(ctx, 'ssh')
+    this.config = config
     const child = spawn(config.executable, [], {
       cwd: config.workspace, stdio: ['pipe', 'pipe', 'pipe'],
       env: { HOME: config.home, PATH: config.path, TMPDIR: config.home, NODE_OPTIONS: '--disable-sigusr1', DSH_ARTIFACT_SECRET: 'must-not-reach-program' },

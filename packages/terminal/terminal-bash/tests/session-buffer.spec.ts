@@ -71,8 +71,15 @@ function referenceTail(text: string, maxBytes: number) {
 class ReferenceBuffer {
   private text = ''
   private truncated = false
+  private readonly maxBytes: number
+  private readonly maxLines: (number) | undefined
 
-  constructor(private readonly maxBytes: number, private readonly maxLines?: number) {}
+
+
+  constructor(maxBytes: number, maxLines?: number) {
+    this.maxBytes = maxBytes
+    this.maxLines = maxLines
+  }
 
   append(chunk: string): void {
     if (chunk.length === 0) return

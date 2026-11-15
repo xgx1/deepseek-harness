@@ -1222,11 +1222,17 @@ export class EventRelationCollector {
   private readonly agentDispatchType: ts.Type
   private readonly eventsServiceType: ts.Type
   private readonly packageSourceFiles: ReadonlySet<ts.SourceFile>
+  private readonly project: TypeScriptProject
+  private readonly sources: readonly PackageSource[]
+
+
 
   constructor(
-    private readonly project: TypeScriptProject,
-    private readonly sources: readonly PackageSource[],
+    project: TypeScriptProject,
+    sources: readonly PackageSource[],
   ) {
+    this.project = project
+    this.sources = sources
     this.contextType = this.declaredType('vendor/cordis/src/context.ts', 'Context')
     this.agentDispatchType = this.declaredType('packages/core/agent/src/dispatch.ts', 'AgentEventDispatch')
     this.eventsServiceType = this.declaredType('vendor/cordis/src/events.ts', 'EventsService')

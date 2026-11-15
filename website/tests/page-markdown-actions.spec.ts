@@ -30,7 +30,12 @@ let activeWrite: Promise<void> | undefined
 const deferredWork: { promise: Promise<unknown>; reject: (reason: unknown) => void }[] = []
 
 class TestClipboardItem {
-  constructor(readonly data: Record<string, Promise<Blob>>) {}
+  readonly data: Record<string, Promise<Blob>>
+
+
+  constructor(data: Record<string, Promise<Blob>>) {
+    this.data = data
+  }
 }
 
 function deferred<T>() {

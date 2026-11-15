@@ -52,11 +52,20 @@ function appendEvent(seq: number, sources?: readonly number[]): SessionEvent {
 
 class TraceHandle implements SessionHandle {
   readonly inheritedEventCount = SessionLogOffset(0)
+  readonly id: SessionIdType
+  readonly header: SessionHeader
+  readonly access: SessionAccess
+
+
   constructor(
-    readonly id: SessionIdType,
-    readonly header: SessionHeader,
-    readonly access: SessionAccess,
-  ) {}
+    id: SessionIdType,
+    header: SessionHeader,
+    access: SessionAccess,
+  ) {
+    this.id = id
+    this.header = header
+    this.access = access
+  }
 
   read(): Promise<SessionHandleReadResult> {
     TracePersistence.readCalls += 1

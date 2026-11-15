@@ -43,13 +43,24 @@ function promptRequest(
 }
 
 class CatalogAdapter extends LlmAdapter {
+  private readonly name: string
+  private readonly models: readonly LlmModelInfo[] | Error
+  private readonly reasoning: (LlmModelReasoningInfo) | undefined
+  private readonly exactError: (Error) | undefined
+
+
   constructor(
-    private readonly name: string,
-    private readonly models: readonly LlmModelInfo[] | Error,
-    private readonly reasoning?: LlmModelReasoningInfo,
-    private readonly exactError?: Error,
+    name: string,
+    models: readonly LlmModelInfo[] | Error,
+    reasoning?: LlmModelReasoningInfo,
+    exactError?: Error,
   ) {
     super()
+    this.name = name
+    this.models = models
+    this.reasoning = reasoning
+    this.exactError = exactError
+
   }
 
   override providerInfo(provider: string): LlmProviderInfo {

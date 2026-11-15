@@ -8,12 +8,16 @@ const publicCodes = new Set(['AccessDenied', 'InternalError', 'NoSuchBucket', 'B
 
 /** COS operation failure retaining its cause for safe diagnostics; a failed write may have an unknown remote outcome. */
 export class DesktopCosOperationError extends Error {
-  constructor(readonly operation: 'GetObject' | 'PutObject', cause: unknown) {
+  readonly operation: 'GetObject' | 'PutObject'
+
+
+  constructor(operation: 'GetObject' | 'PutObject', cause: unknown) {
     const failure = desktopPublicationFailure(cause, operation)
     const message = failure.code === 'AccessDenied'
       ? `AccessDenied. Check name/cos:${operation} permission and explicit deny rules for the selected bucket/object. Publication stopped; reconcile remote state before retrying.`
       : failure.message
     super(`COS ${operation}: ${message}`, { cause })
+    this.operation = operation
     this.name = 'DesktopCosOperationError'
   }
 }

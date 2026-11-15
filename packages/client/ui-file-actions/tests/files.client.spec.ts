@@ -11,7 +11,12 @@ afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks() })
 
 beforeEach(() => {
   vi.stubGlobal('ClipboardItem', class {
-    constructor(readonly content: Record<string, Promise<Blob>>) {}
+    readonly content: Record<string, Promise<Blob>>
+
+
+    constructor(content: Record<string, Promise<Blob>>) {
+      this.content = content
+    }
   })
   vi.stubGlobal('navigator', { clipboard: { write: vi.fn(async (items: { content: Record<string, Promise<Blob>> }[]) => {
     await items[0]!.content['image/png']

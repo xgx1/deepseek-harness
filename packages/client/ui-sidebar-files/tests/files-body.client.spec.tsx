@@ -225,7 +225,11 @@ describe('FilesBody', () => {
       readonly observe = vi.fn()
       readonly unobserve = vi.fn()
       readonly disconnect = vi.fn()
-      constructor(private readonly callback: ResizeObserverCallback) {
+      private readonly callback: ResizeObserverCallback
+
+
+      constructor(callback: ResizeObserverCallback) {
+        this.callback = callback
         FakeResizeObserver.instances.push(this)
       }
 

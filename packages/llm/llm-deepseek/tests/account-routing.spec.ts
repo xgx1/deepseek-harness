@@ -51,7 +51,12 @@ function send(agent: Agent) {
 }
 
 class ScriptedAdapter extends LlmAdapter {
-  constructor(private run: (request: GenerateOptions) => AsyncIterable<StreamChunk>) { super() }
+  private run: (request: GenerateOptions) => AsyncIterable<StreamChunk>
+
+
+  constructor(run: (request: GenerateOptions) => AsyncIterable<StreamChunk>) { super()
+    this.run = run
+  }
   override stream(request: GenerateOptions) { return this.run(request) }
 }
 

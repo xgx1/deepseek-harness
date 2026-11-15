@@ -31,7 +31,12 @@ const fixture = await vi.hoisted(async () => {
     })
     readonly setBackgroundColor = vi.fn()
     readonly setBounds = vi.fn()
-    constructor(readonly options: unknown) { views.push(this) }
+    readonly options: unknown
+
+
+    constructor(options: unknown) {
+      this.options = options
+      views.push(this) }
   }
   return { handlers, views, FakeParent, FakeView, load }
 })

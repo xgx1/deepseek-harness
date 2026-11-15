@@ -9,7 +9,12 @@ const observers: TooltipResizeObserver[] = []
 
 class TooltipResizeObserver implements ResizeObserver {
   private target: Element | undefined
-  constructor(private readonly callback: ResizeObserverCallback) { observers.push(this) }
+  private readonly callback: ResizeObserverCallback
+
+
+  constructor(callback: ResizeObserverCallback) {
+    this.callback = callback
+    observers.push(this) }
   observe(target: Element): void {
     this.target = target
     if (automaticResize) this.deliver()

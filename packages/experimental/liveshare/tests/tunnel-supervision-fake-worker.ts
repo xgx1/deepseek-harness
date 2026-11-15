@@ -16,12 +16,16 @@ export class FakeTunnelWorker {
 
   started = false
   stopped = false
+  readonly options: { readonly command: TunnelProcessCommand }
+
+
 
   /**
    * Record one construction.
    * @param options Command the supervisor chose.
    */
-  constructor(readonly options: { readonly command: TunnelProcessCommand }) {
+  constructor(options: { readonly command: TunnelProcessCommand }) {
+    this.options = options
     FakeTunnelWorker.instances.push(this)
   }
 

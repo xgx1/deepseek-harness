@@ -269,7 +269,14 @@ describe('file upload service', () => {
       onerror: ((event: ErrorEvent) => void) | null = null
       readonly postMessage = vi.fn()
       readonly terminate = vi.fn()
-      constructor(readonly url: string, readonly options: WorkerOptions) { FakeWorker.last = this }
+      readonly url: string
+      readonly options: WorkerOptions
+
+
+      constructor(url: string, options: WorkerOptions) {
+        this.url = url
+        this.options = options
+        FakeWorker.last = this }
     }
     vi.stubGlobal('Worker', FakeWorker)
     vi.stubGlobal('document', { baseURI: 'https://harness.test/mount/' })

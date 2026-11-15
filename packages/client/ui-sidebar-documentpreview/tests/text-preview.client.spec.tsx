@@ -60,7 +60,12 @@ afterAll(() => {
 class RecordingResizeObserver {
   static instances: RecordingResizeObserver[] = []
   readonly targets: Element[] = []
-  constructor(readonly callback: () => void) { RecordingResizeObserver.instances.push(this) }
+  readonly callback: () => void
+
+
+  constructor(callback: () => void) {
+    this.callback = callback
+    RecordingResizeObserver.instances.push(this) }
   observe(target: Element): void { this.targets.push(target) }
   disconnect(): void {}
   resize(): void { act(() => { this.callback() }) }
@@ -79,8 +84,12 @@ afterEach(() => {
 class PendingIntersectionObserver {
   static instances: PendingIntersectionObserver[] = []
   readonly observed = new Set<Element>()
+  private readonly callback: IntersectionObserverCallback
 
-  constructor(private readonly callback: IntersectionObserverCallback) {
+
+
+  constructor(callback: IntersectionObserverCallback) {
+    this.callback = callback
     PendingIntersectionObserver.instances.push(this)
   }
 

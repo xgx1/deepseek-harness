@@ -40,9 +40,14 @@ const LEGACY_WEB = 'You are interacting with the user through the DeepSeek Harne
 /** Records every request and answers each with one short text reply. */
 class RecordingAdapter extends LlmAdapter {
   readonly requests: GenerateOptions[] = []
+  private readonly systemPromptUpdate: SystemPromptUpdate | undefined
 
-  constructor(private readonly systemPromptUpdate: SystemPromptUpdate | undefined) {
+
+
+  constructor(systemPromptUpdate: SystemPromptUpdate | undefined) {
     super()
+    this.systemPromptUpdate = systemPromptUpdate
+
   }
 
   override resolveModel(provider: string, model: string): Promise<LlmResolvedModelInfo> {

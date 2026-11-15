@@ -74,9 +74,14 @@ type ReviewScript = readonly StreamChunk[] | ((options: GenerateOptions) => Asyn
 
 class RecordingAdapter extends LlmAdapter {
   readonly requests: GenerateOptions[] = []
+  private readonly script: ReviewScript[]
 
-  constructor(private readonly script: ReviewScript[]) {
+
+
+  constructor(script: ReviewScript[]) {
     super()
+    this.script = script
+
   }
 
   async * stream(options: GenerateOptions): AsyncIterable<StreamChunk> {

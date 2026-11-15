@@ -8,8 +8,14 @@ vi.mock('node:worker_threads', () => ({
   Worker: class {
     readonly listeners = new Map<string, (value: never) => void>()
     readonly terminate = vi.fn<() => Promise<number>>(() => Promise.resolve(0))
+    readonly entry: string | URL
+    readonly options: unknown
 
-    constructor(readonly entry: string | URL, readonly options: unknown) {
+
+
+    constructor(entry: string | URL, options: unknown) {
+      this.entry = entry
+      this.options = options
       state.workers.push(this)
     }
 

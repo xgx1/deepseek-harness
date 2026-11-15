@@ -28,8 +28,13 @@ function memorySkill(name: string, description: string, rank: number, body = `${
 class MemoryProvider implements SkillProvider {
   readonly name = 'memory'
   listCalls = 0
+  private candidates: SkillCandidate[]
 
-  constructor(private candidates: SkillCandidate[]) {}
+
+
+  constructor(candidates: SkillCandidate[]) {
+    this.candidates = candidates
+  }
 
   async list(_options: SkillLookupOptions): Promise<SkillCandidate[]> {
     this.listCalls += 1

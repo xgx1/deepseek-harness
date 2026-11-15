@@ -25,7 +25,12 @@ class TestPersistence extends SessionPersistence {
 }
 
 class RecordingAdapter extends LlmAdapter {
-  constructor(private readonly order: string[]) { super() }
+  private readonly order: string[]
+
+
+  constructor(order: string[]) { super()
+    this.order = order
+  }
   async * stream(_options: GenerateOptions): AsyncIterable<StreamChunk> {
     this.order.push('adapter')
     yield { type: 'finish', reason: { kind: 'stop' } }

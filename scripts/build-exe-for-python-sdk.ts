@@ -94,14 +94,23 @@ function isArch(value: string): value is Arch {
  * A parsed pkg target triple, constructed from `--targets` or the host.
  */
 class Target {
+  readonly nodeRange: string
+  readonly platform: Platform
+  readonly arch: Arch
+
+
   private constructor(
     /** pkg Node range (`node<major>`). */
-    readonly nodeRange: string,
+    nodeRange: string,
     /** pkg platform tag. */
-    readonly platform: Platform,
+    platform: Platform,
     /** pkg CPU tag. */
-    readonly arch: Arch,
-  ) {}
+    arch: Arch,
+  ) {
+    this.nodeRange = nodeRange
+    this.platform = platform
+    this.arch = arch
+  }
 
   /** The pkg `--targets` spec string `<nodeRange>-<platform>-<arch>`. */
   get spec(): string {
@@ -177,18 +186,31 @@ function isCompressType(value: string): value is CompressType {
 }
 
 class BuildCli {
+  readonly targets: readonly Target[]
+  readonly skipBuild: boolean
+  readonly buildArtifacts: boolean
+  readonly compress: CompressType
+  readonly dryRun: boolean
+
+
   private constructor(
     /** Build targets; defaults to the host platform only. */
-    readonly targets: readonly Target[],
+    targets: readonly Target[],
     /** Skip the package build; lib/ artifacts must already exist. */
-    readonly skipBuild: boolean,
+    skipBuild: boolean,
     /** Build through `pnpm run build:artifacts`, which omits the aggregate test and script typechecks. */
-    readonly buildArtifacts: boolean,
+    buildArtifacts: boolean,
     /** pkg archive compression; Brotli is the smallest and by far the slowest. */
-    readonly compress: CompressType,
+    compress: CompressType,
     /** Print every command and config patch instead of executing. */
-    readonly dryRun: boolean,
-  ) {}
+    dryRun: boolean,
+  ) {
+    this.targets = targets
+    this.skipBuild = skipBuild
+    this.buildArtifacts = buildArtifacts
+    this.compress = compress
+    this.dryRun = dryRun
+  }
 
   /**
    * Parse argv. Help exits 0; malformed flags exit 1; invalid or colliding
@@ -283,8 +305,13 @@ class SingleExeBuild {
    */
   readonly staging = resolve(root, PYTHON_RUNTIME_DIR, PYTHON_NODE_SUBDIR)
   private readonly outDir = resolve(root, OUT_DIR)
+  private readonly cli: BuildCli
 
-  constructor(private readonly cli: BuildCli) {}
+
+
+  constructor(cli: BuildCli) {
+    this.cli = cli
+  }
 
   /** Verify the closure before compiling or packaging. */
   async verifyClosure(): Promise<void> {

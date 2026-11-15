@@ -104,11 +104,19 @@ function controller(lexicon: () => InputTriggerController['lexicon']): InputTrig
 }
 
 class TriggerProvider extends Service {
-  constructor(ctx: Context, private readonly config: {
+  private readonly config: {
+    readonly controller: InputTriggerController
+    readonly initialize?: () => void
+  }
+
+
+  constructor(ctx: Context, config: {
     readonly controller: InputTriggerController
     readonly initialize?: () => void
   }) {
     super(ctx, 'inputTriggers')
+    this.config = config
+
   }
 
   sessionOf(): InputTriggerController {

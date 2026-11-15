@@ -16,7 +16,12 @@ const UI_EXPECTED = fileURLToPath(new URL('./expected/reasoning-preview/running.
 const WHALE_MASK = /^url\("([^"]*\/plugins\/@deepseek-ai\/dsh-client-ui-chat\/assets\/running-whale%402x-[0-9a-f]{12}\.png)"\)$/
 
 class PausedReasoningAdapter extends LlmAdapter {
-  constructor(private readonly prefix: string) { super() }
+  private readonly prefix: string
+
+
+  constructor(prefix: string) { super()
+    this.prefix = prefix
+  }
   override async listModels(provider: string) { return [{ provider, id: 'paused', name: `${provider}/paused` }] }
   readonly stages = DELTAS.map(text => ({
     text,

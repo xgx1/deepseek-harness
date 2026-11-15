@@ -467,7 +467,16 @@ describe('SessionObservationReader cold path', () => {
 
     class SwapHandle implements SessionHandle {
       readonly inheritedEventCount = SessionLogOffset(0)
-      constructor(readonly id: SessionIdType, readonly header: SessionHeader, readonly access: SessionAccess) {}
+      readonly id: SessionIdType
+      readonly header: SessionHeader
+      readonly access: SessionAccess
+
+
+      constructor(id: SessionIdType, header: SessionHeader, access: SessionAccess) {
+        this.id = id
+        this.header = header
+        this.access = access
+      }
       read(): Promise<SessionHandleReadResult> {
         SwapPersistence.readCalls += 1
         return Promise.resolve({ eventState: 'detached', events: [messageEvent(0, 'swap')] })

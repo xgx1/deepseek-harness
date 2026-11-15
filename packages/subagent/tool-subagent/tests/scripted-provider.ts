@@ -47,11 +47,17 @@ class ScriptedSubagentProvider implements SubagentProvider {
   readonly capabilities: SubagentCapabilities
   readonly inheritsParentContext: boolean
   private started = 0
+  readonly name: string
+  private readonly config: Config
+
+
 
   constructor(
-    readonly name: string,
-    private readonly config: Config,
+    name: string,
+    config: Config,
   ) {
+    this.name = name
+    this.config = config
     this.capabilities = { ...DEFAULT_CAPABILITIES, ...config.capabilities }
     this.inheritsParentContext = config.inheritsParentContext ?? false
   }

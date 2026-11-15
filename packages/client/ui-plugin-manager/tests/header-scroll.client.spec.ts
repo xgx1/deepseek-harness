@@ -74,14 +74,24 @@ function harness() {
     observe = vi.fn<(target: Element, options?: ResizeObserverOptions) => void>()
     unobserve = vi.fn<(target: Element) => void>()
     disconnect = vi.fn<() => void>()
-    constructor(private readonly callback: ResizeObserverCallback) { resizes.push(this) }
+    private readonly callback: ResizeObserverCallback
+
+
+    constructor(callback: ResizeObserverCallback) {
+      this.callback = callback
+      resizes.push(this) }
     deliver(): void { this.callback([], this) }
   }
   class ControlledMutation implements MutationObserver {
     observe = vi.fn<(target: Node, options?: MutationObserverInit) => void>()
     disconnect = vi.fn<() => void>()
     takeRecords(): MutationRecord[] { return [] }
-    constructor(private readonly callback: MutationCallback) { mutations.push(this) }
+    private readonly callback: MutationCallback
+
+
+    constructor(callback: MutationCallback) {
+      this.callback = callback
+      mutations.push(this) }
     deliver(): void { this.callback([], this) }
   }
   vi.stubGlobal('ResizeObserver', ControlledResize)

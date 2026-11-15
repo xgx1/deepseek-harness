@@ -39,7 +39,12 @@ function response(name?: string, args: object = {}): StreamChunk[] {
 
 class ScriptedAdapter extends LlmAdapter {
   readonly requests: GenerateOptions[] = []
-  constructor(private readonly script: StreamChunk[][]) { super() }
+  private readonly script: StreamChunk[][]
+
+
+  constructor(script: StreamChunk[][]) { super()
+    this.script = script
+  }
   override async * stream(options: GenerateOptions): AsyncIterable<StreamChunk> {
     this.requests.push(options)
     const next = this.script.shift()

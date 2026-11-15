@@ -12,9 +12,14 @@ export type ScriptedCall = readonly StreamChunk[] | ((options: GenerateOptions) 
 export class ScriptedAdapter extends LlmAdapter {
   /** Every request this adapter has served, in call order. */
   readonly requests: GenerateOptions[] = []
+  private readonly script: ScriptedCall[]
 
-  constructor(private readonly script: ScriptedCall[]) {
+
+
+  constructor(script: ScriptedCall[]) {
     super()
+    this.script = script
+
   }
 
   /** Append calls once the runtime values they name (an opaque job id) are known. */

@@ -8,7 +8,13 @@ class FakeObserver {
   static readonly made: FakeObserver[] = []
   readonly watched = new Set<Element>()
   disconnected = false
-  constructor(readonly report: IntersectionObserverCallback, readonly options: IntersectionObserverInit | undefined) {
+  readonly report: IntersectionObserverCallback
+  readonly options: IntersectionObserverInit | undefined
+
+
+  constructor(report: IntersectionObserverCallback, options: IntersectionObserverInit | undefined) {
+    this.report = report
+    this.options = options
     FakeObserver.made.push(this)
   }
   observe(element: Element): void { this.watched.add(element) }

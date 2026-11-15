@@ -67,12 +67,19 @@ interface MediaContent {
 /** Owns at most one modal and restores page scrolling and trigger focus when it closes. */
 export class MediaViewer {
   #close: (() => void) | undefined
+  private readonly doc: Document
+  private readonly language: () => string
+
+
 
   /**
    * @param doc Browser document containing the viewer's triggers.
    * @param language Current VitePress language, read when opening the modal.
    */
-  constructor(private readonly doc: Document, private readonly language: () => string) {}
+  constructor(doc: Document, language: () => string) {
+    this.doc = doc
+    this.language = language
+  }
 
   /** Close the active modal and release its observers, listeners, and scroll lock. */
   close(): void {

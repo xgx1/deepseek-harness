@@ -21,13 +21,22 @@ import type { SessionTitleLlmConfig, SessionTitleLlmPreparedRequest } from '@dee
 
 class RecordingAdapter extends LlmAdapter {
   readonly requests: GenerateOptions[] = []
+  private readonly script: readonly StreamChunk[]
+  private readonly onDispatch: (() => void) | undefined
+  private readonly reasoningEfforts: (readonly string[]) | undefined
+
+
 
   constructor(
-    private readonly script: readonly StreamChunk[],
-    private readonly onDispatch?: () => void,
-    private readonly reasoningEfforts?: readonly string[],
+    script: readonly StreamChunk[],
+    onDispatch?: () => void,
+    reasoningEfforts?: readonly string[],
   ) {
     super()
+    this.script = script
+    this.onDispatch = onDispatch
+    this.reasoningEfforts = reasoningEfforts
+
   }
 
   override resolveModel(provider: string, model: string): Promise<LlmResolvedModelInfo> {
@@ -73,8 +82,13 @@ class CooperativeAdapter extends LlmAdapter {
 }
 
 class DelayedSuccessAdapter extends LlmAdapter {
-  constructor(private readonly delayMs: number) {
+  private readonly delayMs: number
+
+
+  constructor(delayMs: number) {
     super()
+    this.delayMs = delayMs
+
   }
 
   override async * stream(): AsyncIterable<StreamChunk> {

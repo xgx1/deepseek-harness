@@ -50,11 +50,18 @@ const testToolSignal = new AbortController().signal
 
 /** Exact-route fake adapter; `stream` is unreachable in these tests. */
 class CatalogAdapter extends LlmAdapter {
+  private readonly models: LlmModelInfo[]
+  private readonly resolvedModels: LlmModelInfo[]
+
+
   constructor(
-    private readonly models: LlmModelInfo[],
-    private readonly resolvedModels: LlmModelInfo[] = models,
+    models: LlmModelInfo[],
+    resolvedModels: LlmModelInfo[] = models,
   ) {
     super()
+    this.models = models
+    this.resolvedModels = resolvedModels
+
   }
 
   override listModels(_provider: string): Promise<readonly LlmModelInfo[]> {

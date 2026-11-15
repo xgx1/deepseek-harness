@@ -64,13 +64,20 @@ async function baseContext(): Promise<Context> {
 
 /** Real query core with a programmable full-text provider for Host search tests. */
 class SearchSessionQuery extends SessionQueryEngine {
+  private readonly search: (
+    ...args: Parameters<SessionQueryEngine['searchSessions']>
+  ) => Promise<unknown>
+
+
   constructor(
     ctx: Context,
-    private readonly search: (
+    search: (
       ...args: Parameters<SessionQueryEngine['searchSessions']>
     ) => Promise<unknown>,
   ) {
     super(ctx)
+    this.search = search
+
   }
 
   override searchSessions(

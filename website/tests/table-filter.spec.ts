@@ -16,7 +16,12 @@ class ResizeObserverFixture implements ResizeObserver {
   readonly observe = vi.fn<(target: Element) => void>()
   readonly unobserve = vi.fn<(target: Element) => void>()
   readonly disconnect = vi.fn<() => void>()
-  constructor(private readonly callback: ResizeObserverCallback) { observers.push(this) }
+  private readonly callback: ResizeObserverCallback
+
+
+  constructor(callback: ResizeObserverCallback) {
+    this.callback = callback
+    observers.push(this) }
   notify(): void { this.callback([], this) }
 }
 

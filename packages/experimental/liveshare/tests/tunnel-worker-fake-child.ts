@@ -16,14 +16,20 @@ export class FakeTunnelChild extends EventEmitter {
   exitCode: number | null = null
   signalCode: NodeJS.Signals | null = null
   readonly pid = 4242
+  readonly executable: string
+  readonly args: readonly string[]
+
+
 
   /**
    * Record one spawn.
    * @param executable Node executable the supervisor chose.
    * @param args argv handed to the worker.
    */
-  constructor(readonly executable: string, readonly args: readonly string[]) {
+  constructor(executable: string, args: readonly string[]) {
     super()
+    this.executable = executable
+    this.args = args
     FakeTunnelChild.spawned.push(this)
   }
 

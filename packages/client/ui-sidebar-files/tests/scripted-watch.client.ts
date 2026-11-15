@@ -15,8 +15,16 @@ export class DirectoryWatch implements AsyncIterable<Event> {
   private readonly queue: Frame[] = []
   private wake: (() => void) | undefined
   private releaseGate: PromiseWithResolvers<undefined> | undefined
+  readonly sessionId: SessionId
+  readonly path: string
+  readonly signal: AbortSignal
 
-  constructor(readonly sessionId: SessionId, readonly path: string, readonly signal: AbortSignal) {
+
+
+  constructor(sessionId: SessionId, path: string, signal: AbortSignal) {
+    this.sessionId = sessionId
+    this.path = path
+    this.signal = signal
     this.lifetime = AbortSignal.any([signal, this.controller.signal])
   }
 

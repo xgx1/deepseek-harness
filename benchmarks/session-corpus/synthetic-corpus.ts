@@ -172,8 +172,13 @@ function streamChunks(content: readonly ContentBlock[], finish: 'stop' | 'tool-c
 class RawLog {
   readonly events: SessionEvent[] = []
   readonly frameStarts = new Set<number>()
+  private readonly createdAt: number
 
-  constructor(private readonly createdAt: number) {}
+
+
+  constructor(createdAt: number) {
+    this.createdAt = createdAt
+  }
 
   get seq(): number {
     return this.events.length

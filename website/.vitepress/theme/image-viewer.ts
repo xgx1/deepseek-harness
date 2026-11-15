@@ -20,6 +20,11 @@ export class ImageViewer {
   readonly #events = new AbortController()
   #active: HTMLImageElement | undefined
   #close: (() => void) | undefined
+  private readonly doc: Document
+  private readonly language: () => string
+  private readonly viewer: Pick<MediaViewer, 'open'>
+
+
 
   /**
    * @param doc Browser document containing VitePress content.
@@ -27,10 +32,13 @@ export class ImageViewer {
    * @param viewer Shared modal owner for images and diagrams.
    */
   constructor(
-    private readonly doc: Document,
-    private readonly language: () => string,
-    private readonly viewer: Pick<MediaViewer, 'open'>,
+    doc: Document,
+    language: () => string,
+    viewer: Pick<MediaViewer, 'open'>,
   ) {
+    this.doc = doc
+    this.language = language
+    this.viewer = viewer
     const root = doc.querySelector('#VPContent') ?? doc.body
     const scan = (): void => { this.#scan() }
     this.#observer = new MutationObserver(scan)

@@ -149,8 +149,13 @@ class FakeAccessStream {
   private wake: (() => void) | undefined
   private done = false
   private failure: Error | undefined
+  readonly options: FakeStreamOptions
 
-  constructor(readonly options: FakeStreamOptions) {}
+
+
+  constructor(options: FakeStreamOptions) {
+    this.options = options
+  }
 
   push(frame: RemoteAccessFrame): void {
     this.frames.push(frame)

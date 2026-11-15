@@ -303,8 +303,12 @@ class MatrixFixture {
   readonly installDir = join(this.root, 'installation', 'node_modules', '@deepseek-ai', 'dsh')
   readonly runtimeDir: string
   readonly peerProjection: PeerProjection[] = []
+  readonly scenario: MatrixCase
 
-  constructor(readonly scenario: MatrixCase) {
+
+
+  constructor(scenario: MatrixCase) {
+    this.scenario = scenario
     this.packageDir = scenario.layout === 'pnpm-monorepo'
       ? join(this.workspace, 'packages', 'my-plugin')
       : join(this.root, 'work', 'my-plugin')

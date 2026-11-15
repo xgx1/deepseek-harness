@@ -56,9 +56,14 @@ class OverlapAdapter extends LlmAdapter {
   private readonly bothStarted = Promise.withResolvers<boolean>()
   private starts = 0
   readonly observations: { sessionId: SessionId | undefined; before: Agent; after: Agent }[] = []
+  private readonly ctx: Context
 
-  constructor(private readonly ctx: Context) {
+
+
+  constructor(ctx: Context) {
     super()
+    this.ctx = ctx
+
   }
 
   async * stream(options: GenerateOptions): AsyncIterable<StreamChunk> {
@@ -76,8 +81,13 @@ class OverlapAdapter extends LlmAdapter {
 /** Test-only transport that materializes ambient identity at its request boundary. */
 class TestCapabilityTransport {
   readonly requests: { path: string; headers: Record<string, string> }[] = []
+  private readonly agents: AgentRegistry
 
-  constructor(private readonly agents: AgentRegistry) {}
+
+
+  constructor(agents: AgentRegistry) {
+    this.agents = agents
+  }
 
   async request(path: string): Promise<Record<string, string>> {
     await Promise.resolve()

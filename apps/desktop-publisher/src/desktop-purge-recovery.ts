@@ -28,8 +28,13 @@ export interface DesktopPurgeRecoveryOptions {
 
 /** A confirmed remote failure, distinct from an unconfirmed observation. */
 export class DesktopPurgeExecutionError extends Error {
-  constructor(readonly status: 'failed' | 'timeout' | 'canceled') {
+  readonly status: 'failed' | 'timeout' | 'canceled'
+
+
+  constructor(status: 'failed' | 'timeout' | 'canceled') {
     super(`website cache purge: ${status}; inspect the task before manually rerunning`)
+    this.status = status
+
   }
 }
 

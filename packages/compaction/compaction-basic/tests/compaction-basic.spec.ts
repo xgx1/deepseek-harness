@@ -45,8 +45,13 @@ const SIGNAL = new AbortController().signal
 const MODEL = 'test-model'
 
 class ContextAdapter extends LlmAdapter {
-  constructor(private readonly contextWindow: number) {
+  private readonly contextWindow: number
+
+
+  constructor(contextWindow: number) {
     super()
+    this.contextWindow = contextWindow
+
   }
 
   override resolveModel(provider: string, model: string): Promise<LlmResolvedModelInfo> {
@@ -64,8 +69,13 @@ class ContextAdapter extends LlmAdapter {
 }
 
 class RoutedContextAdapter extends LlmAdapter {
-  constructor(private readonly windows: Readonly<Record<string, number>>) {
+  private readonly windows: Readonly<Record<string, number>>
+
+
+  constructor(windows: Readonly<Record<string, number>>) {
     super()
+    this.windows = windows
+
   }
 
   override resolveModel(provider: string, model: string): Promise<LlmResolvedModelInfo> {
@@ -1330,12 +1340,19 @@ describe('compaction region transaction', () => {
 class ScriptedAdapter extends LlmAdapter {
   lastOptions: GenerateOptions | undefined
   usage: TokenUsage | undefined
+  private readonly blocks: readonly ContentBlock[]
+  private readonly finish: (StreamChunk & { type: 'finish' })['reason']
+
+
 
   constructor(
-    private readonly blocks: readonly ContentBlock[],
-    private readonly finish: (StreamChunk & { type: 'finish' })['reason'] = { kind: 'stop' },
+    blocks: readonly ContentBlock[],
+    finish: (StreamChunk & { type: 'finish' })['reason'] = { kind: 'stop' },
   ) {
     super()
+    this.blocks = blocks
+    this.finish = finish
+
   }
 
   override async * stream(options: GenerateOptions): AsyncIterable<StreamChunk> {

@@ -82,8 +82,13 @@ interface RemoteStubInput {
 
 // A Service preserves the associated namespace lookup used by the real Gateway.
 class RemoteStub extends Service {
-  constructor(ctx: Context, readonly $on: RemoteStubInput['$on']) {
+  readonly $on: RemoteStubInput['$on']
+
+
+  constructor(ctx: Context, $on: RemoteStubInput['$on']) {
     super(ctx, 'remote')
+    this.$on = $on
+
   }
 }
 

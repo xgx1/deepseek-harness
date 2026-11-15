@@ -37,8 +37,13 @@ declare module '@deepseek-ai/dsh-llm' {
 }
 
 class ScriptedAdapter extends LlmAdapter {
-  constructor(private script: StreamChunk[]) {
+  private script: StreamChunk[]
+
+
+  constructor(script: StreamChunk[]) {
     super()
+    this.script = script
+
   }
 
   async * stream(_options: GenerateOptions): AsyncIterable<StreamChunk> {
@@ -56,8 +61,13 @@ class RecordingAdapter extends ScriptedAdapter {
 }
 
 class ThrowingAdapter extends LlmAdapter {
-  constructor(private readonly failure: Error) {
+  private readonly failure: Error
+
+
+  constructor(failure: Error) {
     super()
+    this.failure = failure
+
   }
 
   stream(_options: GenerateOptions): AsyncIterable<StreamChunk> {
@@ -66,15 +76,30 @@ class ThrowingAdapter extends LlmAdapter {
 }
 
 class CatalogAdapter extends ScriptedAdapter {
+  private readonly provider: LlmProviderInfo
+  private readonly models: readonly LlmModelInfo[]
+  private readonly contexts: Readonly<Record<string, LlmModelContext>>
+  private readonly reasoning: Readonly<Record<string, LlmModelReasoningInfo>>
+  private readonly defaultMaxTokens: Readonly<Record<string, number>>
+  private readonly systemPromptUpdate: Readonly<Record<string, string>>
+
+
   constructor(
-    private readonly provider: LlmProviderInfo,
-    private readonly models: readonly LlmModelInfo[],
-    private readonly contexts: Readonly<Record<string, LlmModelContext>> = {},
-    private readonly reasoning: Readonly<Record<string, LlmModelReasoningInfo>> = {},
-    private readonly defaultMaxTokens: Readonly<Record<string, number>> = {},
-    private readonly systemPromptUpdate: Readonly<Record<string, string>> = {},
+    provider: LlmProviderInfo,
+    models: readonly LlmModelInfo[],
+    contexts: Readonly<Record<string, LlmModelContext>> = {},
+    reasoning: Readonly<Record<string, LlmModelReasoningInfo>> = {},
+    defaultMaxTokens: Readonly<Record<string, number>> = {},
+    systemPromptUpdate: Readonly<Record<string, string>> = {},
   ) {
     super(SCRIPT)
+    this.provider = provider
+    this.models = models
+    this.contexts = contexts
+    this.reasoning = reasoning
+    this.defaultMaxTokens = defaultMaxTokens
+    this.systemPromptUpdate = systemPromptUpdate
+
   }
 
   override providerInfo(_provider: string): LlmProviderInfo {
