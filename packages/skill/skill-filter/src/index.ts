@@ -61,6 +61,15 @@ interface SkillFilterConfigOwner {
   onConfigUpdated(listener: () => void): () => void
 }
 
+/**
+ * The host-plane configuration-selection owner, read through the same shared
+ * store. Its globs form the third allow source beside the personal and project
+ * YAML layers.
+ */
+interface AgentConfigOwner {
+  skillGlobs(cwd: string | undefined): Promise<readonly string[] | undefined>
+}
+
 /** Plugin entry: register the filtered provider and dispose it with the fiber. */
 export function apply(ctx: Context, config: Config = {}): void {
   const providerName = config.providerName ?? 'skill-filter'
@@ -72,7 +81,7 @@ export function apply(ctx: Context, config: Config = {}): void {
       customSkillDirs: [...(config.customSkillDirs ?? [])],
       watch: config.watch ?? true,
     })
-    provider = new FilteredSkillProvider(inner, control, providerName)
+    provider = new FilteredSkillProvider(inner, control, providerName, () => ctx.get('agentConfigs') as AgentConfigOwner | undefined)
     return provider
   })
 
@@ -108,6 +117,7 @@ class FilteredSkillProvider implements SkillProvider {
     private readonly inner: FileSystemSkillProvider,
     control: SkillProviderControl,
     name: string,
+    private readonly agentConfigs: () => AgentConfigOwner | undefined,
   ) {
     this.name = name
     this.control = control
@@ -195,8 +205,15 @@ class FilteredSkillProvider implements SkillProvider {
   } | undefined> {
     const personal = await readPersonalConfig()
     const project = await readProjectConfig(cwd)
-    const personalRules = personal.config === undefined ? undefined : compileConfig(personal.config)
-    const projectRules = project.config === undefined ? undefined : compileConfig(project.config)
+    const selected = await this.agentConfigs()?.skillGlobs(cwd)
+    // A governed project takes its allow list from the configurations alone; the
+    // personal and project YAML layers only decide for ungoverned projects, so a
+    // governed project that selects no configuration hides every governed skill.
+    const personalRules = selected !== undefined || personal.config === undefined
+      ? undefined
+      : compileConfig(personal.config)
+    const projectAllow = selected === undefined ? project.config?.allow : selected
+    const projectRules = projectAllow === undefined ? undefined : compileConfig({ allow: projectAllow })
     // No config layer at all: no filtering, and every skill keeps the visibility
     // its own frontmatter declares.
     if (personalRules === undefined && projectRules === undefined) return undefined

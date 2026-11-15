@@ -1,0 +1,64 @@
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write packages/preset/agent-config/README.md
+/:
+  en: d999393f348f0c9b
+  zh: 59bfbac3d2a76f01
+/deepseek-ai-dsh-agent-config:
+  en: a527f3118642d695
+  zh: 68bd6e49d8fd786a
+/deepseek-ai-dsh-agent-config/summary:
+  en: 1dd8ba53372fc428
+  zh: 6647e418d2e6457d
+/deepseek-ai-dsh-agent-config/table-of-contents:
+  en: b563e4ec4727d0de
+  zh: e748d178a70e42b9
+/deepseek-ai-dsh-agent-config/use-this-package:
+  en: bbff250eba0f1b89
+  zh: 0a618f05cc88ee2b
+/deepseek-ai-dsh-agent-config/use-this-package/the-document:
+  en: 57712802a9842408
+  zh: 339ddceb0876ccfd
+/deepseek-ai-dsh-agent-config/use-this-package/enforcement:
+  en: c1f26b22a01ce948
+  zh: c32c7fba7d811a0a
+/deepseek-ai-dsh-agent-config/use-this-package/minimal-composition:
+  en: a0974d9055bfc478
+  zh: e4926b1120180338
+/deepseek-ai-dsh-agent-config/understand-the-implementation:
+  en: 42b15ac6321706aa
+  zh: 61b07cf66ee50be0
+/deepseek-ai-dsh-agent-config/understand-the-implementation/governance-is-opt-in-per-project:
+  en: c6fcd6f47280d35d
+  zh: 3009164fe0dbbd02
+/deepseek-ai-dsh-agent-config/understand-the-implementation/masking-not-disconnecting:
+  en: b14b0606794e1a2d
+  zh: 1e53a6c707db6824
+/deepseek-ai-dsh-agent-config/understand-the-implementation/last-good-parse:
+  en: ab5ae5928e069f30
+  zh: 01b89ce3c84c0f2c
+/deepseek-ai-dsh-agent-config/further-exploration:
+  en: f5220901513faeb1
+  zh: 5a951f262784ecd1
+/deepseek-ai-dsh-agent-config/model-experience:
+  en: 215e7ba838619b7b
+  zh: a311da3843709f90
+/deepseek-ai-dsh-agent-config/model-experience/governed-request-inputs:
+  en: 8ca2912b852d7149
+  zh: 71f6b9c715bc21cf
+/deepseek-ai-dsh-agent-config/model-experience/governed-request-inputs/what-the-model-sees:
+  en: e19e3437175c8498
+  zh: b75b46634ce27b08
+/deepseek-ai-dsh-agent-config/model-experience/governed-request-inputs/token-effect:
+  en: ca8b532066c641ce
+  zh: 3fcf685e7ac87fb4
+/deepseek-ai-dsh-agent-config/model-experience/governed-request-inputs/kv-cache-effect:
+  en: 6041757ca3ce653e
+  zh: 97b3b49e823e0568
+/deepseek-ai-dsh-agent-config/known-limitations-and-deferred-work:
+  en: 0d94a550bf56f662
+  zh: 234cb95281ca2170
+/deepseek-ai-dsh-agent-config/known-limitations-and-deferred-work/dev-note:
+  en: 4c5a48b001c0071b
+  zh: 83ae691f8078157b

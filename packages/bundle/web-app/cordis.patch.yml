@@ -152,6 +152,13 @@
     - id: skill-filter-controller
       name: '@deepseek-ai/dsh-api-skill-filter-controller'
 
+    # One `agent-configs.yaml` document governs a project's skills and MCP
+    # servers: the skill filter reads its globs, and this service masks the MCP
+    # tools whose server the project's selection omits.
+    - id: agent-configs
+      name: '@deepseek-ai/dsh-agent-config'
+      inject: [tools]
+
     # One shared MCP server fleet: Settings-configured servers plus servers
     # that installed plugins register, with status and recovery over Remote.
     # Credential templates and OAuth grants resolve through the credentials
