@@ -12,19 +12,53 @@
  */
 
 import { stat } from 'node:fs/promises'
-import { Service } from '@deepseek-ai/cordis'
 import type { Context } from '@deepseek-ai/cordis'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import { scopeOf } from '@deepseek-ai/dsh-scope'
+import { Remote, RemoteError, TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol'
 // Side-effect type imports: declare the agent-created and tools/change events.
 import type {} from '@deepseek-ai/dsh-tools'
 import {
-  EMPTY_DOCUMENT, agentConfigsPath, mcpServersOf, readAgentConfigs, skillGlobsOf,
+  EMPTY_DOCUMENT, agentConfigsPath, mcpServersOf, readAgentConfigs, selectionOf, skillGlobsOf,
+  writeAgentConfigs,
 } from './config.js'
 import type { AgentConfigsDocument } from './config.js'
+import type { AgentConfigRequest, AgentConfigSelectionView, AgentConfigWrite } from './types.js'
 
 export type { AgentConfigsDocument, AgentConfiguration } from './config.js'
+export type {
+  AgentConfigRequest, AgentConfigSelectionView, AgentConfigView, AgentConfigWrite,
+} from './types.js'
 export { agentConfigsPath, readAgentConfigs, writeAgentConfigs } from './config.js'
+
+declare module '@deepseek-ai/cordis' {
+  interface Context {
+    /** Host owner of the `agentConfigs` Remote namespace. */
+    agentConfigs: AgentConfigsService
+  }
+}
+
+/**
+ * Project the document into the browser-safe roster and selection view.
+ * @param document - parsed home document.
+ * @param cwd - absolute project working directory.
+ * @returns the roster with this project's selection.
+ */
+function viewOf(document: AgentConfigsDocument, cwd: string): AgentConfigSelectionView {
+  return {
+    configs: Object.entries(document.configs).map(([name, config]) => ({
+      name,
+      skills: config.skills,
+      mcp: config.mcp,
+    })),
+    selected: selectionOf(document, cwd) ?? [],
+  }
+}
+
+/** Message of an unknown throwable. */
+function messageOf(error: unknown): string {
+  return error instanceof Error ? error.message : String(error)
+}
 
 const MCP_TOOL_PREFIX = 'mcp__'
 
@@ -44,8 +78,8 @@ function mcpServerOf(toolName: string): string | undefined {
  * Service that resolves the document and enforces its MCP half per agent.
  * Skill enforcement lives in the skill filter, which reads the same document.
  */
-export default class AgentConfigsService extends Service {
-  static inject = ['tools']
+export default class AgentConfigsService extends TypertRemoteService {
+  static inject = ['tools', 'typert']
 
   /** Last valid parse; kept so a transient bad write does not silently drop enforcement. */
   private cached: AgentConfigsDocument = EMPTY_DOCUMENT
@@ -64,7 +98,7 @@ export default class AgentConfigsService extends Service {
    * @param ctx - host context of the plugin instance.
    */
   constructor(ctx: Context) {
-    super(ctx, 'agentConfigs')
+    super(ctx, 'agentConfigs', { namespace: 'agentConfigs' })
     ctx.effect(() => {
       const refresh = (): undefined => {
         void this.enqueue(() => this.refresh())
@@ -106,6 +140,54 @@ export default class AgentConfigsService extends Service {
       this.ctx.logger.warn('agent-configs: %s; keeping the previous document', error instanceof Error ? error.message : String(error))
     }
     return this.cached
+  }
+
+  /**
+   * Read every declared config and the selection governing one project.
+   * @param request - the project working directory.
+   * @returns the roster with this project's selection, or the parse error that hid it.
+   */
+  @Remote
+  async getSelection(request: AgentConfigRequest): Promise<AgentConfigSelectionView> {
+    try {
+      return viewOf(await readAgentConfigs(), request.cwd)
+    } catch (error: unknown) {
+      return { configs: [], selected: [], error: messageOf(error) }
+    }
+  }
+
+  /**
+   * Replace one project's selection and re-enforce every live agent.
+   * @param write - the project working directory and the complete replacement selection.
+   * @returns the selection as persisted.
+   * @throws RemoteError `agent-configs/rejected` when a name is undeclared or the file is unwritable.
+   */
+  @Remote
+  async setSelection(write: AgentConfigWrite): Promise<AgentConfigSelectionView> {
+    let document: AgentConfigsDocument
+    try {
+      document = await readAgentConfigs()
+    } catch (error: unknown) {
+      throw new RemoteError('agent-configs/rejected', messageOf(error), { reason: messageOf(error) })
+    }
+    const unknown = write.selected.filter(name => document.configs[name] === undefined)
+    if (unknown.length > 0) {
+      throw new RemoteError('agent-configs/rejected', `未声明的配置：${unknown.join(', ')}`, {
+        reason: `undeclared config: ${unknown.join(', ')}`,
+      })
+    }
+    // An empty selection means "not governed", so the project entry goes away entirely.
+    const next = new Map(Object.entries(document.projects))
+    if (write.selected.length === 0) next.delete(write.cwd)
+    else next.set(write.cwd, [...new Set(write.selected)])
+    try {
+      await writeAgentConfigs({ configs: document.configs, projects: Object.fromEntries(next) })
+    } catch (error: unknown) {
+      throw new RemoteError('agent-configs/rejected', messageOf(error), { reason: messageOf(error) })
+    }
+    this.stamp = undefined
+    await this.enqueue(() => this.refresh())
+    return viewOf(await readAgentConfigs(), write.cwd)
   }
 
   /**

@@ -11,6 +11,7 @@ export type {} from '@deepseek-ai/dsh-agent-team/remote'
 import accountRemote from '@deepseek-ai/dsh-deepseek-account/remote'
 import settingsControllerRemote from '@deepseek-ai/dsh-api-settings-controller/remote'
 import skillFilterRemote from '@deepseek-ai/dsh-api-skill-filter-controller/remote'
+import agentConfigsRemote from '@deepseek-ai/dsh-agent-config/remote'
 import officeKitRemote from '@deepseek-ai/dsh-office-kit/remote'
 import goalsRemote from '@deepseek-ai/dsh-goal/remote'
 import scheduleRemote from '@deepseek-ai/dsh-schedule/remote'
@@ -208,7 +209,7 @@ export async function apply(ctx: Context): Promise<() => Promise<void>> {
       toolResultsRemote,
       messageFeedbackRemote, sessionFeedbackRemote,
       fileUploadsRemote, sessionReferencesRemote,
-      permissionPresetsRemote, skillFilterRemote, subagentsRemote, sessionRemote, sessionStatusRemote, jobRemote,
+      permissionPresetsRemote, skillFilterRemote, agentConfigsRemote, subagentsRemote, sessionRemote, sessionStatusRemote, jobRemote,
       workspaceRemote, workspaceFilesRemote, terminalRemote,
       officeKitRemote, userQuestionsRemote, webRemote,
     ]) {
