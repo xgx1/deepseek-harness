@@ -48,7 +48,7 @@ A document with an unknown top-level key, a selection that is not a string array
 ### Enforcement
 
 - Skills: the skill filter reads `skillGlobs(cwd)` and compiles the union into its project rule layer, so the selected globs allow skills exactly as that layer does.
-- Tools: this service masks every tool the selection's `tools` globs do not match, and every `mcp__<server>__*` tool whose server the selection omits. A server that registers tools later is masked on the next `tools/change`.
+- Tools: this service masks every tool the selection's `tools` globs do not match, and every `mcp__<server>__*` tool whose server the selection omits. A server that registers tools later stays hidden until the next `tools/change`, because the installed restriction is an allow envelope: it names what may survive rather than what to drop, so a tool that did not exist yet is not visible by default.
 
 ### Minimal composition
 

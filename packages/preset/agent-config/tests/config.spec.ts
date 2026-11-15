@@ -9,6 +9,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import {
   EMPTY_DOCUMENT, mcpServersOf, parseAgentConfigs, readAgentConfigs, selectionOf, skillGlobsOf, writeAgentConfigs,
+  writeProjects,
 } from '../src/config.js'
 
 let dir: string
@@ -116,5 +117,25 @@ describe('file round trip', () => {
   it('reports the path of a file that does not parse', async () => {
     await writeFile(file, 'configs: [1]\n', 'utf-8')
     await expect(readAgentConfigs(file)).rejects.toThrow(/configs/)
+  })
+
+  it('keeps comments and fields it does not know when a selection is written', async () => {
+    await writeFile(file, [
+      '# hand-written note, must survive',
+      'configs:',
+      '  mini:',
+      '    skills: []',
+      '    mcp: [cbm]',
+      '    tools: [read]',
+      '    future: keep-me',
+      'projects: {}',
+      '',
+    ].join('\n'), 'utf-8')
+    await writeProjects({ '/p': ['mini'] }, file)
+    const text = await readFile(file, 'utf-8')
+    expect(text).toContain('# hand-written note, must survive')
+    expect(text).toContain('tools: [read]')
+    expect(text).toContain('future: keep-me')
+    expect(text).toContain('"/p":')
   })
 })

@@ -23,6 +23,7 @@ beforeEach(async () => {
     '  mini:',
     '    skills: []',
     '    mcp: [cbm]',
+    '    tools: [read]',
     '',
   ].join('\n'), 'utf-8')
 })
@@ -38,7 +39,7 @@ async function settle(): Promise<void> {
   for (let tick = 0; tick < 200; tick++) await new Promise(resolve => setTimeout(resolve, 2))
 }
 
-it('converges when a governed agent has servers to hide but no tools to deny', async () => {
+it('converges when a governed agent has nothing to allow and a server to hide', async () => {
   const ctx = new Context()
   const counts = { suppress: 0, restrict: 0, change: 0 }
   // Every installed mask emits the very event that schedules the next recompute.
@@ -47,7 +48,7 @@ it('converges when a governed agent has servers to hide but no tools to deny', a
     lookups: { configure: () => () => {} },
     contexts: { configureHost: () => () => {} },
   } as never)
-  ctx.provide('tools', { schemas: () => [] } as never)
+  ctx.provide('tools', { schemas: () => [], knownNames: () => new Set<string>() } as never)
   ctx.provide('mcpResources', {
     servers: () => ['cbm', 'other'],
     suppress: () => { counts.suppress += 1; change(); return () => {} },
@@ -64,8 +65,9 @@ it('converges when a governed agent has servers to hide but no tools to deny', a
   await settle()
   // One installation per governed agent, and the emitted change does not reschedule it.
   expect(counts.suppress).toBe(1)
-  expect(counts.restrict).toBe(0)
-  expect(counts.change).toBe(1)
+  // An empty envelope still installs: omitting it would leave every tool visible.
+  expect(counts.restrict).toBe(1)
+  expect(counts.change).toBe(2)
 })
 
 it('reinstalls once per real selection change and then settles again', async () => {
@@ -77,7 +79,7 @@ it('reinstalls once per real selection change and then settles again', async () 
     lookups: { configure: () => () => {} },
     contexts: { configureHost: () => () => {} },
   } as never)
-  ctx.provide('tools', { schemas: () => [] } as never)
+  ctx.provide('tools', { schemas: () => [], knownNames: () => new Set<string>() } as never)
   ctx.provide('mcpResources', {
     servers: () => ['cbm', 'other'],
     suppress: (names: string[]) => { hide.push([...names]); change(); return () => {} },
@@ -115,7 +117,10 @@ it('allows no MCP server when the document does not list the project', async () 
     lookups: { configure: () => () => {} },
     contexts: { configureHost: () => () => {} },
   } as never)
-  ctx.provide('tools', { schemas: () => [{ name: 'mcp__cbm__search' }, { name: 'read' }] } as never)
+  ctx.provide('tools', {
+    schemas: () => [{ name: 'mcp__cbm__search' }, { name: 'read' }],
+    knownNames: () => new Set(['mcp__cbm__search', 'read']),
+  } as never)
   ctx.provide('mcpResources', {
     servers: () => ['cbm', 'other'],
     suppress: (names: string[]) => { hidden.push([...names]); return () => {} },
@@ -124,7 +129,7 @@ it('allows no MCP server when the document does not list the project', async () 
   const agentCtx = {
     tools: {
       schemas: () => [],
-      restrict: (options: { deny: readonly string[] }) => { denied.push([...options.deny]); return () => {} },
+      restrict: (options: { allow?: readonly string[] }) => { denied.push([...(options.allow ?? [])]); return () => {} },
     },
   }
   // `cwd` stays out of the document's projects map, so the project selects nothing.
@@ -133,8 +138,8 @@ it('allows no MCP server when the document does not list the project', async () 
   } as never)
   await settle()
   expect(hidden).toEqual([['cbm', 'other']])
-  // Nothing is selected, so the tool whitelist allows nothing either.
-  expect(denied).toEqual([['mcp__cbm__search', 'read']])
+  // Nothing is selected, so the envelope allows nothing.
+  expect(denied).toEqual([[]])
   void service
 })
 
@@ -145,22 +150,24 @@ it('masks a new agent in the tick it is created, before its first request', asyn
     lookups: { configure: () => () => {} },
     contexts: { configureHost: () => () => {} },
   } as never)
-  ctx.provide('tools', { schemas: () => [{ name: 'read' }, { name: 'mcp__other__ping' }] } as never)
+  ctx.provide('tools', {
+    schemas: () => [{ name: 'read' }, { name: 'mcp__other__ping' }],
+    knownNames: () => new Set(['read', 'mcp__other__ping']),
+  } as never)
   ctx.provide('mcpResources', { servers: () => [], suppress: () => () => {} } as never)
   const service = new AgentConfigsService(ctx)
   await service.setSelection({ cwd, selected: ['mini'] })
   const agentCtx = {
     tools: {
       schemas: () => [],
-      restrict: (options: { deny: readonly string[] }) => { denied.push([...options.deny]); return () => {} },
+      restrict: (options: { allow?: readonly string[] }) => { denied.push([...(options.allow ?? [])]); return () => {} },
     },
   }
   ctx.emit('agent/created', {
     agent: { session: { id: 'session-first-step', header: { cwd } }, ctx: { ...agentCtx, mcpResources: ctx.mcpResources } },
   } as never)
   // No settle: the mask must already be installed, or the first request leaks.
-  // The fixture config declares no tools, so the whitelist denies both.
-  expect(denied).toEqual([['read', 'mcp__other__ping']])
+  expect(denied).toEqual([['read']])
   void service
 })
 
@@ -170,7 +177,7 @@ it('suppresses each agent in its own scope, so two sessions never collide', asyn
     lookups: { configure: () => () => {} },
     contexts: { configureHost: () => () => {} },
   } as never)
-  ctx.provide('tools', { schemas: () => [] } as never)
+  ctx.provide('tools', { schemas: () => [], knownNames: () => new Set<string>() } as never)
   // The runtime keeps suppressions per scope; a root-scope call would collide here.
   const seen: string[][] = []
   ctx.provide('mcpResources', {
@@ -198,7 +205,7 @@ it('suppresses each agent in its own scope, so two sessions never collide', asyn
   expect(seen).toEqual([['agent', 'cbm'], ['agent', 'cbm']])
 })
 
-it('denies every tool the selection does not name', async () => {
+it('allows only the tools the selection names', async () => {
   const ctx = new Context()
   const denied: string[][] = []
   ctx.provide('typert', {
@@ -209,6 +216,7 @@ it('denies every tool the selection does not name', async () => {
     schemas: () => [
       { name: 'read' }, { name: 'write' }, { name: 'mcp__cbm__search' }, { name: 'mcp__other__ping' },
     ],
+    knownNames: () => new Set(['read', 'write', 'mcp__cbm__search', 'mcp__other__ping']),
   } as never)
   ctx.provide('mcpResources', { servers: () => ['cbm', 'other'], suppress: () => () => {} } as never)
   const service = new AgentConfigsService(ctx)
@@ -224,13 +232,13 @@ it('denies every tool the selection does not name', async () => {
   const agentCtx = {
     tools: {
       schemas: () => [],
-      restrict: (options: { deny: readonly string[] }) => { denied.push([...options.deny]); return () => {} },
+      restrict: (options: { allow?: readonly string[] }) => { denied.push([...(options.allow ?? [])]); return () => {} },
     },
   }
   ctx.emit('agent/created', {
     agent: { session: { id: 'session-whitelist', header: { cwd } }, ctx: { ...agentCtx, mcpResources: ctx.mcpResources } },
   } as never)
   await settle()
-  expect(denied).toEqual([['write', 'mcp__other__ping']])
+  expect(denied).toEqual([['read', 'mcp__cbm__search']])
   void service
 })

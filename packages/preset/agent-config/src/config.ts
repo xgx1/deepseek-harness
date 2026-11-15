@@ -150,6 +150,31 @@ export async function writeAgentConfigs(document: AgentConfigsDocument, filePath
 }
 
 /**
+ * Replace only the `projects` mapping, leaving comments and fields this build
+ * does not know intact: another instance may own parts of the same document.
+ * @param projects - the complete replacement mapping.
+ * @param filePath - path to patch; defaults to {@link agentConfigsPath}.
+ */
+export async function writeProjects(projects: Record<string, readonly string[]>, filePath = agentConfigsPath()): Promise<void> {
+  // A missing document has no configuration block to keep, so a full write is the only sane result.
+  const raw = await readFile(filePath, 'utf-8').catch(() => undefined)
+  if (raw === undefined || !/^configs:/m.test(raw)) {
+    await writeAgentConfigs({ configs: {}, projects }, filePath)
+    return
+  }
+  const marker = raw.search(/^projects:/m)
+  const head = (marker === -1 ? raw : raw.slice(0, marker)).trimEnd()
+  const body = ['projects:', ...Object.entries(projects).flatMap(([path, selected]) => [
+    '  ' + JSON.stringify(path) + ':',
+    ...selected.map(name => '    - ' + JSON.stringify(name)),
+  ])].join('\n')
+  await mkdir(dirname(filePath), { recursive: true })
+  const temporary = filePath + '.tmp'
+  await writeFile(temporary, head + '\n' + body + '\n', 'utf-8')
+  await rename(temporary, filePath)
+}
+
+/**
  * Resolve a project's selected configuration names.
  * @param document - the document to resolve against.
  * @param cwd - absolute project working directory.

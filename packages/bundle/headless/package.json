@@ -63,7 +63,8 @@
     "@deepseek-ai/dsh-permission-presets": "workspace:*",
     "@deepseek-ai/dsh-sandbox-policy": "workspace:*",
     "@deepseek-ai/dsh-subagent": "workspace:*",
-    "@deepseek-ai/dsh-user-approval": "workspace:*"
+    "@deepseek-ai/dsh-user-approval": "workspace:*",
+    "@deepseek-ai/dsh-agent-config": "workspace:*"
   },
   "devDependencies": {
     "@deepseek-ai/cordis": "workspace:~",

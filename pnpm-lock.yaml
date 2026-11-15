@@ -2798,6 +2798,9 @@ importers:
 
   packages/bundle/headless:
     dependencies:
+      '@deepseek-ai/dsh-agent-config':
+        specifier: workspace:*
+        version: link:../../preset/agent-config
       '@deepseek-ai/dsh-brand':
         specifier: workspace:*
         version: link:../../util/brand

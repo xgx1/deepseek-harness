@@ -332,6 +332,15 @@ export class ToolsService extends Service {
    * @param toolSet - step admission, or omitted for registered-definition inspection.
    * @returns one deep-cloned schema per visible tool.
    */
+  /**
+   * Names a scope can host, whether or not a restriction currently hides them.
+   * @param scope - the viewing scope, or undefined for the global view.
+   * @returns the pre-restriction names of the scope chain.
+   */
+  knownNames(scope?: ScopeKey): ReadonlySet<string> {
+    return this.view(scope).knownNames
+  }
+
   schemas(scope?: ScopeKey, toolSet?: ResolvedToolSet): ToolSchema[] {
     return this.definitions(scope, toolSet).map(definition => projectToolSchema(definition, true))
   }

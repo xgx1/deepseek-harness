@@ -24,7 +24,7 @@ import type {} from '@deepseek-ai/dsh-tools'
 import type {} from '@deepseek-ai/dsh-mcp-resources'
 import {
   EMPTY_DOCUMENT, agentConfigsPath, mcpServersOf, parseAgentConfigs, readAgentConfigs, selectionOf,
-  skillGlobsOf, toolsOf, writeAgentConfigs,
+  skillGlobsOf, toolsOf, writeProjects,
 } from './config.js'
 import type { AgentConfigsDocument } from './config.js'
 import type { AgentConfigRequest, AgentConfigSelectionView, AgentConfigWrite } from './types.js'
@@ -83,6 +83,7 @@ function mcpServerOf(toolName: string): string | undefined {
  * Service that resolves the document and enforces its MCP half per agent.
  * Skill enforcement lives in the skill filter, which reads the same document.
  */
+
 export default class AgentConfigsService extends TypertRemoteService {
   static inject = ['tools', 'typert', 'mcpResources']
 
@@ -94,8 +95,10 @@ export default class AgentConfigsService extends TypertRemoteService {
   private readonly agents = new Map<string, Agent>()
   /** Lifts one agent's mask, keyed by session id. */
   private readonly masks = new Map<string, () => void>()
-  /** Names each installed mask hides, so an unchanged selection is left alone. */
+  /** Names each installed allow envelope permits, so an unchanged selection is left alone. */
   private readonly masked = new Map<string, Set<string>>()
+  /** Projects already reported as unlisted, so the warning fires once per checkout. */
+  private readonly unlisted = new Set<string>()
   /** Lifts one agent's prompt suppression, keyed by session id. */
   private readonly suppressors = new Map<string, () => void>()
   /** Servers each suppression hides, so an unchanged profile is left alone. */
@@ -146,6 +149,7 @@ export default class AgentConfigsService extends TypertRemoteService {
         for (const lift of this.suppressors.values()) lift()
         this.masks.clear()
         this.masked.clear()
+        this.unlisted.clear()
         this.suppressors.clear()
         this.suppressed.clear()
         this.agents.clear()
@@ -237,7 +241,9 @@ export default class AgentConfigsService extends TypertRemoteService {
     if (write.selected.length === 0) next.delete(write.cwd)
     else next.set(write.cwd, [...new Set(write.selected)])
     try {
-      await writeAgentConfigs({ configs: document.configs, projects: Object.fromEntries(next) })
+      // Projects-only: a full rewrite would drop comments and any field this build
+      // does not know, which another instance relies on.
+      await writeProjects(Object.fromEntries(next))
     } catch (error: unknown) {
       throw new RemoteError('agent-configs/rejected', messageOf(error), { reason: messageOf(error) })
     }
@@ -305,30 +311,40 @@ export default class AgentConfigsService extends TypertRemoteService {
     for (const agent of this.agents.values()) {
       const sessionId = agent.session.id
       const cwd = agent.session.header.cwd
+      if (cwd !== undefined && selectionOf(document, cwd) === undefined && !this.unlisted.has(cwd)) {
+        this.unlisted.add(cwd)
+        this.ctx.logger.warn('agent-configs: %s is not listed under projects; this agent gets no skill, no MCP server and no tool', cwd)
+      }
       const servers = mcpServersOf(document, cwd) ?? new Set<string>()
       // A tool is allowed by its own glob or, for an MCP tool, by its server.
       const allowsTool = picomatch([...(toolsOf(document, cwd) ?? [])], { dot: true })
-      // MCP servers mount in whatever scope their composition entry declares, so
-      // candidates come from the agent's own view; the names a live mask already
-      // hides are unioned back in, because that view no longer reports them.
-      const names = new Set<string>(this.masked.get(sessionId))
-      for (const schema of this.ctx.tools.schemas(scopeOf(agent.ctx))) names.add(schema.name)
-      const deny = [...names].filter((name) => {
-        if (allowsTool(name)) return false
+      const permits = (name: string): boolean => {
+        if (allowsTool(name)) return true
         const server = mcpServerOf(name)
-        return server === undefined || !servers.has(server)
-      })
+        return server !== undefined && servers.has(server)
+      }
+      // An allow envelope hides every name it omits, so a tool registered after
+      // this pass waits for the next one instead of leaking into the request being
+      // assembled now; names a live envelope hides are unioned back in because the
+      // view no longer reports them.
+      const scope = scopeOf(agent.ctx)
+      const names = new Set<string>(this.masked.get(sessionId))
+      for (const schema of this.ctx.tools.schemas(scope)) names.add(schema.name)
+      const known = this.ctx.tools.knownNames(scope)
+      const allow = [...names].filter(name => known.has(name) && permits(name))
       // Servers whose tools never reach the view (none registered yet) are still
       // suppressed by name, so their prompt sections and resources follow the selection.
       const roster = this.ctx.mcpResources.servers(scopeOf(agent.ctx))
       const hide = roster.filter(name => !servers.has(name))
       const previous = this.masked.get(sessionId)
       const previousHide = this.suppressed.get(sessionId)
-      // An absent installation is the empty selection: `same(undefined, [])` must hold,
-      // or an agent with nothing to deny never converges and reinstalls every pass.
       const same = (installed: Set<string> | undefined, next: readonly string[]): boolean =>
         (installed?.size ?? 0) === next.length && next.every(name => installed?.has(name) === true)
-      if (same(previous, deny) && same(previousHide, hide)) continue
+      // An absent envelope is not the empty one: absence allows every tool, while an
+      // empty envelope allows none, so the first pass always installs.
+      const emptyEnvelopeAllowed = previous === undefined
+      // An absent suppression is the empty set and needs no installation.
+      if (!emptyEnvelopeAllowed && same(previous, allow) && same(previousHide, hide)) continue
       this.applying = true
       try {
         this.masks.get(sessionId)?.()
@@ -337,18 +353,21 @@ export default class AgentConfigsService extends TypertRemoteService {
         this.suppressors.get(sessionId)?.()
         this.suppressors.delete(sessionId)
         this.suppressed.delete(sessionId)
-        if (deny.length > 0) {
-          // includeScoped: a preset mounts its MCP clients per agent, so their
-          // tools are scope-local and an ordinary mask would leave them visible.
-          this.masks.set(sessionId, agent.ctx.tools.restrict({ deny, includeScoped: true }))
-          this.masked.set(sessionId, new Set(deny))
-        }
+        // Installed even when empty: an omitted envelope would leave every tool
+        // visible, which is the opposite of a project that selected nothing.
+        // includeScoped: a preset mounts its MCP clients per agent, so their tools
+        // are scope-local and an ordinary mask would leave them visible.
+        this.masks.set(sessionId, agent.ctx.tools.restrict({ allow, includeScoped: true }))
+        this.masked.set(sessionId, new Set(allow))
         if (hide.length > 0) {
           // Hide in the agent's own scope: a root-scope suppression would collide with
           // every other session's and hide servers they may see.
           this.suppressors.set(sessionId, this.ctx.mcpResources.suppress(hide, agent.ctx))
           this.suppressed.set(sessionId, new Set(hide))
         }
+      } catch (error) {
+        // One agent's failure must not skip the rest of the pass.
+        this.ctx.logger.warn('agent-configs: cannot enforce %s: %s', cwd, messageOf(error))
       } finally { this.applying = false }
     }
     const live = new Set([...this.agents.keys()])
