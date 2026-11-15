@@ -1,6 +1,6 @@
 /** Profile-owned configuration edits, serialized with Loader hot reload. */
 import { readFile } from 'node:fs/promises'
-import { join } from 'node:path'
+import { extname, join } from 'node:path'
 import { isDeepStrictEqual } from 'node:util'
 import { Context, FiberState, Service } from '@deepseek-ai/cordis'
 import { parseEntryYaml, type PatchOptions } from '@deepseek-ai/cordis-plugin-include'
@@ -106,6 +106,9 @@ export class ConfigEditor extends Service {
           if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
           before = '[]\n'
         }
+        // The editor rewrites YAML with its comments; a TOML patch layer has no writer yet.
+        // shortcut: TOML profile patches are read-only from this editor, add a TOML writer when editing them is needed.
+        if (extname(path) === '.toml') throw new Error(`${path}: the configuration editor does not edit TOML patch layers`)
         const document = parseDocument(before, {
           customTags: [{ tag: 'tag:yaml.org,2002:js', resolve: (value: string) => value }],
         })

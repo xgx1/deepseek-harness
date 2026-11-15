@@ -10,7 +10,7 @@
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, symlinkSync, writeFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
-import { basename, dirname, join, resolve } from 'node:path'
+import { basename, dirname, extname, join, resolve } from 'node:path'
 import { Readable, Writable } from 'node:stream'
 import { pathToFileURL } from 'node:url'
 import {
@@ -36,7 +36,7 @@ import {
   type SetSessionConfigOptionResponse,
   type SessionNotification,
 } from '@agentclientprotocol/sdk'
-import { parseEntryYaml, stringifyEntryYaml, type PatchOptions } from '@deepseek-ai/cordis-plugin-include'
+import { parseEntryToml, parseEntryYaml, stringifyEntryYaml, type PatchOptions } from '@deepseek-ai/cordis-plugin-include'
 import { resolveExampleLaunch } from '@deepseek-ai/dsh-loader-smoke'
 
 const EXIT_MARKER_GRACE_MS = 250
@@ -416,7 +416,8 @@ function linkProfilePackage(source: string, cwd: string, profile: string, packag
 export function materializeProfilePatch(
   source: string, cwd: string, profile: string, targetDir: string, index: number,
 ): string {
-  const parsed = parseEntryYaml(readFileSync(source, 'utf8'))
+  const content = readFileSync(source, 'utf8')
+  const parsed = extname(source) === '.toml' ? parseEntryToml(content) : parseEntryYaml(content)
   if (!Array.isArray(parsed)) throw new Error(`snapshot profile patch must be a top-level array: ${source}`)
   const patches = parsed as PatchOptions[]
   const baseDir = dirname(source)

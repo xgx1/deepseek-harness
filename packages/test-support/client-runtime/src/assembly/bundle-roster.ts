@@ -15,10 +15,10 @@
  */
 import { existsSync, readFileSync, realpathSync } from 'node:fs'
 import { createRequire } from 'node:module'
-import { basename, dirname, join } from 'node:path'
+import { basename, dirname, extname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { evaluate, isJsExpr, type EntryOptions } from '@deepseek-ai/cordis-plugin-loader'
-import { applyEntryPatches, parseEntryYaml, type PatchOptions } from '@deepseek-ai/cordis-plugin-include'
+import { applyEntryPatches, parseEntryToml, parseEntryYaml, type PatchOptions } from '@deepseek-ai/cordis-plugin-include'
 import { exactPackageSpecifier, parseDshClient } from '@deepseek-ai/dsh-client-modules/client'
 import { ClientRoster, type ClientRosterRow } from './roster.ts'
 
@@ -95,7 +95,8 @@ function readLayer(bundle: string, anchor: string): BundleLayer {
   }
   const patches = files.flatMap((patch) => {
     const file = join(dirname(manifestPath), patch)
-    const parsed: unknown = parseEntryYaml(readFileSync(file, 'utf8'))
+    const content = readFileSync(file, 'utf8')
+    const parsed: unknown = extname(file) === '.toml' ? parseEntryToml(content) : parseEntryYaml(content)
     if (!Array.isArray(parsed)) throw new Error(`client-test-runtime: ${file} must be a top-level list of patches`)
     return parsed as PatchOptions[]
   })

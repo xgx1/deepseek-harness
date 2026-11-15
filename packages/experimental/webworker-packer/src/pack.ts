@@ -28,7 +28,7 @@ import {
   type ImageLazyArchive, type ImageManifest,
 } from '@deepseek-ai/dsh-experimental-webworker-runtime'
 import picomatch from 'picomatch'
-import { parseEntryYaml, stringifyEntryYaml, type PatchOptions } from '@deepseek-ai/cordis-plugin-include'
+import { parseEntryToml, parseEntryYaml, stringifyEntryYaml, type PatchOptions } from '@deepseek-ai/cordis-plugin-include'
 import { PROFILE_PATCH_FILENAME } from '@deepseek-ai/dsh-app-boot'
 import { WRAPPER_CONTRACT, type ImageFiles, type TransformOutcome } from './transform-image.ts'
 import { EXCLUDE, EXCLUDE_WORKSPACE, IMAGE_ENTRY_SEEDS, PAGE_ASSETS } from './rules.ts'
@@ -205,8 +205,19 @@ function treeRosterOf(root: string): string[] {
         walk(absolute)
         continue
       }
-      if (!entry.name.endsWith('.yml') && !entry.name.endsWith('.yaml')) continue
-      collectModuleNames(parseEntryYaml(readFileSync(absolute, 'utf8')), names)
+      const toml = entry.name.endsWith('.toml')
+      if (!toml && !entry.name.endsWith('.yml') && !entry.name.endsWith('.yaml')) continue
+      const content = readFileSync(absolute, 'utf8')
+      if (!toml) {
+        collectModuleNames(parseEntryYaml(content), names)
+        continue
+      }
+      // A config tree can hold other tools' TOML documents; only an entry file is a composition.
+      try {
+        collectModuleNames(parseEntryToml(content), names)
+      } catch {
+        continue
+      }
     }
   }
   walk(root)
