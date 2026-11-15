@@ -29,7 +29,7 @@ export type { AgentConfigsDocument, AgentConfiguration } from './config.js'
 export type {
   AgentConfigRequest, AgentConfigSelectionView, AgentConfigView, AgentConfigWrite,
 } from './types.js'
-export { agentConfigsPath, readAgentConfigs, writeAgentConfigs } from './config.js'
+// Config file access stays on the `./config` subpath: a plugin entry exports only what the loader reads.
 
 declare module '@deepseek-ai/cordis' {
   interface Context {

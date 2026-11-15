@@ -72,6 +72,8 @@ export function ConversationContent(props: ConversationContentProps) {
   const pendingWorkspace = workspaces.items.find(
     workspace => workspace.workspaceId === pendingWorkspaceId,
   )
+  // The hero governs the workspace a session will land in, which has no Session cwd before the first message.
+  const heroCwd = pendingWorkspace?.path ?? sessionWorkspace?.path ?? cwd
 
   // Clear the pending pick once the session lands in it, or when the picked
   // workspace disappears from a ready list (deleted from the sidebar).
@@ -130,6 +132,7 @@ export function ConversationContent(props: ConversationContentProps) {
         onClose: () => { setPickerOpen(false) },
       })}
       {renderSlot('conversation.hero.agentPreset', {})}
+      {renderSlot('conversation.hero.agentConfig', { cwd: heroCwd })}
       {sessionId === undefined ? null : <div className={css.heroOptions}>{renderSlot('conversation.hero.options', {})}</div>}
     </div>
   )

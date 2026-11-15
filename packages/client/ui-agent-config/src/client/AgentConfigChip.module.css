@@ -1,0 +1,80 @@
+/* Project agent-config chip on the new-session screen, beside the preset
+   chip. Geometry mirrors that chip so the two read as one row; the label
+   ellipsizes instead of pushing the glyphs apart. */
+
+/* The Menu anchor wrapper between the row and this chip: its flex
+   auto-minimum would hold the full label width and the row could never
+   compress the chip. The floor is the icon-only end state — 8px paddings +
+   16px icon + two 4px gaps + 14px chevron. */
+.menuAnchor {
+  min-width: 54px;
+  max-width: 100%;
+}
+
+.seat {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  max-width: min(100%, 240px);
+  min-height: 28px;
+  padding: 0 8px;
+  border: none;
+  border-radius: var(--dsw-radius-sm);
+  background: transparent;
+  color: var(--dsw-alias-label-primary);
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.seat[aria-expanded='true'] {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+@media (hover: hover) {
+  .seat:hover {
+    background: var(--dsw-alias-interactive-bg-hover);
+  }
+}
+
+.seatIcon {
+  flex: none;
+  color: var(--dsw-alias-label-primary);
+}
+
+.seatLabel {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chevron {
+  flex: none;
+  color: var(--dsw-alias-label-caption);
+}
+
+/* Menu rows carry the config name over what it contributes, so the choice
+   reads without opening the config document. */
+.item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-width: 280px;
+}
+
+.itemName {
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--dsw-alias-label-primary);
+}
+
+.itemDesc {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--dsw-alias-label-caption);
+  white-space: normal;
+}

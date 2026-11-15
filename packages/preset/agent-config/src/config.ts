@@ -82,7 +82,7 @@ function parseConfiguration(value: unknown, name: string): AgentConfiguration {
  * @throws when the text is not a mapping, has an unknown top-level key, or a malformed entry.
  */
 export function parseAgentConfigs(raw: string, filePath = agentConfigsPath()): AgentConfigsDocument {
-  const parsed = parseYaml(raw) as unknown
+  const parsed: unknown = parseYaml(raw)
   if (parsed === null || parsed === undefined) return EMPTY_DOCUMENT
   if (typeof parsed !== 'object' || Array.isArray(parsed)) {
     throw new Error(`Invalid agent-configs at ${filePath}: expected a YAML mapping`)

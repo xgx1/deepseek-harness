@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Project agent configs",
+    "description": "Named bundles of skills and MCP servers a project's sessions run with."
+  }
+}

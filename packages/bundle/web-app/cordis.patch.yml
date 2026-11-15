@@ -157,7 +157,7 @@
     # tools whose server the project's selection omits.
     - id: agent-configs
       name: '@deepseek-ai/dsh-agent-config'
-      inject: [tools]
+      inject: [tools, typert]
 
     # One shared MCP server fleet: Settings-configured servers plus servers
     # that installed plugins register, with status and recovery over Remote.
@@ -479,6 +479,11 @@
     # sessions created later. Absent a roster it renders nothing.
     - id: ui-agent-preset
       name: '@deepseek-ai/dsh-client-ui-agent-preset'
+
+    # Project agent-config chip on the new-session screen, beside the preset
+    # chip. Absent a declared roster it renders nothing.
+    - id: ui-agent-config
+      name: '@deepseek-ai/dsh-client-ui-agent-config'
 
     # Region-local More menus: pin or unpin plugin launchers and start a
     # plugin draft.

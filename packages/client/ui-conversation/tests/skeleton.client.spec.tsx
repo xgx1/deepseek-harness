@@ -920,11 +920,14 @@ describe('ConversationRoot resident composer', () => {
     expect(b.slotCalls).toContain('conversation.hero.options')
   })
 
-  it('seats the New Session options after the agent-preset chip, and only for a Session', () => {
+  it('seats the New Session options after the preset and project-config chips, and only for a Session', () => {
     const b = mount(sessionSnapshotOf({ blank: true }))
     const preset = within(b.view.container).getByTestId('view-conversation.hero.agentPreset')
+    const config = within(b.view.container).getByTestId('view-conversation.hero.agentConfig')
     const options = within(b.view.container).getByTestId('view-conversation.hero.options')
-    expect(options.parentElement?.previousElementSibling).toBe(preset)
+    // Both staged choices sit before the options: they are made before the first message.
+    expect(config.previousElementSibling).toBe(preset)
+    expect(options.parentElement?.previousElementSibling).toBe(config)
 
     const cold = mount(sessionSnapshotOf(), [], undefined, { sessionId: undefined })
     expect(cold.slotCalls).toContain('conversation.hero.agentPreset')
