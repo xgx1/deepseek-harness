@@ -187,7 +187,7 @@ function directoryEntry(child: FsDirEntry): WorkspaceDirectoryEntry {
 
 /** Host Remote file reads and workspace directory observations over the composed filesystem. */
 export class WorkspaceFiles extends TypertRemoteService {
-  static inject = ['fs', 'sandboxPolicy', 'sessions', 'typert']
+  static inject = ['fs', 'sessions', 'typert']
 
   static Config: z<Config> = z.object({
     maxBytes: z.number().step(1).min(1).default(2 * 1024 * 1024),
@@ -228,7 +228,7 @@ export class WorkspaceFiles extends TypertRemoteService {
           if (header === undefined) return undefined
           return {
             sessionId,
-            workspaceRoot: header.cwd ?? scope.sandboxPolicy.workspaceRoot,
+            workspaceRoot: header.cwd ?? scope.get('sandboxPolicy')?.workspaceRoot ?? process.cwd(),
           }
         },
       })

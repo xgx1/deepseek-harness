@@ -71,7 +71,8 @@ class NodeExecution {
    * @returns Resolved inputs with the selected file policy.
    */
   resolve(request: PtcRunRequest): PtcRunSpec {
-    const sandboxPolicy = request.sandboxPolicy ?? this.ctx.sandboxPolicy.resolve()
+    const sandboxPolicy = request.sandboxPolicy ?? this.ctx.get('sandboxPolicy')?.resolve()
+      ?? { mode: 'danger-full-access' as const, workspaceRoot: request.cwd ?? process.cwd() }
     const cwd = request.cwd ?? sandboxPolicy.workspaceRoot
     if (!isAbsolute(cwd)) throw new PtcRuntimeError(`${this.mode.retainsState ? 'persistent PTC' : 'ptc-runtime-node'}: cwd must be absolute`, 'PTC_RUNTIME_INVALID_ARGUMENT')
     return { ...request, sandboxPolicy, cwd, timeoutMs: request.timeoutMs === null ? null : clampTimeout(request.timeoutMs, this.config.timeoutMs, this.config.maxTimeoutMs, this.mode.retainsState ? 'persistent PTC timeoutMs' : 'ptc-runtime-node: timeoutMs') }

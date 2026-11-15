@@ -381,7 +381,8 @@ export class ProgramWorker {
     const argv = [executable, ...packaged ? [] : [heapFlag],
       ...bootstrapArgs(this.ctx.fs, this.config.launch, this.config.maxMessageBytes)]
     const policy = this.policy
-    this.confined = policy.mode === 'danger-full-access' ? undefined : await this.ctx.sandbox.confine(argv, { ...policy, mode: policy.mode }, this.controller.signal)
+    const sandbox = this.ctx.get('sandbox')
+    this.confined = policy.mode === 'danger-full-access' || sandbox === undefined ? undefined : await sandbox.confine(argv, { ...policy, mode: policy.mode }, this.controller.signal)
     // oxlint-disable-next-line typescript/no-unnecessary-condition -- Confinement may yield while disposal closes the process.
     if (this.closed) return
     const env: NodeJS.ProcessEnv = Object.fromEntries(Object.keys(process.env)

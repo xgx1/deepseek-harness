@@ -103,7 +103,7 @@ function resolveMaxTotalAgents(requested: number | undefined, ceiling: number): 
  * the seam contract.
  */
 class PtcWorkflowEngine extends WorkflowEngine {
-  static inject = ['subagents', 'ptcRuntime', 'sandboxPolicy', 'workingDirectory']
+  static inject = ['subagents', 'ptcRuntime', 'workingDirectory']
 
   static Config: z<Config> = z.object({
     provider: z.string().default('spawn'),
@@ -166,7 +166,8 @@ class PtcWorkflowEngine extends WorkflowEngine {
       request.parent,
       init,
       subagentProvider,
-      runCtx.sandboxPolicy.resolve({ session: request.parent.session }),
+      runCtx.get('sandboxPolicy')?.resolve({ session: request.parent.session })
+        ?? { mode: 'danger-full-access' as const, workspaceRoot: request.parent.session.header.cwd ?? process.cwd() },
       {
         phase: (title) => { this.emitWorkflowEvent('workflow/phase', info, title) },
         log: (message) => { this.emitWorkflowEvent('workflow/log', info, message) },

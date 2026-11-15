@@ -106,7 +106,7 @@ function terminalTitle(title: string): string {
 
 /** Typed Remote control of transient Session-owned terminal processes. */
 export class TerminalController extends TypertRemoteService {
-  static inject = ['subprocess', 'sandboxPolicy', 'workingDirectory', 'typert']
+  static inject = ['subprocess', 'workingDirectory', 'typert']
   static Config: z<Config> = z.object({
     shell: z.union([z.object({
       path: z.string().required(), name: z.string().required(), args: z.array(z.string()).default([]),
@@ -523,14 +523,13 @@ export class TerminalController extends TypertRemoteService {
       || !Number.isSafeInteger(rows) || rows < 1 || rows > this.config.maxRows) throw new Error('Terminal dimensions exceed the configured limits')
   }
 
-  private execution(agent: Agent): { subprocess: Context['subprocess']; sandboxPolicy: Context['sandboxPolicy']; workingDirectory: Context['workingDirectory'] } {
+  private execution(agent: Agent): { subprocess: Context['subprocess']; workingDirectory: Context['workingDirectory'] } {
     // The Agent context selects execution providers but does not inject consumer services.
     const subprocess = agent.ctx.get('subprocess')
-    const sandboxPolicy = agent.ctx.get('sandboxPolicy')
-    if (subprocess === undefined || sandboxPolicy === undefined) throw new Error('The Session execution environment requires subprocess and sandbox policy providers')
+    if (subprocess === undefined) throw new Error('The Session execution environment requires a subprocess provider')
     const workingDirectory = agent.ctx.get('workingDirectory')
     if (workingDirectory === undefined) throw new Error('The Session execution environment requires a working-directory provider')
-    return { subprocess, sandboxPolicy, workingDirectory }
+    return { subprocess, workingDirectory }
   }
 
   private async spawn(

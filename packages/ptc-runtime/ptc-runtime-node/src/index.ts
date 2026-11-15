@@ -22,7 +22,9 @@ interface InitializerRegistration {
 
 /** Node execution under file policy, with optional owner-scoped retained memory. */
 export class NodePtcRuntime extends PtcRuntime {
-  static inject = ['fs', 'subprocess', 'sandbox', 'sandboxPolicy']
+  // Both optional: an unconfined host mounts neither, and the runtime then runs
+  // programs without a policy instead of refusing to exist.
+  static inject = ['fs', 'subprocess']
   static Config = NodeConfig
   readonly language = 'typescript'
   readonly isolation = 'process'
@@ -86,7 +88,7 @@ export class NodePtcRuntime extends PtcRuntime {
     }
   }
 
-  override get sandboxMode(): SandboxMode | undefined { return this.ctx.sandboxPolicy.defaultMode }
+  override get sandboxMode(): SandboxMode | undefined { return this.ctx.get('sandboxPolicy')?.defaultMode }
 
   override release(owner: object): Promise<void> {
     return this.execution.release(owner)

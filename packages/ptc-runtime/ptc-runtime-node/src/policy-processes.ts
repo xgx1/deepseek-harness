@@ -45,7 +45,7 @@ export class PolicyProcesses {
     const session = this.ctx.get('sessions')?.get(policy.sessionId)
     const process: Process = {
       sessionId: policy.sessionId,
-      mode: session === undefined ? policy.mode : this.ctx.sandboxPolicy.resolve({ session }).mode,
+      mode: session === undefined ? policy.mode : this.ctx.get('sandboxPolicy')?.resolve({ session }).mode ?? policy.mode,
       release,
       invalidated: false,
     }
