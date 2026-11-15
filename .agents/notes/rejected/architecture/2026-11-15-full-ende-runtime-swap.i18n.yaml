@@ -1,0 +1,22 @@
+# Bilingual-pair consistency record for 2026-11-15-full-ende-runtime-swap.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/rejected/architecture/2026-11-15-full-ende-runtime-swap.md
+/agent-note-the-ende-runtime-is-not-adopted:
+  en: 63cc243694e4db0f
+  zh: 20241283939e60fd
+/agent-note-the-ende-runtime-is-not-adopted/problem:
+  en: 2194dae4c24a04a7
+  zh: c1b004d7e4d6d06b
+/agent-note-the-ende-runtime-is-not-adopted/proposal:
+  en: 6260b5ff924b7995
+  zh: 5b766dfb1dcc8c0b
+/agent-note-the-ende-runtime-is-not-adopted/decision:
+  en: 720294dbb9445166
+  zh: 7b9e3b6a5ab51cdd
+/agent-note-the-ende-runtime-is-not-adopted/alternatives-considered:
+  en: 691126e4889f3d40
+  zh: 00dab8cd4bb0c0a1
+/agent-note-the-ende-runtime-is-not-adopted/consequences:
+  en: 7045eae4b2836da5
+  zh: 7c090069d8030fae

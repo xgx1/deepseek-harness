@@ -1,0 +1,19 @@
+# Bilingual-pair consistency record for 2026-11-16-toml-compositions.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-11-16-toml-compositions.md
+/agent-note-toml-compositions-beside-yaml:
+  en: 4c89dc3d50c44308
+  zh: c2c368444071feb2
+/agent-note-toml-compositions-beside-yaml/problem:
+  en: 6ac20f295138734e
+  zh: a42198ce94733025
+/agent-note-toml-compositions-beside-yaml/decision:
+  en: 9cf5a3f35c549e7e
+  zh: 659946b6d123ad9d
+/agent-note-toml-compositions-beside-yaml/alternatives-considered:
+  en: 64634e28209fbe25
+  zh: 8d032e0540360c87
+/agent-note-toml-compositions-beside-yaml/consequences:
+  en: d3c7680220045d2e
+  zh: 29b6ec01b4872155
