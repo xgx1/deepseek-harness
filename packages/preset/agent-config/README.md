@@ -39,7 +39,7 @@ projects:
   /home/me/game: [general, unreal]
 ```
 
-`configs` maps a name to its definition: `skills` holds the allow globs the skill filter evaluates, and `mcp` holds MCP `serverName` values. `projects` maps an absolute working directory to the configuration names it selects; a project absent from that map is not governed, so an unconfigured checkout keeps the plain deployment behavior. A governed project that selects no configuration is governed by empty rules.
+`configs` maps a name to its definition: `skills` holds the allow globs the skill filter evaluates, and `mcp` holds MCP `serverName` values. `projects` maps an absolute working directory to the configuration names it selects; a project absent from that map selects nothing, so it allows no MCP server and the skill filter falls back to its own YAML layers. A project that selects no configuration is governed by empty rules.
 
 A document with an unknown top-level key, a selection that is not a string array, or a definition that is not a mapping is a parse error naming the offending location.
 
@@ -68,7 +68,7 @@ The package owns no plugin configuration: the document path is fixed at `$DSH_HO
 
 ### Governance is opt-in per project
 
-`selectionOf` returns `undefined` for a working directory the document does not list, and both enforcement points treat that as "not governed": the skill filter adds no layer, and no tool mask is installed. Without it, rolling this out would empty every unconfigured project's catalog.
+`selectionOf` returns `undefined` for a working directory the document does not list, and the MCP gate reads that as the empty selection: no server is allowed, so an unlisted checkout sees no MCP tool. The skill filter instead adds no configuration layer, leaving its personal and project YAML files as the only source of skill visibility. Selecting a configuration is therefore the only way to grant a project MCP tools.
 
 ### Masking, not disconnecting
 

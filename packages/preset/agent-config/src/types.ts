@@ -14,7 +14,7 @@ export interface AgentConfigView {
 export interface AgentConfigSelectionView {
   /** Every config the home document declares. */
   readonly configs: readonly AgentConfigView[]
-  /** Names selected for this project; empty leaves the project ungoverned. */
+  /** Names selected for this project; empty leaves the project ungoverned, which allows no MCP server. */
   readonly selected: readonly string[]
   /** Parse error message; absent when the document parsed. */
   readonly error?: string

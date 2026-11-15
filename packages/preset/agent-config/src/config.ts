@@ -172,7 +172,8 @@ export function skillGlobsOf(document: AgentConfigsDocument, cwd: string | undef
  * Union the MCP server names of the selected configurations.
  * @param document - the document to resolve against.
  * @param cwd - absolute project working directory.
- * @returns the server names, or undefined when the project is not governed.
+ * @returns the server names; empty when the project selects no configuration,
+ * undefined when the project is not governed, which allows no server.
  */
 export function mcpServersOf(document: AgentConfigsDocument, cwd: string | undefined): ReadonlySet<string> | undefined {
   const selection = selectionOf(document, cwd)

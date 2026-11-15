@@ -5,8 +5,8 @@
  * An agent is masked as soon as it is created: MCP tools whose server the
  * project's selection omits disappear from that agent's tool view, and the skill
  * filter reads the same document to decide the catalog. A project absent from
- * the document is not governed, so an unconfigured checkout keeps the plain
- * deployment behavior.
+ * the document selects no configuration, which allows no server, so an
+ * unconfigured checkout sees no MCP tool at all.
  *
  * @module @deepseek-ai/dsh-agent-config
  */
@@ -197,7 +197,7 @@ export default class AgentConfigsService extends TypertRemoteService {
         reason: `undeclared config: ${unknown.join(', ')}`,
       })
     }
-    // An empty selection means "not governed", so the project entry goes away entirely.
+    // An absent entry allows no server, the same outcome as an empty selection, so the entry goes away.
     const next = new Map(Object.entries(document.projects))
     if (write.selected.length === 0) next.delete(write.cwd)
     else next.set(write.cwd, [...new Set(write.selected)])
@@ -253,30 +253,29 @@ export default class AgentConfigsService extends TypertRemoteService {
   }
 
   /**
-   * Bring every governed agent's mask in line with the current document. The
-   * deny set comes from the unrestricted global view, so it is stable while a
-   * mask is installed and an unchanged selection needs no reinstalling.
+   * Bring every agent's mask in line with the current document. The deny set
+   * comes from the unrestricted global view, so it is stable while a mask is
+   * installed and an unchanged selection needs no reinstalling. A project the
+   * document does not list selects nothing, which allows no server.
    */
   private async recompute(): Promise<void> {
     const document = await this.document()
     for (const agent of this.agents.values()) {
       const sessionId = agent.session.id
-      const servers = mcpServersOf(document, agent.session.header.cwd)
+      const servers = mcpServersOf(document, agent.session.header.cwd) ?? new Set<string>()
       // MCP servers mount in whatever scope their composition entry declares, so
       // candidates come from the agent's own view; the names a live mask already
       // hides are unioned back in, because that view no longer reports them.
       const names = new Set<string>(this.masked.get(sessionId))
       for (const schema of this.ctx.tools.schemas(scopeOf(agent.ctx))) names.add(schema.name)
-      const deny = servers === undefined
-        ? []
-        : [...names].filter((name) => {
-          const server = mcpServerOf(name)
-          return server !== undefined && !servers.has(server)
-        })
+      const deny = [...names].filter((name) => {
+        const server = mcpServerOf(name)
+        return server !== undefined && !servers.has(server)
+      })
       // Servers whose tools never reach the view (none registered yet) are still
       // suppressed by name, so their prompt sections and resources follow the selection.
       const roster = this.ctx.mcpResources.servers(scopeOf(agent.ctx))
-      const hide = servers === undefined ? [] : roster.filter(name => !servers.has(name))
+      const hide = roster.filter(name => !servers.has(name))
       const previous = this.masked.get(sessionId)
       const previousHide = this.suppressed.get(sessionId)
       // An absent installation is the empty selection: `same(undefined, [])` must hold,

@@ -106,3 +106,33 @@ it('reinstalls once per real selection change and then settles again', async () 
   await settle()
   expect(hide).toEqual([['other'], ['cbm', 'other']])
 })
+
+it('allows no MCP server when the document does not list the project', async () => {
+  const ctx = new Context()
+  const hidden: string[][] = []
+  const denied: string[][] = []
+  ctx.provide('typert', {
+    lookups: { configure: () => () => {} },
+    contexts: { configureHost: () => () => {} },
+  } as never)
+  ctx.provide('tools', { schemas: () => [{ name: 'mcp__cbm__search' }, { name: 'read' }] } as never)
+  ctx.provide('mcpResources', {
+    servers: () => ['cbm', 'other'],
+    suppress: (names: string[]) => { hidden.push([...names]); return () => {} },
+  } as never)
+  const service = new AgentConfigsService(ctx)
+  const agentCtx = {
+    tools: {
+      schemas: () => [],
+      restrict: (options: { deny: readonly string[] }) => { denied.push([...options.deny]); return () => {} },
+    },
+  }
+  // `cwd` stays out of the document's projects map, so the project selects nothing.
+  ctx.emit('agent/created', {
+    agent: { session: { id: 'session-unlisted', header: { cwd } }, ctx: agentCtx },
+  } as never)
+  await settle()
+  expect(hidden).toEqual([['cbm', 'other']])
+  expect(denied).toEqual([['mcp__cbm__search']])
+  void service
+})

@@ -26,7 +26,7 @@ export interface AgentConfigChipInjected {
    */
   read: (cwd: string) => Promise<AgentConfigSelectionView | undefined>
   /**
-   * Replace this project's complete selection; an empty list leaves it ungoverned.
+   * Replace this project's complete selection; an empty list leaves it ungoverned, which allows no MCP server.
    * @param cwd - absolute project working directory.
    * @param selected - names to persist.
    * @returns the selection as persisted, or undefined when the write failed.
