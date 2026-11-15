@@ -22,8 +22,8 @@
       "types": "./lib/types/startup.d.ts",
       "default": "./lib/startup.js"
     },
-    "./cordis.patch.yml": "./cordis.patch.yml",
-    "./presets/*.patch.yml": "./presets/*.patch.yml",
+    "./cordis.patch.toml": "./cordis.patch.toml",
+    "./presets/*.patch.toml": "./presets/*.patch.toml",
     "./src/*": "./src/*",
     "./package.json": "./package.json",
     "./startup/locale/*.json": "./locale/startup/*.json",
@@ -34,11 +34,11 @@
     "locale/startup/*.json",
     "lib/index.js",
     "lib/startup.js",
-    "cordis.patch.yml",
-    "presets/standard.patch.yml",
-    "presets/ptc.patch.yml",
-    "presets/minimal.patch.yml",
-    "presets/cordis.patch.yml",
+    "cordis.patch.toml",
+    "presets/standard.patch.toml",
+    "presets/ptc.patch.toml",
+    "presets/minimal.patch.toml",
+    "presets/cordis.patch.toml",
     "lib/public-url-*.js",
     "lib/types/**/*.d.ts",
     "lib/types/**/*.d.ts.map",
@@ -49,11 +49,11 @@
   "dsh": {
     "bundle": {
       "patch": [
-        "./cordis.patch.yml",
-        "./presets/standard.patch.yml",
-        "./presets/ptc.patch.yml",
-        "./presets/minimal.patch.yml",
-        "./presets/cordis.patch.yml"
+        "./cordis.patch.toml",
+        "./presets/standard.patch.toml",
+        "./presets/ptc.patch.toml",
+        "./presets/minimal.patch.toml",
+        "./presets/cordis.patch.toml"
       ]
     }
   },

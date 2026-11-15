@@ -152,7 +152,7 @@ export function verifyProductUse(
     if (pkg?.generatedRemote && specifier === `${pkg.name}/remote`) return
     const target = resolveModule(normalized, from)
     if (target !== undefined) scanSource(target, reach)
-    else if (pkg !== undefined && !/\.(?:json|css|svg|ya?ml)$/.test(specifier)) {
+    else if (pkg !== undefined && !/\.(?:json|css|svg|ya?ml|toml)$/.test(specifier)) {
       failures.push(`${display(from)}: ${specifier} does not resolve to workspace source; add a tsconfig.base.json paths mapping`)
     } else if (pkg === undefined && specifier.startsWith('@deepseek-ai/dsh-')) {
       failures.push(`${display(from)}: unknown workspace package ${specifier}`)

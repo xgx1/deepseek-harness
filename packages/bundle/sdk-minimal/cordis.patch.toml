@@ -1,0 +1,214 @@
+# Standalone minimal SDK application. Unlike the ordinary SDK profile, this
+# bundle does not layer over dsh-base: this insert is the complete Cordis tree.
+# User profile, home, and invocation patches still apply above it.
+
+[[entry]]
+[[entry.insert]]
+id = "sdk-app-startup"
+name = "@deepseek-ai/dsh-sdk-app"
+
+[entry.insert.config]
+profile = "sdk-minimal"
+
+[[entry.insert]]
+id = "sdk-jsonrpc-server"
+name = "@deepseek-ai/dsh-sdk-jsonrpc-server"
+inject = [ "sdkAppStartup", "loader" ]
+
+[entry.insert.config]
+maxTokensAsSuccess = false
+
+[[entry.insert]]
+id = "deepseek-llm-api-extensions"
+name = "@deepseek-ai/dsh-deepseek-llm-api-extensions"
+
+[[entry.insert]]
+id = "session-log-deepseek"
+name = "@deepseek-ai/dsh-session-log-deepseek"
+
+[[entry.insert]]
+id = "plugin-package-inventory-deepseek"
+name = "@deepseek-ai/dsh-plugin-package-inventory-deepseek"
+
+[[entry.insert]]
+id = "llm-deepseek"
+name = "@deepseek-ai/dsh-llm-deepseek-api-key"
+
+[entry.insert.config]
+apiKeyEnv = "DEEPSEEK_API_KEY"
+defaultContextWindow = "js:Number(process.env.DSH_CONTEXT_WINDOW ?? 1000000)"
+streamIdleTimeoutMs = 172800000
+
+[[entry.insert]]
+id = "sandbox"
+name = "@deepseek-ai/dsh-sandbox-local"
+
+    # Shared projection registry: sandbox-policy and terminal-bash fold
+    # sandbox-mode state through its units and require it as a hard injection.
+[[entry.insert]]
+id = "filesystem"
+name = "@deepseek-ai/dsh-fs-local"
+
+[[entry.insert]]
+id = "attachment-local"
+name = "@deepseek-ai/dsh-attachment-local"
+
+[[entry.insert]]
+id = "tool-fs"
+name = "@deepseek-ai/dsh-tool-fs"
+
+[entry.insert.config]
+read = false
+readImage = true
+write = false
+edit = false
+
+[[entry.insert]]
+id = "working-directory"
+name = "@deepseek-ai/dsh-working-directory"
+
+[[entry.insert]]
+id = "tool-working-directory"
+name = "@deepseek-ai/dsh-tool-working-directory"
+
+[[entry.insert]]
+id = "session-projection"
+name = "@deepseek-ai/dsh-session-projection"
+
+[[entry.insert]]
+id = "token-meter"
+name = "@deepseek-ai/dsh-token-meter"
+
+[[entry.insert]]
+id = "compaction-basic"
+name = "@deepseek-ai/dsh-compaction-basic"
+
+[[entry.insert]]
+id = "image-offload"
+name = "@deepseek-ai/dsh-compaction-image-offload"
+
+[[entry.insert]]
+id = "sandbox-policy"
+name = "@deepseek-ai/dsh-sandbox-policy"
+
+[entry.insert.config]
+mode = "danger-full-access"
+workspaceRoot = "js:process.cwd()"
+
+[[entry.insert]]
+id = "subprocess"
+name = "@deepseek-ai/dsh-subprocess-local"
+
+[[entry.insert]]
+id = "pty"
+name = "@deepseek-ai/dsh-terminal"
+
+[[entry.insert]]
+id = "terminal-bash"
+name = "@deepseek-ai/dsh-terminal-bash"
+disabled = "js:process.platform === 'win32'"
+
+[entry.insert.config]
+timeoutMs = 300000
+
+[[entry.insert]]
+id = "terminal-pwsh"
+name = "@deepseek-ai/dsh-terminal-bash"
+disabled = "js:process.platform !== 'win32'"
+
+[entry.insert.config]
+shellDialect = "pwsh"
+timeoutMs = 300000
+
+    # Keep the minimal agent kernel explicit: unlike dsh-base, this profile
+    # owns each service row and omits every optional producer it does not use.
+[[entry.insert]]
+id = "timer"
+name = "@deepseek-ai/cordis-plugin-timer"
+
+[[entry.insert]]
+id = "llm"
+name = "@deepseek-ai/dsh-llm"
+
+[[entry.insert]]
+id = "session"
+name = "@deepseek-ai/dsh-session"
+
+[[entry.insert]]
+id = "session-title"
+name = "@deepseek-ai/dsh-session-title"
+
+[entry.insert.config]
+fallbackMaxWords = 5
+fallbackMaxBytes = 40
+maxTitleBytes = 80
+
+[[entry.insert]]
+id = "system-prompt"
+name = "@deepseek-ai/dsh-system-prompt"
+
+[entry.insert.config]
+includeHarnessIdentity = false
+includeRuntimeContext = false
+personaPrefix = "js:process.env.DSH_SYSTEM_PROMPT ?? '你是一个乐于助人的软件工程师助手。'"
+
+[[entry.insert]]
+id = "tools"
+name = "@deepseek-ai/dsh-tools"
+
+[[entry.insert]]
+id = "tool-executor-native"
+name = "@deepseek-ai/dsh-tool-executor-native"
+
+[[entry.insert]]
+id = "mcp-resources"
+name = "@deepseek-ai/dsh-mcp-resources"
+
+[[entry.insert]]
+id = "agent"
+name = "@deepseek-ai/dsh-agent"
+
+[[entry.insert]]
+id = "llm-retry"
+name = "@deepseek-ai/dsh-llm-retry"
+
+[[entry.insert]]
+id = "jobs"
+name = "@deepseek-ai/dsh-jobs-local"
+
+[[entry.insert]]
+id = "agent-loop"
+name = "@deepseek-ai/dsh-agent-loop"
+
+[entry.insert.config]
+agents = []
+
+[[entry.insert]]
+id = "persistent-bash"
+name = "@deepseek-ai/dsh-tool-bash-persistent"
+disabled = "js:process.platform === 'win32'"
+
+[entry.insert.config]
+timeoutMs = 300000
+description = "在 bash shell 里运行命令\n* 调用本工具时，“command” 参数的内容不需要做 XML 转义。\n* 网络访问取决于任务环境。可用时优先使用已配置的镜像/代理。\n* 状态在多次命令调用和与用户的讨论之间保持持久。\n* 要查看文件的某个行区间（例如第 10-25 行），可试 'sed -n 10,25p /path/to/the/file'。\n* 请避免可能产生极大量输出的命令。\n* 请把长期运行的命令放到后台执行，例如 'sleep 10 &'，或在后台启动服务。"
+
+[[entry.insert]]
+id = "persistent-pwsh"
+name = "@deepseek-ai/dsh-tool-pwsh-persistent"
+disabled = "js:process.platform !== 'win32'"
+
+[entry.insert.config]
+timeoutMs = 300000
+description = "在 PowerShell shell 里运行命令\n* 调用本工具时，“command” 参数的内容不需要做 XML 转义。\n* 通过本工具无法访问互联网。\n* 状态在多次命令调用和与用户的讨论之间保持持久。\n* 使用原生 Windows 路径（C:\\...）和 $env:NAME 变量；这是 PowerShell，不是 bash。\n* 请避免可能产生极大量输出的命令。\n* 请把长期运行的命令放到后台执行，例如 'Start-Job'，或用 Start-Process 启动服务。"
+
+[[entry.insert]]
+id = "sessions"
+name = "@deepseek-ai/dsh-session-persistence-jsonl"
+
+[entry.insert.config]
+root = "js:dshHomePath('sessions')"
+compression = "none"
+
+[[entry.insert]]
+id = "session-checkpoint-policy"
+name = "@deepseek-ai/dsh-session-checkpoint-policy"

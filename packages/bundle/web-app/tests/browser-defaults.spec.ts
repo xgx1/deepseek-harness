@@ -15,7 +15,7 @@ it.each([
   { profile: 'web', override: false, disabled: false },
   { profile: 'desktop', override: true, disabled: true },
 ])('applies Browser availability for $profile with override $override', async ({ profile, override, disabled }) => {
-  const rows = loadOverlayPatches('browser-defaults', fileURLToPath(new URL('../cordis.patch.yml', import.meta.url)))
+  const rows = loadOverlayPatches('browser-defaults', fileURLToPath(new URL('../cordis.patch.toml', import.meta.url)))
     .flatMap(patch => patch.insert ?? []).filter(row => row.id === 'ui-sidebar-browser')
   expect(rows).toHaveLength(1)
   expect(rows[0]!.name).toBe('@deepseek-ai/dsh-client-ui-sidebar-browser')

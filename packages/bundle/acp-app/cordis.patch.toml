@@ -1,0 +1,29 @@
+# The automation-only ACP application over dsh-base. Stdout belongs to ACP.
+
+[[entry]]
+id = "system-prompt"
+
+[entry.config]
+personaPrefix = "你是一个由 {{model}} 模型驱动的编码 agent。"
+
+[[entry]]
+id = "session-title-llm"
+disabled = true
+
+[[entry]]
+[[entry.insert]]
+id = "acp-app-startup"
+name = "@deepseek-ai/dsh-acp-app"
+
+[[entry.insert]]
+id = "acp"
+name = "@deepseek-ai/dsh-acp"
+inject = [ "acpAppStartup" ]
+
+[entry.insert.config]
+provider = "deepseek-official"
+model = "deepseek-v4-flash"
+
+[[entry]]
+id = "hmr"
+disabled = true

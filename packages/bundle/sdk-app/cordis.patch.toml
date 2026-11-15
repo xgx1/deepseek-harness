@@ -1,0 +1,112 @@
+# The SDK application over dsh-base. Stdout belongs exclusively to JSON-RPC.
+
+[[entry]]
+id = "system-prompt"
+
+[entry.config]
+personaPrefix = "你是一个由 {{model}} 模型驱动的编码 agent。"
+
+[[entry]]
+id = "session-title-llm"
+disabled = true
+
+[[entry]]
+[[entry.insert]]
+id = "sdk-app-startup"
+name = "@deepseek-ai/dsh-sdk-app"
+
+[entry.insert.config]
+profile = "sdk"
+
+[[entry.insert]]
+id = "sdk-jsonrpc-server"
+name = "@deepseek-ai/dsh-sdk-jsonrpc-server"
+inject = [ "sdkAppStartup", "loader" ]
+
+[entry.insert.config]
+maxTokensAsSuccess = "js:process.env.DSH_MAX_TOKENS_AS_SUCCESS === undefined ? true : JSON.parse(process.env.DSH_MAX_TOKENS_AS_SUCCESS)"
+
+[[entry]]
+id = "hmr"
+disabled = true
+
+[[entry]]
+id = "tool-plugin-manager"
+disabled = false
+
+# DSH_PRIMARY_RUNTIME names the primary runtime; the packaged launcher fills it
+# from its download cache when unset, and an empty value opts out. Each row can
+# be patched independently. Office skills and the Office tools always load, and
+# the skills use their packaged assets. With a primary runtime the skills select
+# `workspace-dependencies` and use its Python environment; without one they
+# select `user` and direct the model to the user's Python.
+[[entry]]
+[[entry.insert]]
+id = "office-kit"
+name = "@deepseek-ai/dsh-office-kit"
+
+[entry.insert.config]
+outputDirectory = "js:dshHomePath('office-kit', 'outputs')"
+
+    # The Office tools stay registered without Kit; calls report the service's unavailable error.
+[[entry.insert]]
+id = "tool-office"
+name = "@deepseek-ai/dsh-tool-office"
+
+[[entry.insert]]
+id = "workspace-dependencies"
+name = "@deepseek-ai/dsh-tool-workspace-dependencies"
+disabled = "js:!process.env.DSH_PRIMARY_RUNTIME"
+
+[entry.insert.config]
+source = "js:process.getBuiltinModule('node:path').resolve(process.env.DSH_PRIMARY_RUNTIME ?? '')"
+
+[[entry.insert]]
+id = "skill-office"
+name = "@deepseek-ai/dsh-skill-office"
+
+[entry.insert.config]
+pythonEnvironment = "js:process.env.DSH_PRIMARY_RUNTIME ? 'workspace-dependencies' : 'user'"
+
+# Share native desktop tools and model context without starting a Web server.
+[[entry]]
+[[entry.insert]]
+id = "connection"
+name = "@deepseek-ai/dsh-client-connection"
+
+[[entry.insert]]
+id = "file-upload"
+name = "@deepseek-ai/dsh-client-file-upload"
+
+[[entry.insert]]
+id = "workspace"
+name = "@deepseek-ai/dsh-workspace"
+
+[[entry.insert]]
+id = "schedule"
+name = "@deepseek-ai/dsh-schedule"
+inject = [ "sdkSessionActivation" ]
+
+[[entry.insert]]
+id = "time-context"
+name = "@deepseek-ai/dsh-time-context"
+
+[[entry.insert]]
+id = "tool-schedule"
+name = "@deepseek-ai/dsh-tool-schedule"
+
+[[entry.insert]]
+id = "tool-ask-user"
+name = "@deepseek-ai/dsh-tool-ask-user"
+
+[[entry.insert]]
+id = "present"
+name = "@deepseek-ai/dsh-tool-present"
+
+[[entry.insert]]
+id = "file-reference-local"
+name = "@deepseek-ai/dsh-file-reference-local"
+
+[[entry.insert]]
+id = "deliverable-file-references"
+name = "@deepseek-ai/dsh-deliverable-file-references"

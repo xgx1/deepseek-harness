@@ -1,0 +1,94 @@
+# Agent preset minimal: one `@deepseek-ai/dsh-agent-preset` declaration inserted
+# after the web patch. Edits saved from the Web editor override this row's
+# `config.plugins` by id from the profile patch.
+
+[[entry]]
+[[entry.insert]]
+id = "preset-minimal"
+name = "@deepseek-ai/dsh-agent-preset"
+
+[entry.insert.config]
+id = "minimal"
+order = 3
+
+[[entry.insert.config.plugins]]
+id = "persona"
+name = "@deepseek-ai/dsh-persona"
+
+[entry.insert.config.plugins.config]
+prefix = "你是一个乐于助人的软件工程师助手。"
+complete = true
+includeRuntimeContext = false
+
+[[entry.insert.config.plugins]]
+id = "tool-fs"
+name = "@deepseek-ai/dsh-tool-fs"
+
+[entry.insert.config.plugins.config]
+read = false
+readImage = true
+write = false
+edit = false
+
+[[entry.insert.config.plugins]]
+id = "compaction"
+name = "cordis:group"
+group = true
+
+[entry.insert.config.plugins.isolate]
+compaction = true
+
+[[entry.insert.config.plugins.config]]
+id = "compaction-basic"
+name = "@deepseek-ai/dsh-compaction-basic"
+
+[[entry.insert.config.plugins.config]]
+id = "command-compact"
+name = "@deepseek-ai/dsh-command-compact"
+
+[[entry.insert.config.plugins]]
+id = "persistent-shell"
+name = "cordis:group"
+group = true
+
+[entry.insert.config.plugins.isolate]
+terminals = true
+
+[[entry.insert.config.plugins.config]]
+id = "pty"
+name = "@deepseek-ai/dsh-terminal"
+
+[[entry.insert.config.plugins.config]]
+id = "terminal-bash"
+name = "@deepseek-ai/dsh-terminal-bash"
+disabled = "js:process.platform === 'win32'"
+
+[entry.insert.config.plugins.config.config]
+timeoutMs = 300000
+
+[[entry.insert.config.plugins.config]]
+id = "persistent-bash"
+name = "@deepseek-ai/dsh-tool-bash-persistent"
+disabled = "js:process.platform === 'win32'"
+
+[entry.insert.config.plugins.config.config]
+timeoutMs = 300000
+description = "在 bash shell 里运行命令\n* 调用本工具时，“command” 参数的内容不需要做 XML 转义。\n* 网络访问取决于任务环境。可用时优先使用已配置的镜像/代理。\n* 状态在多次命令调用和与用户的讨论之间保持持久。\n* 要查看文件的某个行区间（例如第 10-25 行），可试 'sed -n 10,25p /path/to/the/file'。\n* 请避免可能产生极大量输出的命令。\n* 请把长期运行的命令放到后台执行，例如 'sleep 10 &'，或在后台启动服务。"
+
+[[entry.insert.config.plugins.config]]
+id = "terminal-pwsh"
+name = "@deepseek-ai/dsh-terminal-bash"
+disabled = "js:process.platform !== 'win32'"
+
+[entry.insert.config.plugins.config.config]
+shellDialect = "pwsh"
+timeoutMs = 300000
+
+[[entry.insert.config.plugins.config]]
+id = "persistent-pwsh"
+name = "@deepseek-ai/dsh-tool-pwsh-persistent"
+disabled = "js:process.platform !== 'win32'"
+
+[entry.insert.config.plugins.config.config]
+timeoutMs = 300000
+description = "在 PowerShell shell 里运行命令\n* 调用本工具时，“command” 参数的内容不需要做 XML 转义。\n* 通过本工具无法访问互联网。\n* 状态在多次命令调用和与用户的讨论之间保持持久。\n* 使用原生 Windows 路径（C:\\...）和 $env:NAME 变量；这是 PowerShell，不是 bash。\n* 请避免可能产生极大量输出的命令。\n* 请把长期运行的命令放到后台执行，例如 'Start-Job'，或用 Start-Process 启动服务。"

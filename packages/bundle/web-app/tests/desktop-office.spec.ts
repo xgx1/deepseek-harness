@@ -42,7 +42,7 @@ afterEach(() => { vi.unstubAllEnvs() })
 
 /** Plugin rows of one shipped agent preset. */
 function presetPlugins(preset: string): { id: string; name: string }[] {
-  const [row] = loadOverlayPatches(preset, fileURLToPath(new URL(`../presets/${preset}.patch.yml`, import.meta.url)))
+  const [row] = loadOverlayPatches(preset, fileURLToPath(new URL(`../presets/${preset}.patch.toml`, import.meta.url)))
     .flatMap(patch => patch.insert ?? [])
   return (row!.config as { plugins: { id: string; name: string }[] }).plugins
 }
@@ -52,7 +52,7 @@ it('mounts the Office tools in the standard and PTC presets and omits it from th
   expect(office('standard')).toEqual(['@deepseek-ai/dsh-tool-office'])
   expect(office('ptc')).toEqual(['@deepseek-ai/dsh-tool-office'])
   expect(office('minimal')).toEqual([])
-  const host = loadOverlayPatches('desktop-office', fileURLToPath(new URL('../cordis.patch.yml', import.meta.url)))
+  const host = loadOverlayPatches('desktop-office', fileURLToPath(new URL('../cordis.patch.toml', import.meta.url)))
     .flatMap(patch => patch.insert ?? []).map(row => row.id)
   expect(host).not.toContain('tool-office')
 })
@@ -91,7 +91,7 @@ async function boot(profile: string, primaryRuntime: (root: string) => string | 
   const builtin: Record<string, string> = {
     'office-kit': 'cordis:officeKit', 'tool-office': 'cordis:toolOffice', 'workspace-dependencies': 'cordis:dependencies', 'skill-office': 'cordis:office',
   }
-  const hostRows = loadOverlayPatches('desktop-office', fileURLToPath(new URL('../cordis.patch.yml', import.meta.url)))
+  const hostRows = loadOverlayPatches('desktop-office', fileURLToPath(new URL('../cordis.patch.toml', import.meta.url)))
     .flatMap(patch => patch.insert ?? []).filter(row => ROWS.includes(row.id))
   const rows = [...hostRows.slice(0, 1), presetPlugins('standard').find(row => row.id === 'tool-office')!, ...hostRows.slice(1)]
   expect(rows.map(row => row.id)).toEqual(ROWS)

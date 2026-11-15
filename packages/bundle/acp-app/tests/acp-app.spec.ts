@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
-import { parseEntryYaml } from '@deepseek-ai/cordis-plugin-include'
+import { parseEntryToml } from '@deepseek-ai/cordis-plugin-include'
 
 describe('dsh-acp-app bundle', () => {
   it('declares startup-gated ACP serving without overriding base HMR policy', () => {
@@ -13,9 +13,9 @@ describe('dsh-acp-app bundle', () => {
       dependencies?: Record<string, string>
       dsh?: { bundle?: { patch?: string } }
     }
-    expect(manifest.dsh?.bundle?.patch).toBe('./cordis.patch.yml')
+    expect(manifest.dsh?.bundle?.patch).toBe('./cordis.patch.toml')
     expect(manifest.dependencies).toHaveProperty('@deepseek-ai/dsh-acp')
-    const patches = parseEntryYaml(readFileSync(resolve(root, manifest.dsh!.bundle!.patch!), 'utf8')) as Array<{
+    const patches = parseEntryToml(readFileSync(resolve(root, manifest.dsh!.bundle!.patch!), 'utf8')) as Array<{
       id?: string
       disabled?: boolean
       insert?: Array<{ config?: { model?: string; provider?: string }; id?: string; inject?: string[]; name?: string }>

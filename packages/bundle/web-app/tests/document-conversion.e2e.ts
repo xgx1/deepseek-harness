@@ -23,7 +23,7 @@ it('loads one shared conversion row and retains caller-owned PDFs after disposal
       await rm(outputDirectory, { recursive: true, force: true })
     }
   })
-  const rows = loadOverlayPatches('conversion-test', fileURLToPath(new URL('../cordis.patch.yml', import.meta.url)))
+  const rows = loadOverlayPatches('conversion-test', fileURLToPath(new URL('../cordis.patch.toml', import.meta.url)))
     .flatMap(patch => patch.insert ?? [])
     .filter(row => row.name === '@deepseek-ai/dsh-office-kit')
   expect(rows.map(row => row.id)).toEqual(['office-kit'])

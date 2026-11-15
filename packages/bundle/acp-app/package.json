@@ -18,7 +18,7 @@
       "types": "./lib/types/index.d.ts",
       "default": "./lib/index.js"
     },
-    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./cordis.patch.toml": "./cordis.patch.toml",
     "./src/*": "./src/*",
     "./locale/*.json": "./locale/*.json",
     "./package.json": "./package.json"
@@ -26,7 +26,7 @@
   "files": [
     "locale/*.json",
     "lib/index.js",
-    "cordis.patch.yml",
+    "cordis.patch.toml",
     "lib/types/**/*.d.ts",
     "lib/types/**/*.d.ts.map",
     "lib/**/*.js.map",
@@ -35,7 +35,7 @@
   "license": "MIT",
   "dsh": {
     "bundle": {
-      "patch": "./cordis.patch.yml"
+      "patch": "./cordis.patch.toml"
     }
   },
   "dependencies": {
