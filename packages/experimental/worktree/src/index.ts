@@ -87,7 +87,7 @@ function relativePath(value: string): boolean {
  * unreferenced checkout when the Session that created it is archived.
  */
 export class WorktreeService extends Service {
-  static inject = ['workingDirectory', 'fs', 'subprocess', 'sandbox', 'sandboxPolicy', 'sessionProjections']
+  static inject = ['workingDirectory', 'fs', 'subprocess', 'sessionProjections']
 
   static Config = z.object({
     retainOnArchive: z.boolean().default(false).volatile(),
@@ -135,7 +135,7 @@ export class WorktreeService extends Service {
     this.projection = await this.ctx.sessionProjections.register(worktreeProjection)
     // Reclamation needs the Workspace archive events and the Session corpus; without
     // them the service only creates and restores, as a headless profile composes it.
-    this.ctx.inject(['workspaceRegistry', 'sessionQuery', 'sessions', 'workingDirectory', 'sandboxPolicy'], (scope) => {
+    this.ctx.inject(['workspaceRegistry', 'sessionQuery', 'sessions', 'workingDirectory'], (scope) => {
       const reclamation = new WorktreeReclamation(scope, {
         retainOnArchive: () => this.config.retainOnArchive.get(),
         exclusiveCheckout: (path, body) => this.exclusiveCheckout(path, body),
@@ -232,7 +232,7 @@ export class WorktreeService extends Service {
   ): Promise<boolean> {
     const control = AbortSignal.any([this.lifetime.signal, signal])
     control.throwIfAborted()
-    const policy = this.ctx.sandboxPolicy.resolve({ session })
+    const policy = this.policyOf({ session })
     const git = { read: this.gitRunner(policy, control), scan: this.gitScanner(policy, control) }
     const operation = removeCheckout(this.ctx, this.config.directory, request, git, control, admit)
     this.pending.add(operation)
@@ -263,7 +263,7 @@ export class WorktreeService extends Service {
   ): Promise<CreatedWorktree> {
     onPhase?.('prepare')
     const cwd = await this.ctx.workingDirectory.ensure(agent, signal)
-    const policy = this.ctx.sandboxPolicy.resolve({ session: agent.session })
+    const policy = this.policyOf({ session: agent.session })
     const run = this.gitRunner(policy, signal)
     await assertBranchName(run, cwd, branch, 'worktree name')
     const rootOutput = await run(cwd, ['rev-parse', '--show-toplevel'])
@@ -300,7 +300,7 @@ export class WorktreeService extends Service {
     onPhase: ((phase: CreateWorktreePhase) => void) | undefined,
   ): Promise<RestoredWorktree> {
     onPhase?.('prepare')
-    const policy = this.ctx.sandboxPolicy.resolve({ session: agent.session })
+    const policy = this.policyOf({ session: agent.session })
     const run = this.gitRunner(policy, signal)
     if (await this.ctx.fs.lstat(path, undefined, signal) !== undefined) throw new WorktreeError(`worktree path already exists: ${path}`, 'WORKTREE_ALREADY_EXISTS')
     if (!relativePath(branch) || branch.startsWith('-')) throw new WorktreeError('worktree branch must be a relative Git branch name', 'WORKTREE_INVALID_ARGUMENT')
@@ -337,6 +337,17 @@ export class WorktreeService extends Service {
   }
 
   /** Confine Git commands to the caller's sandbox policy, collecting bounded stdout. */
+  /**
+   * Resolve the file policy, falling back to no confinement when the host mounts
+   * no policy provider.
+   * @param request - the session whose policy applies.
+   * @returns the resolved policy.
+   */
+  private policyOf(request: { session: Session }): SandboxExecutionPolicy {
+    return this.ctx.get('sandboxPolicy')?.resolve(request)
+      ?? { mode: 'danger-full-access', workspaceRoot: process.cwd() }
+  }
+
   private gitRunner(policy: SandboxExecutionPolicy, signal: AbortSignal): GitRun {
     return (directory, args, allowedExitCodes, env) => runCommand(
       this.ctx, this.config, policy, directory, this.gitArgv(args), signal, allowedExitCodes, env,

@@ -45,10 +45,25 @@ async function document(body: string): Promise<void> {
 const roster = 'configs:\n  mini:\n    skills: ["cbm-graph-first"]\n    mcp: [cbm]\n'
 
 describe('the agentConfigs Remote namespace', () => {
-  it('publishes its two methods under the agentConfigs namespace', () => {
+  it('publishes its methods under the agentConfigs namespace', () => {
     const service = boot()
     expect(service.typertRemote.namespace).toBe('agentConfigs')
-    expect(remoteMethods(service).map(entry => entry.method).sort()).toEqual(['getSelection', 'setSelection'])
+    expect(remoteMethods(service).map(entry => entry.method).sort()).toEqual(['getSelection', 'overview', 'setSelection'])
+  })
+
+  it('overviews every config and every project selection for the settings page', async () => {
+    await document(`${roster}projects:\n  "${cwd}":\n    - mini\n`)
+    const overview = await boot().overview()
+    expect(overview.path).toBe(join(home, 'agent-configs.yaml'))
+    expect(overview.configs).toEqual([{ name: 'mini', skills: ['cbm-graph-first'], mcp: ['cbm'], tools: [] }])
+    expect(overview.projects).toEqual([{ cwd, selected: ['mini'] }])
+  })
+
+  it('reports the overview parse error instead of throwing', async () => {
+    await document('configs: [')
+    const overview = await boot().overview()
+    expect(overview.configs).toEqual([])
+    expect(overview.error).toBeDefined()
   })
 
   it('reports the roster with no selection for a project the document does not list', async () => {

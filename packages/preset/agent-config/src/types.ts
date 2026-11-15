@@ -22,6 +22,18 @@ export interface AgentConfigSelectionView {
   readonly error?: string
 }
 
+/** Catalog plus every project selection, for the settings page. */
+export interface AgentConfigOverview {
+  /** Absolute path of the document these configs come from. */
+  readonly path: string
+  /** Every declared config, in document order. */
+  readonly configs: readonly AgentConfigView[]
+  /** Every project the document lists, sorted by working directory. */
+  readonly projects: readonly { readonly cwd: string; readonly selected: readonly string[] }[]
+  /** Parse error message; absent when the document parsed. */
+  readonly error?: string
+}
+
 /** Addresses one project working directory. */
 export interface AgentConfigRequest {
   /** Absolute project working directory. */

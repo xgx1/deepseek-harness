@@ -12,6 +12,15 @@
       "path": "../../../vendor/cordis"
     },
     {
+      "path": "../../api/remotes/tsconfig.client.json"
+    },
+    {
+      "path": "../../preset/agent-config"
+    },
+    {
+      "path": "../../typert/protocol"
+    },
+    {
       "path": "../locale/tsconfig.client.json"
     },
     {
@@ -24,16 +33,10 @@
       "path": "../ui-renderer"
     },
     {
+      "path": "../ui-settings-general/tsconfig.client.json"
+    },
+    {
       "path": "../ui-slots"
-    },
-    {
-      "path": "../../api/remotes/tsconfig.client.json"
-    },
-    {
-      "path": "../../preset/agent-config"
-    },
-    {
-      "path": "../../typert/protocol"
     }
   ]
 }

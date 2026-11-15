@@ -9,7 +9,7 @@ import type {} from '@deepseek-ai/dsh-workspace-changes/types'
 import { registerPresentOpen } from './present-open.ts'
 
 /** Services required for change summaries and authenticated native opens. */
-export const inject = ['connection', 'sessionQuery', 'sessionController', 'workspaceFiles', 'fs', 'sandboxPolicy', 'workspaceChanges']
+export const inject = ['connection', 'sessionQuery', 'sessionController', 'workspaceFiles', 'fs', 'workspaceChanges']
 
 /**
  * Register native opens for declared files.

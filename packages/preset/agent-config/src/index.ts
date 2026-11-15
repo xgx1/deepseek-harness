@@ -27,11 +27,11 @@ import {
   skillGlobsOf, toolsOf, writeProjects,
 } from './config.js'
 import type { AgentConfigsDocument } from './config.js'
-import type { AgentConfigRequest, AgentConfigSelectionView, AgentConfigWrite } from './types.js'
+import type { AgentConfigOverview, AgentConfigRequest, AgentConfigSelectionView, AgentConfigWrite } from './types.js'
 
 export type { AgentConfigsDocument, AgentConfiguration } from './config.js'
 export type {
-  AgentConfigRequest, AgentConfigSelectionView, AgentConfigView, AgentConfigWrite,
+  AgentConfigOverview, AgentConfigRequest, AgentConfigSelectionView, AgentConfigView, AgentConfigWrite,
 } from './types.js'
 // Config file access stays on the `./config` subpath: a plugin entry exports only what the loader reads.
 
@@ -200,6 +200,29 @@ export default class AgentConfigsService extends TypertRemoteService {
       this.ctx.logger.warn('agent-configs: %s; keeping the previous document', error instanceof Error ? error.message : String(error))
     }
     return this.cached
+  }
+
+  /**
+   * Read the whole catalog and every project selection.
+   * @returns the document path, every config, and each project's selection.
+   */
+  @Remote
+  async overview(): Promise<AgentConfigOverview> {
+    const path = agentConfigsPath()
+    try {
+      const document = await readAgentConfigs()
+      return {
+        path,
+        configs: Object.entries(document.configs).map(([name, config]) => ({
+          name, skills: config.skills, mcp: config.mcp, tools: config.tools,
+        })),
+        projects: Object.entries(document.projects)
+          .map(([cwd, selected]) => ({ cwd, selected }))
+          .sort((left, right) => left.cwd.localeCompare(right.cwd)),
+      }
+    } catch (error: unknown) {
+      return { path, configs: [], projects: [], error: messageOf(error) }
+    }
   }
 
   /**
