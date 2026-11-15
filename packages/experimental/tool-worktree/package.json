@@ -15,7 +15,7 @@
     },
     "./src/*": "./src/*",
     "./package.json": "./package.json",
-    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./cordis.patch.toml": "./cordis.patch.toml",
     "./locale/*.json": "./locale/*.json"
   },
   "files": [
@@ -23,7 +23,7 @@
     "locale/*.json",
     "docs",
     "lib/index.js",
-    "cordis.patch.yml",
+    "cordis.patch.toml",
     "lib/types/**/*.d.ts",
     "lib/types/**/*.d.ts.map",
     "lib/**/*.js.map",
@@ -66,7 +66,7 @@
   "icon": "./icon.svg",
   "dsh": {
     "bundle": {
-      "patch": "./cordis.patch.yml"
+      "patch": "./cordis.patch.toml"
     }
   },
   "dependencies": {

@@ -2,7 +2,7 @@
 import { readFileSync, readdirSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { parseEntryYaml } from '@deepseek-ai/cordis-plugin-include'
+import { parseEntryToml } from '@deepseek-ai/cordis-plugin-include'
 import type { EntryOptions } from '@deepseek-ai/cordis-plugin-loader'
 import { interpolate } from '@deepseek-ai/cordis-plugin-loader'
 import { describe, expect, it } from 'vitest'
@@ -20,7 +20,7 @@ interface Manifest {
 }
 
 const manifest = JSON.parse(readFileSync(resolve(root, 'package.json'), 'utf8')) as Manifest
-const patches = parseEntryYaml(readFileSync(resolve(root, manifest.dsh.bundle.patch), 'utf8')) as Array<
+const patches = parseEntryToml(readFileSync(resolve(root, manifest.dsh.bundle.patch), 'utf8')) as Array<
   { id?: string; disabled?: unknown; insert?: EntryOptions[] }
 >
 const inserted = patches.flatMap(patch => patch.insert ?? [])
@@ -32,7 +32,7 @@ describe('cua-mcp bundle', () => {
     expect(manifest.publishConfig.access).toBe('public')
     expect(manifest.icon).toBe('./icon.svg')
     expect(manifest.exports).toHaveProperty('./locale/*.json')
-    expect(manifest.dsh.bundle).toEqual({ patch: './cordis.patch.yml' })
+    expect(manifest.dsh.bundle).toEqual({ patch: './cordis.patch.toml' })
     expect(Object.keys(manifest.optionalDependencies)).toEqual(['@deepseek-ai/dsh-cua-macos', '@deepseek-ai/dsh-cua-windows'])
     expect(readdirSync(resolve(root, 'locale')).sort()).toEqual(['de.json', 'en.json', 'es.json', 'fr.json', 'ja.json', 'pt.json', 'ru.json', 'zh.json'])
   })

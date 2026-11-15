@@ -1,0 +1,8 @@
+[[entry]]
+[[entry.insert]]
+id = "worktree"
+name = "@deepseek-ai/dsh-experimental-worktree"
+
+[[entry.insert]]
+id = "tool-worktree"
+name = "@deepseek-ai/dsh-experimental-tool-worktree"

@@ -52,7 +52,7 @@ describe('experimental Inspector through a real Loader composition', () => {
     root = await mkdtemp(join(tmpdir(), 'dsh-inspector-loader-'))
     const configPath = join(root, 'cordis.yml')
     const entries = composeEntries([loadOverlayPatches('dsh', fileURLToPath(
-      new URL('../../inspector-profile/cordis.patch.yml', import.meta.url),
+      new URL('../../inspector-profile/cordis.patch.toml', import.meta.url),
     ))])
     const inspector = entries.find(entry => entry.id === 'experimental-inspector')!
     await writeFile(configPath, JSON.stringify([

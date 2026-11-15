@@ -1,0 +1,22 @@
+[[entry]]
+[[entry.insert]]
+id = "speech-to-text"
+name = "@deepseek-ai/dsh-experimental-speech-to-text"
+
+[entry.insert.config]
+defaultProvider = "sensevoice-local"
+
+[[entry.insert]]
+id = "speech-to-text-sensevoice"
+name = "@deepseek-ai/dsh-experimental-speech-to-text-sensevoice"
+
+[entry.insert.config]
+dataRoot = "js:dshHomePath('speech-to-text', 'sensevoice')"
+
+[[entry.insert]]
+id = "api-speech-to-text"
+name = "@deepseek-ai/dsh-experimental-api-speech-to-text"
+
+[[entry.insert]]
+id = "ui-voice-input"
+name = "@deepseek-ai/dsh-experimental-client-ui-voice-input"

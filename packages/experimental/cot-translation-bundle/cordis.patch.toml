@@ -1,0 +1,12 @@
+[[entry]]
+[[entry.insert]]
+id = "translator"
+name = "@deepseek-ai/dsh-experimental-translator"
+
+[[entry.insert]]
+id = "cot-translation"
+name = "@deepseek-ai/dsh-experimental-client-ui-cot-translation"
+
+[entry.insert.config]
+provider = "bing"
+targetLanguage = "auto"

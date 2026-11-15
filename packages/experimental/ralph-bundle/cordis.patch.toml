@@ -1,0 +1,23 @@
+[[entry]]
+[[entry.insert]]
+id = "optional-ralph"
+name = "cordis:group"
+group = true
+
+[entry.insert.isolate]
+workflowEngine = true
+
+[[entry.insert.config]]
+id = "optional-ralph-workflow"
+name = "@deepseek-ai/dsh-workflow-ptc"
+
+[entry.insert.config.config]
+provider = "spawn"
+
+[[entry.insert.config]]
+id = "tool-ralph"
+name = "@deepseek-ai/dsh-tool-ralph"
+
+[entry.insert.config.config]
+subagentProvider = "spawn"
+maxRounds = 64

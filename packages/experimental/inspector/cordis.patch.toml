@@ -1,0 +1,6 @@
+# Explicit local debugging overlay; the Host prints its debugging URL.
+
+[[entry]]
+[[entry.insert]]
+id = "experimental-inspector"
+name = "./lib/index.js"

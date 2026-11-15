@@ -1,0 +1,16 @@
+[[entry]]
+[[entry.insert]]
+id = "experimental-inspector"
+name = "@deepseek-ai/dsh-experimental-inspector"
+disabled = false
+
+[entry.insert.config]
+captureFetch = true
+
+[[entry.insert]]
+id = "session-inspector"
+name = "@deepseek-ai/dsh-experimental-session-inspector"
+
+[[entry.insert]]
+id = "client-ui-stats"
+name = "@deepseek-ai/dsh-experimental-client-ui-stats"

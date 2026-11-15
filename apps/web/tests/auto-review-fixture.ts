@@ -7,7 +7,7 @@ import type { LaunchOptions } from './scaffold.ts'
 
 /** The same private bundle patch installed by the source Web CLI. */
 export const AUTO_REVIEW_FIXTURE = {
-  extraOverlayPath: fileURLToPath(new URL('../../../packages/experimental/auto-review/cordis.patch.yml', import.meta.url)),
+  extraOverlayPath: fileURLToPath(new URL('../../../packages/experimental/auto-review/cordis.patch.toml', import.meta.url)),
   extraInstallAnchors: [fileURLToPath(new URL('../../../packages/experimental/auto-review/package.json', import.meta.url))],
 } satisfies Pick<LaunchOptions, 'extraOverlayPath' | 'extraInstallAnchors'>
 

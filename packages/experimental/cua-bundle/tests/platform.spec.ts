@@ -2,11 +2,11 @@
 import { readFile } from 'node:fs/promises'
 import { Context } from '@deepseek-ai/cordis'
 import Loader, { interpolate, type EntryOptions } from '@deepseek-ai/cordis-plugin-loader'
-import { parseEntryYaml } from '@deepseek-ai/cordis-plugin-include'
+import { parseEntryToml } from '@deepseek-ai/cordis-plugin-include'
 import { expect, it, vi } from 'vitest'
 
 it.each(['darwin', 'win32', 'linux'])('loads the exported patch directly on %s and selects its native provider', async (platform) => {
-  const patch = parseEntryYaml(await readFile(new URL('../cordis.patch.yml', import.meta.url), 'utf8')) as { insert: EntryOptions[] }[]
+  const patch = parseEntryToml(await readFile(new URL('../cordis.patch.toml', import.meta.url), 'utf8')) as { insert: EntryOptions[] }[]
   for (const id of ['cua-macos', 'cua-windows']) {
     expect(patch[0]!.insert.find(row => row.id === id)?.name).toBe(`@deepseek-ai/dsh-${id}`)
   }

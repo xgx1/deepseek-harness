@@ -1,0 +1,24 @@
+[[entry]]
+[[entry.insert]]
+id = "action-cards"
+name = "@deepseek-ai/dsh-action-cards"
+
+[[entry.insert]]
+id = "client-ui-action-cards"
+name = "@deepseek-ai/dsh-client-ui-action-cards"
+
+[[entry.insert]]
+id = "creation-recommendations"
+name = "@deepseek-ai/dsh-creation-recommendations"
+
+[[entry.insert]]
+id = "client-ui-creation-recommendations"
+name = "@deepseek-ai/dsh-client-ui-creation-recommendations"
+
+[[entry.insert]]
+id = "plugin-recommendations"
+name = "@deepseek-ai/dsh-plugin-recommendations"
+
+[[entry.insert]]
+id = "client-ui-plugin-recommendations"
+name = "@deepseek-ai/dsh-client-ui-plugin-recommendations"

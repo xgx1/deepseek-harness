@@ -1,0 +1,20 @@
+[[entry]]
+[[entry.insert]]
+id = "optional-session-search"
+name = "cordis:group"
+group = true
+
+[entry.insert.isolate]
+sessionQuery = true
+
+[[entry.insert.config]]
+id = "optional-session-query-sqlite"
+name = "@deepseek-ai/dsh-session-query-sqlite"
+
+[entry.insert.config.config]
+path = ":memory:"
+openAt = "first-search"
+
+[[entry.insert.config]]
+id = "optional-tool-session-query"
+name = "@deepseek-ai/dsh-tool-session-query"

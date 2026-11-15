@@ -19,7 +19,7 @@
       "types": "./lib/types/index.d.ts",
       "default": "./lib/index.js"
     },
-    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./cordis.patch.toml": "./cordis.patch.toml",
     "./locale/*.json": "./locale/*.json",
     "./src/*": "./src/*",
     "./package.json": "./package.json"
@@ -29,7 +29,7 @@
     "locale/*.json",
     "docs",
     "lib/index.js",
-    "cordis.patch.yml",
+    "cordis.patch.toml",
     "lib/types/**/*.d.ts",
     "lib/types/**/*.d.ts.map",
     "lib/**/*.js.map",
@@ -38,7 +38,7 @@
   "license": "MIT",
   "dsh": {
     "bundle": {
-      "patch": "./cordis.patch.yml",
+      "patch": "./cordis.patch.toml",
       "platforms": [
         "darwin",
         "win32"

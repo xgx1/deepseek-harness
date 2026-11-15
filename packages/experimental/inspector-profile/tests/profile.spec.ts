@@ -2,7 +2,7 @@
 
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
-import { parseEntryYaml } from '@deepseek-ai/cordis-plugin-include'
+import { parseEntryToml } from '@deepseek-ai/cordis-plugin-include'
 
 describe('Inspector profile bundle', () => {
   it('publishes one layer containing both inspectors and the Statistics view', () => {
@@ -12,13 +12,13 @@ describe('Inspector profile bundle', () => {
       dependencies: Record<string, string>
     }
     expect(manifest.publishConfig.access).toBe('public')
-    expect(manifest.dsh.bundle.patch).toBe('./cordis.patch.yml')
+    expect(manifest.dsh.bundle.patch).toBe('./cordis.patch.toml')
     expect(manifest.dependencies).toEqual({
       '@deepseek-ai/dsh-experimental-client-ui-stats': 'workspace:*',
       '@deepseek-ai/dsh-experimental-inspector': 'workspace:*',
       '@deepseek-ai/dsh-experimental-session-inspector': 'workspace:*',
     })
-    expect(parseEntryYaml(readFileSync(new URL(`../${manifest.dsh.bundle.patch}`, import.meta.url), 'utf8'))).toEqual([{ insert: [
+    expect(parseEntryToml(readFileSync(new URL(`../${manifest.dsh.bundle.patch}`, import.meta.url), 'utf8'))).toEqual([{ insert: [
       {
         id: 'experimental-inspector', name: '@deepseek-ai/dsh-experimental-inspector',
         disabled: false, config: { captureFetch: true },

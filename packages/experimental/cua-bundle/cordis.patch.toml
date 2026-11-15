@@ -1,0 +1,24 @@
+[[entry]]
+[[entry.insert]]
+id = "cua-provider-registry"
+name = "@deepseek-ai/dsh-computer-use"
+
+[[entry.insert]]
+id = "cua-macos"
+name = "@deepseek-ai/dsh-cua-macos"
+disabled = "js:process.platform !== 'darwin'"
+
+[entry.insert.config]
+agentPreset = "ptc"
+
+[[entry.insert]]
+id = "cua-windows"
+name = "@deepseek-ai/dsh-cua-windows"
+disabled = "js:process.platform !== 'win32'"
+
+[entry.insert.config]
+agentPreset = "ptc"
+
+[[entry.insert]]
+id = "ui-cua"
+name = "@deepseek-ai/dsh-cua"
