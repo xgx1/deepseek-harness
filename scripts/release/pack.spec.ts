@@ -270,7 +270,9 @@ describe('release pack CLI', () => {
     expect(result.status, result.stderr).toBe(0)
     expect(readFileSync(join(root, 'packed', PUBLISH_ORDER_FILE), 'utf8')).toBe('\n')
     expect(readdirSync(join(root, 'packed'))).toEqual([PUBLISH_ORDER_FILE])
-    expect(existsSync(join(root, 'hooks.log'))).toBe(false)
+    // pnpm runs prepare hooks for workspace members when it installs the fixture, so a pack phase proves a member was packed.
+    const hooks = existsSync(join(root, 'hooks.log')) ? readFileSync(join(root, 'hooks.log'), 'utf8') : ''
+    expect(hooks).not.toContain('prepack')
   })
 
   it('leaves no publish order after a pack hook fails', async () => {

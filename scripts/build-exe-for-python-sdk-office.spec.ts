@@ -135,7 +135,7 @@ it('downloads pinned npm packages into the sidecar without resolving or executin
 
 it('takes npm integrity from the workspace lock without querying registry metadata', async () => {
   const { root } = await fixture()
-  const lockfile = join(root, 'pnpm-lock.yaml')
+  const lockfile = join(root, 'nub.lock')
   const integrity = `sha512-${Buffer.alloc(64, 7).toString('base64')}`
   await writeFile(lockfile, JSON.stringify({ packages: { '@scope/fixture@1.2.3': { resolution: { integrity } } } }))
   expect(await runtimeNpmArchive('@scope/fixture', '1.2.3', lockfile)).toEqual({

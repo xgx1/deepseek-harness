@@ -98,26 +98,35 @@ describe('workspace manifest discovery', () => {
         ? { name: '@deepseek-ai/dsh-runtime' }
         : { dependencies: { '@deepseek-ai/dsh-runtime': 'workspace:^' } }))
     }
+    const rootManifestPath = join(root, 'package.json')
+    writeFileSync(rootManifestPath, JSON.stringify({
+      ...JSON.parse(readFileSync(rootManifestPath, 'utf8')),
+      workspaces: ['packages/*/*', 'apps/*', 'apps/cli', 'benchmarks', 'website', 'python/sdk-runtime', 'tools/*', '!tools/excluded'],
+    }))
     const manifests = readWorkspaceManifests(root)
     expect(manifests.map(entry => entry.dir).sort()).toEqual([...consumers, 'packages/core/runtime'].sort())
     expect(checkWorkspaceProtocol(manifests).sort()).toEqual(consumers.map(dir =>
       `${dir}: dependencies.@deepseek-ai/dsh-runtime must use workspace:*, got workspace:^`).sort())
   })
 
-  it.each(['', 'null', '{}', 'packages: []', 'packages: [false]', 'packages: [""]', 'packages: wrong'])(
-    'rejects an invalid workspace declaration: %s', (contents) => {
-      const root = mkdtempSync(join(tmpdir(), 'dsh-workspace-ranges-'))
-      onTestFinished(() => { rmSync(root, { recursive: true, force: true }) })
-      writeFileSync(join(root, 'pnpm-workspace.yaml'), contents)
-      expect(() => readWorkspaceManifests(root)).toThrow('packages must be a non-empty list of workspace patterns')
-    },
-  )
+  it.each([
+    ['{}', {}],
+    ['{"workspaces": []}', { workspaces: [] }],
+    ['{"workspaces": [false]}', { workspaces: [false] }],
+    ['{"workspaces": [""]}', { workspaces: [''] }],
+    ['{"workspaces": "wrong"}', { workspaces: 'wrong' }],
+  ])('rejects an invalid workspace declaration: %s', (_label, manifest) => {
+    const root = mkdtempSync(join(tmpdir(), 'dsh-workspace-ranges-'))
+    onTestFinished(() => { rmSync(root, { recursive: true, force: true }) })
+    writeFileSync(join(root, 'package.json'), JSON.stringify(manifest))
+    expect(() => readWorkspaceManifests(root)).toThrow('workspaces must be a non-empty list of workspace patterns')
+  })
 
   it('rejects a declaration that matches no workspace members', () => {
     const root = mkdtempSync(join(tmpdir(), 'dsh-workspace-ranges-'))
     onTestFinished(() => { rmSync(root, { recursive: true, force: true }) })
-    writeFileSync(join(root, 'pnpm-workspace.yaml'), 'packages: [missing/*]')
-    expect(() => readWorkspaceManifests(root)).toThrow('packages matched no workspace manifests')
+    writeFileSync(join(root, 'package.json'), JSON.stringify({ workspaces: ['missing/*'] }))
+    expect(() => readWorkspaceManifests(root)).toThrow('workspaces matched no workspace manifests')
   })
 })
 

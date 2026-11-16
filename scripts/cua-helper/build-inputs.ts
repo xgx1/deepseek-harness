@@ -14,7 +14,7 @@ const sourceDirectories = [
 const sourceFiles = new Set([
   '.github/workflows/cua-helper-package-macos.yml', '.github/workflows/release-publish.yml',
   'package.json', 'scripts/package.json', 'apps/package.json', 'apps/desktop/package.json', 'scripts/release/process.ts',
-  'pnpm-lock.yaml', 'pnpm-workspace.yaml', '.npmrc', '.pnpmfile.cjs', '.pnpmfile.mjs',
+  'nub.lock', '.npmrc', '.pnpmfile.cjs', '.pnpmfile.mjs',
 ])
 
 function isSourceFile(path: string): boolean {
@@ -27,7 +27,7 @@ function trackedSources(root: string): string[] {
   const files = execFileSync('git', ['ls-files', '-z'], { cwd: root, encoding: 'utf8', maxBuffer: 32 * 1024 * 1024 })
     .split('\0').filter(isSourceFile).sort()
   for (const required of ['packages/experimental/cua-macos/native/Package.swift', 'scripts/cua-helper/package.ts',
-    'package.json', 'pnpm-lock.yaml']) {
+    'package.json', 'nub.lock']) {
     if (!files.includes(required)) throw new Error(`CUA source: missing tracked build input ${required}`)
   }
   return files
@@ -36,8 +36,9 @@ function trackedSources(root: string): string[] {
 function manifestConfiguration(bytes: Buffer, root: boolean): Buffer {
   const manifest: unknown = JSON.parse(bytes.toString('utf8'))
   assert(manifest && typeof manifest === 'object' && !Array.isArray(manifest), 'CUA source: invalid package manifest')
-  assert(!root || ('packageManager' in manifest && typeof manifest.packageManager === 'string'),
-    'CUA source: package.json must declare packageManager')
+  assert(!root || ('devEngines' in manifest && typeof manifest.devEngines === 'object' && manifest.devEngines !== null
+    && 'packageManager' in manifest.devEngines),
+  'CUA source: package.json must declare devEngines.packageManager')
   return Buffer.from(JSON.stringify(Object.fromEntries(Object.entries(manifest).filter(([name]) => name !== 'version'))))
 }
 

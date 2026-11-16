@@ -405,7 +405,7 @@ function main(): void {
     console.log('release bump: dry run, nothing written')
     return
   }
-  capture('git', ['add', 'pnpm-lock.yaml', ...planned.map(entry => entry.manifestPath)])
+  capture('git', ['add', 'nub.lock', ...planned.map(entry => entry.manifestPath)])
   capture('git', ['commit', '-m', `release(${family.id}): ${summary}`])
   console.log('release bump: committed. After this merges to master, tag it:')
   for (const tag of [...new Set(planned.map(entry => entry.tag).filter(tag => tag !== undefined))]) {

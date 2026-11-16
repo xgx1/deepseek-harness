@@ -8,7 +8,6 @@
 import { existsSync, globSync, readdirSync, readFileSync } from 'node:fs'
 import { dirname, join, relative, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
-import { load as loadYaml } from 'js-yaml'
 import {
   isPublicExperimentalPackageDirectory,
   isExperimentalPackageName,
@@ -159,25 +158,25 @@ function workspaceManifests(): WorkspaceManifest[] {
 }
 
 /**
- * Read the root manifest and every member declared by pnpm-workspace.yaml.
+ * Read the root manifest and every member declared by package.json#workspaces.
  * @param repositoryRoot - repository or fixture root containing the workspace declaration.
  * @returns Manifests with normalized repository-relative directories.
  * @throws When the workspace declaration is invalid or matches no member manifests.
  */
 export function readWorkspaceManifests(repositoryRoot: string): WorkspaceManifest[] {
-  const config = loadYaml(readFileSync(join(repositoryRoot, 'pnpm-workspace.yaml'), 'utf8'))
-  if (typeof config !== 'object' || config === null || !('packages' in config)
-    || !Array.isArray(config.packages) || config.packages.length === 0
-    || !config.packages.every((member: unknown): member is string => typeof member === 'string' && member.length > 0)) {
-    throw new Error('pnpm-workspace.yaml: packages must be a non-empty list of workspace patterns')
+  const config = readJson(join(repositoryRoot, 'package.json')) as { workspaces?: unknown }
+  const declared = config.workspaces
+  if (!Array.isArray(declared) || declared.length === 0
+    || !declared.every((member: unknown): member is string => typeof member === 'string' && member.length > 0)) {
+    throw new Error('package.json: workspaces must be a non-empty list of workspace patterns')
   }
-  const patterns = config.packages.filter(member => !member.startsWith('!')).map(member => `${member}/package.json`)
-  const exclude = config.packages.filter(member => member.startsWith('!')).map(member => `${member.slice(1)}/package.json`)
+  const patterns = declared.filter(member => !member.startsWith('!')).map(member => `${member}/package.json`)
+  const exclude = declared.filter(member => member.startsWith('!')).map(member => `${member.slice(1)}/package.json`)
   const paths = globSync(patterns, {
     cwd: repositoryRoot,
     exclude: ['**/node_modules/**', '**/.git/**', ...exclude],
   }).map(path => path.replaceAll('\\', '/'))
-  if (paths.length === 0) throw new Error('pnpm-workspace.yaml: packages matched no workspace manifests')
+  if (paths.length === 0) throw new Error('package.json: workspaces matched no workspace manifests')
   return [...new Set(['package.json', ...paths])].sort().map(path => ({
     dir: dirname(path).replaceAll('\\', '/'),
     manifest: readJson(join(repositoryRoot, path)),

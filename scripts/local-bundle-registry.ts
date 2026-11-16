@@ -18,7 +18,6 @@ import { mkdir, writeFile } from 'node:fs/promises'
 import { createServer, type Server, type ServerResponse } from 'node:http'
 import { join, resolve } from 'node:path'
 import { execa } from 'execa'
-import yaml from 'js-yaml'
 import semver from 'semver'
 import { pnpmInvocation } from './pnpm-invocation.ts'
 import { capture, pnpmCommand } from './release/process.ts'
@@ -166,16 +165,16 @@ export function pnpmInvocationFor(args: readonly string[]): { command: string; a
 }
 
 /**
- * Read the pnpm workspace inventory.
- * @param root - repository root containing `pnpm-workspace.yaml`.
+ * Read the workspace inventory.
+ * @param root - repository root whose package.json declares the workspace members.
  * @returns Workspace packages indexed by name.
  */
 export function readWorkspacePackages(root: string): Map<string, WorkspacePackage> {
-  const settings: unknown = yaml.load(readFileSync(join(root, 'pnpm-workspace.yaml'), 'utf8'))
-  if (!isRecord(settings)) throw new Error('pnpm-workspace.yaml must be a mapping')
-  const patterns = settings.packages
+  const settings = manifestAt(join(root, 'package.json'))
+  if (!isRecord(settings)) throw new Error('package.json must be a mapping')
+  const patterns = settings.workspaces
   if (!Array.isArray(patterns) || patterns.length === 0 || !patterns.every(value => typeof value === 'string')) {
-    throw new Error('pnpm-workspace.yaml must list package patterns')
+    throw new Error('package.json must list workspace patterns')
   }
   const packages = new Map<string, WorkspacePackage>()
   const paths = globSync(patterns.map(pattern => `${pattern}/package.json`), { cwd: root })
@@ -188,7 +187,7 @@ export function readWorkspacePackages(root: string): Map<string, WorkspacePackag
     if (packages.has(name)) throw new Error(`duplicate workspace package ${name}`)
     packages.set(name, { name, directory: resolve(root, path, '..'), manifest })
   }
-  if (packages.size === 0) throw new Error('the pnpm workspace inventory is empty')
+  if (packages.size === 0) throw new Error('the workspace inventory is empty')
   return packages
 }
 

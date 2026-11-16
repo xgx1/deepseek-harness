@@ -24,7 +24,7 @@ export interface OfficePackageArchive extends RuntimeNpmArchive {
  * @param lockfile - Workspace lock recording the exact published archive.
  * @returns Locked npm tarball identity; rejects versions without SHA-512 integrity.
  */
-export async function runtimeNpmArchive(name: string, version: string, lockfile = join(import.meta.dirname, '../pnpm-lock.yaml')): Promise<RuntimeNpmArchive> {
+export async function runtimeNpmArchive(name: string, version: string, lockfile = join(import.meta.dirname, '../nub.lock')): Promise<RuntimeNpmArchive> {
   const lock = parseYaml(await readFile(lockfile, 'utf8')) as { packages?: Record<string, { resolution?: { integrity?: string } }> }
   const integrity = lock.packages?.[`${name}@${version}`]?.resolution?.integrity
   if (typeof integrity !== 'string' || !/^sha512-[A-Za-z0-9+/]+={0,2}$/u.test(integrity)) {

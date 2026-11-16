@@ -23,8 +23,8 @@
     "src"
   ],
   "scripts": {
-    "prepack": "tsx ../../scripts/stage-dsh-docs.ts",
-    "postpack": "tsx ../../scripts/stage-dsh-docs.ts --clean"
+    "prepack": "nub ../../scripts/stage-dsh-docs.ts",
+    "postpack": "nub ../../scripts/stage-dsh-docs.ts --clean"
   },
   "license": "MIT",
   "dependencies": {

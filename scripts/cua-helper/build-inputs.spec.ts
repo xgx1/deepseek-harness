@@ -12,8 +12,8 @@ function fixture() {
   onTestFinished(() => { rmSync(root, { recursive: true, force: true }) })
   const git = (...args: string[]): void => { execFileSync('git', args, { cwd: root, stdio: 'pipe' }) }
   const files = {
-    'package.json': JSON.stringify({ version: '1.0.0', packageManager: 'pnpm@11.28.5' }),
-    'pnpm-lock.yaml': 'lockfileVersion: 9.0\n',
+    'package.json': JSON.stringify({ version: '1.0.0', devEngines: { packageManager: { name: 'nub' } } }),
+    'nub.lock': 'lockfileVersion: 9.0\n',
     'packages/experimental/cua-macos/native/Package.swift': '// swift package\n',
     'packages/experimental/cua-macos/native/Sources/Main.swift': 'print("one")\n',
     'packages/experimental/cua-macos/native/Info.plist': 'application identity',
@@ -43,7 +43,7 @@ function copyHelperScripts(root: string): void {
 it('keeps identical source bytes across product versions and unrelated package edits', () => {
   const f = fixture()
   const before = cuaHelperSourceDigest(f.root)
-  writeFileSync(join(f.root, 'package.json'), JSON.stringify({ version: '2.0.0', packageManager: 'pnpm@11.28.5' }))
+  writeFileSync(join(f.root, 'package.json'), JSON.stringify({ version: '2.0.0', devEngines: { packageManager: { name: 'nub' } } }))
   writeFileSync(join(f.root, 'packages/client/unrelated/src/index.ts'), 'another unrelated feature')
   utimesSync(f.source, new Date('2001-01-01'), new Date('2001-01-01'))
   expect(cuaHelperSourceDigest(f.root)).toBe(before)
@@ -60,10 +60,10 @@ it.each(['add', 'delete', 'rename', 'resource', 'dependency', 'script', 'workflo
     if (change === 'delete') rmSync(f.source)
     if (change === 'rename') renameSync(f.source, join(dirname(f.source), 'Renamed.swift'))
     if (change === 'resource') writeFileSync(join(f.root, 'packages/experimental/cua-macos/native/Info.plist'), 'changed identity')
-    if (change === 'dependency') writeFileSync(join(f.root, 'pnpm-lock.yaml'), 'changed dependency')
+    if (change === 'dependency') writeFileSync(join(f.root, 'nub.lock'), 'changed dependency')
     if (change === 'script') writeFileSync(join(f.root, 'apps/desktop/scripts/notarize-macos.mjs'), 'changed notarization')
     if (change === 'workflow') writeFileSync(join(f.root, '.github/workflows/cua-helper-package-macos.yml'), 'changed build configuration')
-    if (change === 'package manager') writeFileSync(join(f.root, 'package.json'), JSON.stringify({ packageManager: 'pnpm@12.0.0' }))
+    if (change === 'package manager') writeFileSync(join(f.root, 'package.json'), JSON.stringify({ devEngines: { packageManager: { name: 'nub', version: '^0.12.0' } } }))
     f.git('add', '-A')
     expect(cuaHelperSourceDigest(f.root)).not.toBe(before)
   },
@@ -75,7 +75,7 @@ it.skipIf(process.platform === 'win32')('includes executable mode and rejects so
   chmodSync(f.source, 0o755)
   expect(cuaHelperSourceDigest(f.root)).not.toBe(before)
   rmSync(f.source)
-  symlinkSync(join(f.root, 'pnpm-lock.yaml'), f.source)
+  symlinkSync(join(f.root, 'nub.lock'), f.source)
   expect(() => cuaHelperSourceDigest(f.root)).toThrow('regular file')
 })
 
@@ -158,7 +158,7 @@ it('compares GitHub commit objects independently of artifact claims while allowi
   const f = fixture()
   const previous = producerSnapshot(f.root)
   expect(await cuaHelperSourceMatches(f.root, repository, previous.commit, previous.api)).toBe(true)
-  writeFileSync(join(f.root, 'package.json'), JSON.stringify({ version: '2.0.0', packageManager: 'pnpm@11.28.5' }))
+  writeFileSync(join(f.root, 'package.json'), JSON.stringify({ version: '2.0.0', devEngines: { packageManager: { name: 'nub' } } }))
   writeFileSync(join(f.root, 'packages/client/unrelated/src/index.ts'), 'another unrelated feature')
   expect(await cuaHelperSourceMatches(f.root, repository, previous.commit, previous.api)).toBe(true)
   writeFileSync(f.source, 'changed native code')
@@ -174,7 +174,7 @@ it.each(['helper workflow', 'publish workflow', 'packaging script', 'manifest li
     if (change === 'publish workflow') writeFileSync(join(f.root, '.github/workflows/release-publish.yml'), 'forged caller')
     if (change === 'packaging script') writeFileSync(join(f.root, 'scripts/cua-helper/package.ts'), 'forged metadata')
     if (change === 'manifest lifecycle') writeFileSync(join(f.root, 'package.json'), JSON.stringify({
-      version: '1.0.0', packageManager: 'pnpm@11.28.5', scripts: { postinstall: 'unexpected code' },
+      version: '1.0.0', devEngines: { packageManager: { name: 'nub' } }, scripts: { postinstall: 'unexpected code' },
     }))
     if (change === 'npm config') writeFileSync(join(f.root, '.npmrc'), 'node-options=--require=./unexpected.cjs')
     if (change === 'patch') {
