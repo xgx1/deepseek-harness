@@ -22,6 +22,8 @@ CI 也跑在 nub 上。原先使用 `pnpm/action-setup` 的 24 个 workflow 改�
 
 可执行文件的载体是例外。`nub` 没有 `pnpm deploy` 的对应能力，因此 Python SDK 与 SSH helper 两条通道用固定版本的 pnpm 暂存生产闭包，该 pnpm 从包中解析而非取自 `PATH`（`scripts/executable-packaging.ts` 的 `pnpmCommand()`）；`pnpm` 作为根 `devDependency` 正是为了这一处调用。nub 也不允许声明了却未使用的补丁：`^1.3.0` 与 `^2.0.1` 两个范围已开始解析到被打补丁的版本之外，因此 `overrides` 固定 `@earendil-works/pi-ai@1.3.0` 与 `mdast-util-gfm-autolink-literal@2.0.1`，让两个补丁都保持生效。
 
+nub 的转译器不接受 TypeScript 的 Stage 3 装饰器（oxc 的已知限制，oxc-project/oxc#9170），因此 `nub <file>` 无法加载声明了装饰器的模块。工具目录与 v3 事件词表会导入带装饰器的包，仍走 `nubx tsx`——`tsx` 因此与 CLI 的 tsx 源码启动一起保留为依赖；其余脚本直接在 nub 上跑。pre-push 钩子执行 `nub run typecheck`，所以推送时 `PATH` 里要有 nub。
+
 ## 考虑过的其他方案
 
 - **继续声明 pnpm，仅以兼容模式使用 nub。** 否决：nub 每次安装都会把 `pnpm-lock.yaml` 重写成另一种形态，工作树始终脏，而且没有东西声明仓库实际运行的工具链。

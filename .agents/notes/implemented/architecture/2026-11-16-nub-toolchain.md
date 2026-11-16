@@ -22,6 +22,8 @@ The build and gate scripts resolve the launcher they inherited instead of lookin
 
 The executable carriers are the exception. `nub` has no equivalent of `pnpm deploy`, so the Python-SDK and SSH-helper lanes stage their production closures with the pinned pnpm resolved from its package rather than `PATH` (`pnpmCommand()` in `scripts/executable-packaging.ts`); `pnpm` stays a root `devDependency` for exactly that call. nub also refuses to leave a declared patch unused: the `^1.3.0` and `^2.0.1` ranges had begun resolving past the two patched packages, so `overrides` pin `@earendil-works/pi-ai@1.3.0` and `mdast-util-gfm-autolink-literal@2.0.1`, which keeps both patches in use.
 
+Nub's transpiler refuses TypeScript's Stage 3 decorators (an oxc limitation, oxc-project/oxc#9170), so `nub <file>` cannot load a module that declares one. The tool catalog and the v3 event vocabulary import decorated packages and therefore still run through `nubx tsx`, which stays a dependency beside the CLI's tsx-based source launch; everything else runs directly on nub. The pre-push hook runs `nub run typecheck`, so a push needs nub on `PATH`.
+
 ## Alternatives considered
 
 - **Keep pnpm declared and use nub in compat mode.** Rejected: nub then rewrites `pnpm-lock.yaml` into a different shape on every install, leaving a dirty tree, and nothing declares the toolchain the repository actually runs.
