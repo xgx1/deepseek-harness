@@ -51,33 +51,15 @@ jobs:
           persist-credentials: false
           fetch-depth: 2
 
-      - uses: pnpm/action-setup@v5.0.0
-        with:
-          dest: ${{ runner.temp }}/setup-pnpm
-
+      - uses: nubjs/setup-nub@v0
       - uses: actions/setup-node@v7.0.0
         with:
           node-version: ${{ env.PRIMARY_NODE_VERSION }}
 
-      - name: Configure pnpm store path
-        id: pnpm-store
-        run: |
-          store_root="$HOME/.local/share/pnpm/store"
-          echo "PNPM_CONFIG_STORE_DIR=$store_root" >> "$GITHUB_ENV"
-          store_path=$(PNPM_CONFIG_STORE_DIR="$store_root" pnpm store path --silent)
-          echo "path=$store_path" >> "$GITHUB_OUTPUT"
-
       # Read-only: the preview lane consumes the default-branch cache without
       # putting cache upload on its own path.
-      - uses: actions/cache/restore@v6.1.0
-        with:
-          path: ${{ steps.pnpm-store.outputs.path }}
-          key: ${{ runner.os }}-node-${{ env.PRIMARY_NODE_VERSION }}-pnpm-${{ hashFiles('pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-node-${{ env.PRIMARY_NODE_VERSION }}-pnpm-
-
       - name: Install (immutable)
-        run: pnpm install --frozen-lockfile
+        run: nub ci
 
       # apps/web consumes workspace packages as built lib products, and
       # build:preview packs the image through the packer's installed bin
@@ -86,12 +68,12 @@ jobs:
       # here also runs the aggregate test and script checks, which share the
       # Typert output and the two package compilations.
       - name: Build workspace and check aggregate programs
-        run: pnpm run build
+        run: nub run build
 
       - name: Build the preview page and pack the VFS image
         env:
           DSH_CLIENT_TITLE: DSH preview pr-${{ github.event.pull_request.number }}
-        run: pnpm --filter @deepseek-ai/dsh-web-frontend run build:preview
+        run: nub run -F @deepseek-ai/dsh-web-frontend build:preview
 
       # Sourcemaps carry complete sources and stay off the deployment platform.
       # index.html is the served page, which cannot boot without a host
@@ -110,7 +92,7 @@ jobs:
         id: snapshot-diff
         continue-on-error: true
         run: >-
-          pnpm exec tsx scripts/snapshot-diff-page.ts --base HEAD^1 --head HEAD
+          nub scripts/snapshot-diff-page.ts --base HEAD^1 --head HEAD
           --out apps/web/dist/snapshot-diff
           --preview-manifest apps/web/dist/preview/fixtures.json
 

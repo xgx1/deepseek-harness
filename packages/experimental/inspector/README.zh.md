@@ -31,7 +31,7 @@ kind: "package-reference"
 <a id="use-this-package"></a>
 ## 使用本包
 
-可信本地开发可通过 `pnpm run demo:inspector`，经普通 Web profile 显式挂载源码 overlay。Host 会打印调试链接，检查该目标需要 Chrome。fetch 采集包含密钥等敏感信息，本地调试端口允许执行任意代码。
+可信本地开发可通过 `nub run demo:inspector`，经普通 Web profile 显式挂载源码 overlay。Host 会打印调试链接，检查该目标需要 Chrome。fetch 采集包含密钥等敏感信息，本地调试端口允许执行任意代码。
 
 组合包将 `experimental-inspector` 设置为 `disabled: false`，并设置 `captureFetch: true`。Host 可选的 `--inspect` 参数处理仅负责打开外部 Chrome 窗口，不控制 Inspector 是否运行。
 

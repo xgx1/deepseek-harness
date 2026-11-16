@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-This package gives tests and demos a scriptable Messages-compatible HTTP/SSE endpoint with named events for native SDK consumers, so they can exercise model-provider failures and successes without a provider key. Each accepted `/v1/messages` request consumes the next scripted behavior, including resets, stalls, malformed chunks, rate limits, server errors, completions, and tool calls. Test authors can run it with `pnpm run mock:llm` or call `startMockLlmServer`, which returns captured requests for assertions. Seeded `random` behavior supports reproducible mixed-failure stress runs.
+This package gives tests and demos a scriptable Messages-compatible HTTP/SSE endpoint with named events for native SDK consumers, so they can exercise model-provider failures and successes without a provider key. Each accepted `/v1/messages` request consumes the next scripted behavior, including resets, stalls, malformed chunks, rate limits, server errors, completions, and tool calls. Test authors can run it with `nub run mock:llm` or call `startMockLlmServer`, which returns captured requests for assertions. Seeded `random` behavior supports reproducible mixed-failure stress runs.
 
 ## Table of Contents
 
@@ -32,7 +32,7 @@ This package lets a test or demo speak the provider protocol without a provider:
 Run the source entry from this repository:
 
 ```sh
-pnpm run mock:llm \
+nub run mock:llm \
   --port 8000 \
   --api-key mock-key \
   --sequence partial_disconnect,success \
@@ -44,7 +44,7 @@ Point the shipping DeepSeek adapter at the server; it sends requests to `/messag
 ```sh
 DEEPSEEK_BASE_URL=http://127.0.0.1:8000/v1 \
 DEEPSEEK_API_KEY=mock-key \
-pnpm dsh --profile headless "test provider recovery"
+nubx dsh --profile headless "test provider recovery"
 ```
 
 The repository script writes JSONL to stdout: a `ready` record carries the `/v1` base URL and random seed, followed by request/result records that name both the scripted behavior and the concrete behavior selected. The package exposes no installable binary.
@@ -76,7 +76,7 @@ The repository script writes JSONL to stdout: a `ready` record carries the `/v1`
 Use a repeating `random` entry for an open-ended mixed run:
 
 ```sh
-pnpm run mock:llm \
+nub run mock:llm \
   --port 8000 \
   --sequence random \
   --repeat-last \
@@ -116,7 +116,7 @@ The server is built on one rule: each accepted Messages request consumes exactly
 |---|---|
 | [`src/index.ts`](src/index.ts) | `startMockLlmServer`: listener, behavior table, seeded randomness, telemetry, captured request records |
 | [`src/cli.ts`](src/cli.ts) | `--sequence` and timing/content option parsing, JSONL stdout telemetry |
-| [`src/bin.ts`](src/bin.ts) | The `pnpm run mock:llm` source entry |
+| [`src/bin.ts`](src/bin.ts) | The `nub run mock:llm` source entry |
 
 ### Wire flow
 

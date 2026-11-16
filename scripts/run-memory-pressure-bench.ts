@@ -4,7 +4,7 @@ import { spawnSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { getHeapStatistics } from 'node:v8'
-import { pnpmCommand } from './release/process.ts'
+import { nubCommand } from './release/process.ts'
 import { buildCiBenchArtifacts } from './run-ci-bench.ts'
 
 /** Modeled machines: memory available to the whole benchmark process tree, without swap. */
@@ -105,7 +105,7 @@ export function runScopedMemoryPressureBench(root: string, machine: MemoryPressu
     constrained: process.constrainedMemory(),
   })
   if (violation !== undefined) throw new Error(`run-memory-pressure-bench: ${violation}`)
-  const status = run(root, [...pnpmCommand(), 'exec', 'vitest', 'run', '--config', 'vitest.bench.config.ts', ...MEMORY_PRESSURE_FILES])
+  const status = run(root, [...nubCommand(), 'exec', 'vitest', 'run', '--config', 'vitest.bench.config.ts', ...MEMORY_PRESSURE_FILES])
   const oomKills = /^oom_kill (\d+)$/m.exec(cgroupFile('memory.events'))?.[1]
   if (oomKills === undefined) throw new Error('run-memory-pressure-bench: memory.events has no oom_kill counter')
   console.log(JSON.stringify({
@@ -134,7 +134,7 @@ export function runMemoryPressureBench(root: string, machine: MemoryPressureMach
   }
   buildCiBenchArtifacts(root)
   return run(root, memoryScopeCommand(machine, [
-    ...pnpmCommand(), 'exec', 'tsx', 'scripts/run-memory-pressure-bench.ts', '--scoped', machine,
+    ...nubCommand(), 'exec', 'tsx', 'scripts/run-memory-pressure-bench.ts', '--scoped', machine,
   ]))
 }
 

@@ -50,7 +50,7 @@ pnpm --filter @deepseek-ai/dsh-plugin-market-generator start \
 - **npm 包**：注册表文档中未弃用、未设为私有、声明了组合包（bundle）且有发布时间的每个版本。版本只取自注册表文档；生成器只下载最高列出版本的 tarball，用于读取展示字段。该 tarball 的 `package.json` 必须与所请求的包名和版本一致。
 - **Git 仓库**：生成器按以下顺序在默认分支上查找组合包：
   1. 根 `package.json` 声明了 `dsh.bundle`：仅使用根包；
-  2. `package.json` 的 `workspaces` 或 `pnpm-workspace.yaml` 的 `packages` 匹配到声明了 `dsh.bundle` 的包：使用这些包。每个 glob 段可以是字面名称、含 `*` 的名称或 `**`；生成器忽略否定 glob，并报告未匹配任何内容的 glob；
+  2. `package.json` 的 `workspaces` 或 `package.json#workspaces` 的 `packages` 匹配到声明了 `dsh.bundle` 的包：使用这些包。每个 glob 段可以是字面名称、含 `*` 的名称或 `**`；生成器忽略否定 glob，并报告未匹配任何内容的 glob；
   3. 否则，使用三层目录以内、位于 `node_modules`、`test`、`tests`、`fixtures`、`example` 和 `examples` 之外的所有声明了 `dsh.bundle` 的包。
 
   每个包的版本来自发布标签（tag）和默认分支。`vX.Y.Z` 或 `X.Y.Z` 标签适用于所有包，`<name>@X.Y.Z` 标签（例如 `@scope/dsh-a@1.2.0`）适用于同名的包；标签中的版本必须是确切的 SemVer 版本。当包目录在打标签的提交中有一个组合包 manifest（元数据清单），且其名称相同、版本等于标签版本时，该标签列出这个包。默认分支的提交列出每个包的当前版本，除非某个标签已经列出该版本。多个标签列出同一版本时，`<name>@` 标签优先于统一标签，其次是较早的提交。发布时间是该提交的提交者时间。

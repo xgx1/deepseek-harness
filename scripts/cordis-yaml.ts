@@ -3,7 +3,7 @@
  * @module scripts/cordis-yaml
  */
 
-import { parseEntryYaml } from '@deepseek-ai/cordis-plugin-include'
+import { parseEntryToml, parseEntryYaml } from '@deepseek-ai/cordis-plugin-include'
 
 /** A Loader `!!js` expression preserved as data instead of executed. */
 export interface JsExpr {
@@ -11,12 +11,13 @@ export interface JsExpr {
 }
 
 /**
- * Parse a Cordis config while preserving Loader `!!js` expressions as data.
- * @param source - Cordis YAML source text.
- * @returns the parsed YAML value.
+ * Parse a Cordis config while preserving Loader expressions as data.
+ * @param source - Cordis YAML or TOML source text.
+ * @param file - Path the source came from; a `.toml` extension selects the TOML dialect.
+ * @returns the parsed value.
  */
-export function loadCordisYaml(source: string): unknown {
-  return parseEntryYaml(source)
+export function loadCordisYaml(source: string, file?: string): unknown {
+  return file?.endsWith('.toml') === true ? parseEntryToml(source) : parseEntryYaml(source)
 }
 
 /**

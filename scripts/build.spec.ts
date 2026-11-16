@@ -43,10 +43,10 @@ describe('repository build CLI', () => {
   })
 
   it('selects the complete build by default and one step set by scope', () => {
-    expect(parseBuildArguments([])).toEqual({ scope: 'complete', profile: undefined, serial: false })
-    expect(parseBuildArguments(['--scope', 'artifacts', '--profile', 'official'])).toEqual({ scope: 'artifacts', profile: 'official', serial: false })
-    expect(parseBuildArguments(['--scope', 'check'])).toEqual({ scope: 'check', profile: undefined, serial: false })
-    expect(parseBuildArguments(['--scope', 'typecheck'])).toEqual({ scope: 'typecheck', profile: undefined, serial: false })
+    expect(parseBuildArguments([])).toEqual({ scope: 'complete', profile: undefined, serial: false, noCache: false, noDesktop: false })
+    expect(parseBuildArguments(['--scope', 'artifacts', '--profile', 'official'])).toEqual({ scope: 'artifacts', profile: 'official', serial: false, noCache: false, noDesktop: false })
+    expect(parseBuildArguments(['--scope', 'check'])).toEqual({ scope: 'check', profile: undefined, serial: false, noCache: false, noDesktop: false })
+    expect(parseBuildArguments(['--scope', 'typecheck'])).toEqual({ scope: 'typecheck', profile: undefined, serial: false, noCache: false, noDesktop: false })
   })
 
   it.each([
@@ -61,7 +61,7 @@ describe('repository build CLI', () => {
 
 describe('repository build steps', () => {
   it('parses the explicit serial build option', () => {
-    expect(parseBuildArguments(['--profile', 'official', '--serial'])).toEqual({ scope: 'complete', profile: 'official', serial: true })
+    expect(parseBuildArguments(['--profile', 'official', '--serial'])).toEqual({ scope: 'complete', profile: 'official', serial: true, noCache: false, noDesktop: false })
   })
 
   it.each(['complete', 'artifacts', 'check', 'typecheck'] as const)('chains every %s step when serial execution is selected', (scope) => {

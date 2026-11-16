@@ -113,7 +113,7 @@ Node 部署在受支持的 macOS、Linux 与 Windows 目标上获得 `@vscode/ri
 
 ### Native 模式 benchmark
 
-运行 `pnpm run build` 后，将包内诊断脚本编译为外部引用运行时依赖的产物，再用普通 Node 运行：
+运行 `nub run build` 后，将包内诊断脚本编译为外部引用运行时依赖的产物，再用普通 Node 运行：
 
 ```sh
 cd packages/fs/tool-fs-search

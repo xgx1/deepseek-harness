@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url'
 import { execa } from 'execa'
 import yaml from 'js-yaml'
 import { expect, onTestFinished } from 'vitest'
-import { pnpmCommand } from '../../../../scripts/release/process.ts'
+import { nubCommand } from '../../../../scripts/release/process.ts'
 import { packedWorkspaceClosure, type WorkspacePackage } from '../../../../packages/sandbox/sandbox-local/tests/packed-workspace-closure.ts'
 
 const root = fileURLToPath(new URL('../../../..', import.meta.url))
@@ -94,7 +94,7 @@ export async function createPackedInstallation(temporaryPrefix: string, extraPac
     DSH_TELEMETRY_DISABLED: '1',
     CI: 'true',
   })
-  const [pnpm, ...prefix] = pnpmCommand()
+  const [pnpm, ...prefix] = nubCommand()
   const packageCommand = async (args: string[], cwd: string) => {
     const result = await execa(pnpm, [...prefix, ...args], {
       cwd, env: environment, extendEnv: false, timeout: 180_000, reject: false,

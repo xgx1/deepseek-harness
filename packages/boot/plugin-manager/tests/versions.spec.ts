@@ -1,4 +1,4 @@
-/** Reading `pnpm view` answers about published versions. */
+/** Reading `nub view` answers about published versions. */
 import { expect, it } from 'vitest'
 import { newerVersions, versionFacts } from '../src/versions.ts'
 
@@ -16,5 +16,5 @@ it('orders newer semver versions newest first and ignores time and tags that are
     { version: '1.10.0', tags: [], prerelease: false },
     { version: '1.2.0', tags: [], prerelease: false },
   ])
-  expect(() => newerVersions(null, '1.0.0')).toThrow('pnpm view answered no versions')
+  expect(() => newerVersions(null, '1.0.0')).toThrow('nub view answered no versions')
 })

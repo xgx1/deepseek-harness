@@ -47,7 +47,7 @@ expect(mock.remote.settings.mutate).toHaveBeenCalledWith('locale', operations, r
 
 只有显式 `stream()` 或响应表中的流声明才选择流方法；其余均使用一元 mock。访问方法不会凭空构造成功的业务结果。保存方法引用前先声明流模式：每个端点/模式拥有各自的 mock。命名空间和方法的 `then` 探测及 symbol 读取均无副作用。
 
-`MockedRemote` 使用 Vitest 的深层 mock 类型转换，覆盖完整生成的 `TypertRemoteNamespaceMap`。非空映射保留命名空间与方法名、参数、返回值和原生 spy 类型。映射为空时只有这个测试 Proxy 变成 `any`，允许任意命名空间和方法；它不增补或弱化生产 Remote 声明。不需要复制方法签名、抑制可选生成模块错误或开启编译器级全局 Flag。交付 Remote/mock 改动前运行 `pnpm run typecheck`，生成并检查真实 Client 类型；声明缺失、陈旧或不完整时先重新构建。无构建测试通过或推断为 `any` 都不是严格类型证据。
+`MockedRemote` 使用 Vitest 的深层 mock 类型转换，覆盖完整生成的 `TypertRemoteNamespaceMap`。非空映射保留命名空间与方法名、参数、返回值和原生 spy 类型。映射为空时只有这个测试 Proxy 变成 `any`，允许任意命名空间和方法；它不增补或弱化生产 Remote 声明。不需要复制方法签名、抑制可选生成模块错误或开启编译器级全局 Flag。交付 Remote/mock 改动前运行 `nub run typecheck`，生成并检查真实 Client 类型；声明缺失、陈旧或不完整时先重新构建。无构建测试通过或推断为 `any` 都不是严格类型证据。
 
 ### 登记默认响应
 

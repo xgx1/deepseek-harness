@@ -22,7 +22,7 @@ git tag node-addon-system-v0.0.2
 ## Preflight
 
 ```sh
-pnpm install --frozen-lockfile
+nub ci
 pnpm --dir native/system build:ts
 pnpm --dir native/system typecheck
 pnpm --dir native/system test:entry
@@ -52,7 +52,7 @@ The workflow publishes only from the final packed tarballs, in `publish-order.tx
 
 New scoped package names must be bootstrapped with an `@deepseek-ai` organization token through the `NPM_TOKEN` fallback: npm [requires a package to exist before a trusted publisher can be configured](https://docs.npmjs.com/cli/v11/commands/npm-trust/). After the first release creates the packages, configure each package to trust `node-addon-system-release.yml` in this repository with the `npm-publish` environment, then remove the fallback token when organization policy permits it.
 
-Manual local fallback (current platform's packages only) — always through `pack-release.mjs`, never `pnpm publish` directly (pnpm's pack path strips the launcher's executable bit; see [packaging.md](packaging.md)):
+Manual local fallback (current platform's packages only) — always through `pack-release.mjs`, never `nub publish` directly (pnpm's pack path strips the launcher's executable bit; see [packaging.md](packaging.md)):
 
 ```sh
 node native/system/scripts/pack-release.mjs native/system/dist/npm --current-platform-only

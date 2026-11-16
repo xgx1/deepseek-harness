@@ -24,7 +24,7 @@ import { isExperimentalPackageName } from './experimental-package-policy.ts'
 // The independently published entry package owns platform-engine dependencies.
 const EXTERNAL_KIT_PACKAGES = new Set(['@deepseek-ai/libreoffice-kit'])
 const PROFILE_SOURCE = 'packages/util/official-bundles/src/bundles.ts'
-const PRESET_PATTERN = 'packages/bundle/web-app/presets/*.patch.yml'
+const PRESET_PATTERN = 'packages/bundle/web-app/presets/*.patch.*ml'
 const RUNTIME_SECTIONS = ['dependencies', 'optionalDependencies', 'peerDependencies'] as const
 
 interface Manifest {
@@ -214,7 +214,7 @@ export function verifyDefaultProductIsolation(root: string): ProductIsolationRes
           if (existsSync(filename) || initial === undefined) scanConfig(filename)
           return
         }
-        const content = existsSync(filename) ? loadCordisYaml(readFileSync(filename, 'utf8')) : initial
+        const content = existsSync(filename) ? loadCordisYaml(readFileSync(filename, 'utf8'), filename) : initial
         if (!Array.isArray(content)) {
           failures.push(`${display(filename)}: included composition must contain an entry array`)
           return
@@ -228,7 +228,7 @@ export function verifyDefaultProductIsolation(root: string): ProductIsolationRes
   const scanConfig = (path: string): void => {
     if (configs.has(path)) return
     configs.add(path)
-    const document = loadCordisYaml(readFileSync(path, 'utf8'))
+    const document = loadCordisYaml(readFileSync(path, 'utf8'), path)
     if (!Array.isArray(document)) {
       failures.push(`${display(path)}: shipped composition must contain an entry array`)
       return

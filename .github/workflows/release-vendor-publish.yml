@@ -32,47 +32,29 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - uses: pnpm/action-setup@v5.0.0
-        with:
-          dest: ${{ runner.temp }}/setup-pnpm
-
+      - uses: nubjs/setup-nub@v0
       - uses: actions/setup-node@v7.0.0
         with:
           node-version: ${{ env.PRIMARY_NODE_VERSION }}
 
-      - name: Configure pnpm store path
-        id: pnpm-store
-        run: |
-          store_root="$HOME/.local/share/pnpm/store"
-          echo "PNPM_CONFIG_STORE_DIR=$store_root" >> "$GITHUB_ENV"
-          store_path=$(PNPM_CONFIG_STORE_DIR="$store_root" pnpm store path --silent)
-          echo "path=$store_path" >> "$GITHUB_OUTPUT"
-
-      - uses: actions/cache/restore@v6.1.0
-        with:
-          path: ${{ steps.pnpm-store.outputs.path }}
-          key: ${{ runner.os }}-node-${{ env.PRIMARY_NODE_VERSION }}-pnpm-${{ hashFiles('pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-node-${{ env.PRIMARY_NODE_VERSION }}-pnpm-
-
       - name: Install (immutable)
-        run: pnpm install --frozen-lockfile
+        run: nub ci
 
       - name: Verify release version
         env:
           RELEASE_PUBLISH: 'true'
-        run: pnpm run release:verify --family vendor
+        run: nub run release:verify --family vendor
 
       # The vendored packages publish their own sources and build outputs; the
       # host build produces what their manifests select.
       - name: Build
-        run: pnpm run build:lib:host
+        run: nub run build:lib:host
 
       - name: Pack release tarballs
-        run: pnpm run release:pack --family vendor --out dist/npm-vendor
+        run: nub run release:pack --family vendor --out dist/npm-vendor
 
       - name: Verify packed install
-        run: pnpm run release:verify-packed-install --family vendor --from dist/npm-vendor
+        run: nub run release:verify-packed-install --family vendor --from dist/npm-vendor
 
       - uses: actions/upload-artifact@v7.0.1
         with:
@@ -97,17 +79,14 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: pnpm/action-setup@v5.0.0
-        with:
-          dest: ${{ runner.temp }}/setup-pnpm
-
+      - uses: nubjs/setup-nub@v0
       - uses: actions/setup-node@v7.0.0
         with:
           node-version: ${{ env.PRIMARY_NODE_VERSION }}
           registry-url: https://registry.npmjs.org
 
       - name: Install (immutable, no package scripts)
-        run: pnpm install --frozen-lockfile --ignore-scripts
+        run: nub ci --ignore-scripts
 
       - uses: actions/download-artifact@v8.0.1
         with:
@@ -123,4 +102,4 @@ jobs:
           if [[ -n "$RELEASE_DIST_TAG" ]]; then
             args+=(--dist-tag "$RELEASE_DIST_TAG")
           fi
-          pnpm run release:publish --family vendor --from dist/npm-vendor "${args[@]}"
+          nub run release:publish --family vendor --from dist/npm-vendor "${args[@]}"

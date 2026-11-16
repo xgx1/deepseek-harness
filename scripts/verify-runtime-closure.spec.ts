@@ -149,7 +149,7 @@ describe('verifyRuntimeClosure', () => {
 
     expect(result.presetCount).toBe(0)
     expect(result.failures).toEqual([
-      'no agent presets matched packages/bundle/web-app/presets/*.patch.yml',
+      'no agent presets matched packages/bundle/web-app/presets/*.patch.*ml',
     ])
   })
 

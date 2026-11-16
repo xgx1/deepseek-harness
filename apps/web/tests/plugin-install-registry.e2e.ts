@@ -20,7 +20,7 @@ it.each(['https://registry.npmjs.org/', MIRROR])('selects the fastest responding
   await writeFile(requestLog, '')
   const overlay = join(scratch, 'cordis.patch.yml')
   const fixture = new URL('./fixtures/registry-ping.mjs', import.meta.url).href
-  await writeFile(overlay, `- id: plugin-manager\n  config: ${JSON.stringify({ pnpmCommand: process.execPath })}\n`
+  await writeFile(overlay, `- id: plugin-manager\n  config: ${JSON.stringify({ packageManagerCommand: process.execPath })}\n`
     + `- insert:\n    - id: registry-ping-fixture\n      name: ${JSON.stringify(fixture)}\n      config: ${JSON.stringify({ winner, requestLog })}\n`
     + `- id: ui-plugin-manager\n  config: ${JSON.stringify({ registryProbeEnabled: true })}\n`)
   let scaffold: WebScaffold | undefined

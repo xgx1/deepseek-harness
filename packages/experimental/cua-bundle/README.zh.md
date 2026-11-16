@@ -31,8 +31,8 @@ kind: "package-bundle"
 各平台的原生准备和访问要求分别见 [macOS 提供方](../cua-macos/README.zh.md)和 [Windows 提供方](../cua-windows/README.zh.md)。源码 Web 在仓库根目录运行以下命令：
 
 ```sh
-pnpm run build
-pnpm dsh web
+nub run build
+nubx dsh web
 ```
 
 源码 Desktop 的启动方式和独立开发配置档见[桌面开发说明](../../../apps/desktop/README.zh.md)。需要使用 Computer Use 的配置档分别开启该功能。

@@ -30,7 +30,7 @@ const ERROR_STEPS: Record<ManagementError['code'], string> = {
 
 /** What the model does next for each package-manager failure. */
 const FAILURE_STEPS: Partial<Record<PluginInstallFailureKind, string>> = {
-  'pnpm-missing': 'pnpm is not available to DSH; tell the user to install pnpm.',
+  'pnpm-missing': 'nub is not available to DSH; tell the user to install nub.',
   'timeout': 'Retry, or retry with another registry.',
   'not-found': 'Check the package name and version with the user, then retry.',
   'no-matching-version': 'Retry with a published version.',

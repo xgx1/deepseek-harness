@@ -57,7 +57,7 @@ The shell seeds a frozen module table ([`PLATFORM_MODULES`](../web/README.md#the
 
 ### Build requirements
 
-The host serves built client bundles, so `pnpm run build` must have produced each `lib/client.js` before launch; a missing bundle fails activation loudly with one build instruction and a package/path list. Source launch maps host imports to TypeScript source but still consumes the built client export. The package accepts no plugin config of its own.
+The host serves built client bundles, so `nub run build` must have produced each `lib/client.js` before launch; a missing bundle fails activation loudly with one build instruction and a package/path list. Source launch maps host imports to TypeScript source but still consumes the built client export. The package accepts no plugin config of its own.
 
 -----
 
@@ -147,7 +147,7 @@ These limits define what the module system does not do. They are current package
 - **Metadata-based revisions** — revisions identify filesystem generations, not content equality. Metadata-only changes can reload a plugin; changes invisible in mtime, ctime, and size cannot be distinguished.
 - **Flat module graph by design** — every bundle is one module node whose edges point only at table leaves; the interface (`loadCache`/`edges`/`invalidate`) already supports a general module graph, so the externalization granularity can change without an interface change.
 - **Host release detection rides the graph stream** — a page learns another Host release only from a graph frame. When a restarting Host answers `/plugins/events` with a non-200 status before registering the route, the browser closes that stream for good, and the page neither updates plugins nor detects a release change until it reloads.
-- **Source launch has no build step for the Host half** — a Host started from TypeScript source reads the commit that `pnpm run dev:web` places in its environment; a source launch without it publishes the version alone.
+- **Source launch has no build step for the Host half** — a Host started from TypeScript source reads the commit that `nub run dev:web` places in its environment; a source launch without it publishes the version alone.
 - **Bootstrap and code replacement limits** — the page retains its modules bootstrap and static platform identities. Removing or replacing the bootstrap requires a page reload; live replacement requests report a page-local error while retaining its fiber and exports; replacing package code and all existing consumers is outside ordinary enable/disable synchronization.
 - **Lazy delivery retains requested bodies** — the Host holds each bundle and lazy response plan; a script or map body remains cached after its first `GET`, and HMR additionally retains one prior startup generation. Memory grows only for response bodies that clients request while preserving one-generation race tolerance.
 - **An unrequested prior-generation map reads the current map file** — combo revisions track executable bundles, not debug artifacts. If HMR rebuilds a map before the retained prior URL receives its first map `GET`, that response uses the current authored map with the prior bundle offsets; requesting the map before the rebuild fixes that URL's response.

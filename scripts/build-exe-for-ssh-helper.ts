@@ -7,7 +7,7 @@ import { parseArgs } from 'node:util'
 import { build } from 'tsdown'
 import { create as createTar } from 'tar'
 import { verifyRuntimeClosure } from './verify-runtime-closure.ts'
-import { pnpmInvocation, restoreLegacyHoists } from './executable-packaging.ts'
+import { pnpmCommand, restoreLegacyHoists } from './executable-packaging.ts'
 import { materializeStagedLinks, deduplicateStagedWorkspacePackages } from './build-exe-for-python-sdk-staging.ts'
 import { resolveLinuxNodePtyAddon } from './executable-native-pty.ts'
 import { artifactManifestSchema, fileDigest, payloadFiles, SSH_HELPER_TARGETS, verifyPayload, type SshHelperTarget } from './ssh-helper/artifact.ts'
@@ -35,7 +35,7 @@ async function run(command: string, args: string[]): Promise<void> {
   })
 }
 
-async function pnpm(...args: string[]): Promise<void> { const [command, argv] = pnpmInvocation(args); await run(command, argv) }
+async function pnpm(...args: string[]): Promise<void> { const [command, ...argv] = pnpmCommand(args); await run(command, argv) }
 
 async function compileRuntime(dependencies: Readonly<Record<string, string>>): Promise<void> {
   await pnpm('exec', 'tsx', 'native/system/scripts/build.ts')

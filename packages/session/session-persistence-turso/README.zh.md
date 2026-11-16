@@ -123,7 +123,7 @@ Turso 存储注册 `ctx.sessionPersistence`，不向实时请求提供提示词�
 <a id="known-limitations-and-deferred-work"></a>
 
 - **单写者所有权只在进程内。** 后端按实例跟踪写所有权；两个进程对同一数据库做写打开不会被拒绝。一个数据库文件只由一个宿主使用。
-- **不自动迁移。** `dsh-session-persistence-jsonl` 存储的 Session 不会被读取；切换前先用 `pnpm exec tsx scripts/migrate-session-store.ts <jsonl-root> <turso-path>` 复制一次。
+- **不自动迁移。** `dsh-session-persistence-jsonl` 存储的 Session 不会被读取；切换前先用 `nub scripts/migrate-session-store.ts <jsonl-root> <turso-path>` 复制一次。
 - **没有按 Session 的产物位置。** 快照只报告 `eventCount`，因此诊断无法指向单个 Session 文件。
 
 <a id="dev-note"></a>

@@ -47,18 +47,13 @@ jobs:
     steps:
       - uses: actions/checkout@v7.0.1
 
-      - uses: pnpm/action-setup@v5.0.0
-        with:
-          package_json_file: package.json
-
+      - uses: nubjs/setup-nub@v0
       - uses: actions/setup-node@v7.0.0
         with:
           node-version: 24
-          cache: pnpm
-          cache-dependency-path: pnpm-lock.yaml
 
       - name: Install dependencies
-        run: pnpm install --filter @deepseek-ai/node-addon-system-workspace... --frozen-lockfile
+        run: nub ci
 
       - name: Install musl toolchain
         if: runner.os == 'Linux'
@@ -67,17 +62,17 @@ jobs:
           sudo apt-get install -yq musl-tools
 
       - name: Build native binaries
-        run: pnpm build:native
+        run: nub run build:native
 
       - name: Verify binary metadata
         run: node ./scripts/verify-launcher-binary.mjs ${{ matrix.dir }}
 
       - name: Verify the built entry and flock
         run: |
-          pnpm build:ts
-          pnpm build:test-oracle
-          pnpm test:flock
-          pnpm test:packaging
+          nub run build:ts
+          nub run build:test-oracle
+          nub run test:flock
+          nub run test:packaging
 
       - name: Upload prebuild artifact
         uses: actions/upload-artifact@v7.0.1
@@ -94,21 +89,16 @@ jobs:
     steps:
       - uses: actions/checkout@v7.0.1
 
-      - uses: pnpm/action-setup@v5.0.0
-        with:
-          package_json_file: package.json
-
+      - uses: nubjs/setup-nub@v0
       - uses: actions/setup-node@v7.0.0
         with:
           node-version: 24
-          cache: pnpm
-          cache-dependency-path: pnpm-lock.yaml
 
       - name: Install dependencies
-        run: pnpm install --filter @deepseek-ai/node-addon-system-workspace... --frozen-lockfile
+        run: nub ci
 
       - name: Build TypeScript
-        run: pnpm build:ts
+        run: nub run build:ts
 
       - name: Verify release version
         run: node ./scripts/verify-release.mjs

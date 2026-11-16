@@ -12,8 +12,8 @@ on:
       - '.github/workflows/node-addon-system-release.yml'
       - 'native/system/**'
       - 'package.json'
-      - 'pnpm-lock.yaml'
-      - 'pnpm-workspace.yaml'
+      - 'nub.lock'
+      - 'nub.lock'
   push:
     branches: [master]
     paths:
@@ -21,8 +21,8 @@ on:
       - '.github/workflows/node-addon-system-release.yml'
       - 'native/system/**'
       - 'package.json'
-      - 'pnpm-lock.yaml'
-      - 'pnpm-workspace.yaml'
+      - 'nub.lock'
+      - 'nub.lock'
   workflow_dispatch:
 
 concurrency:
@@ -63,20 +63,15 @@ jobs:
     steps:
       - uses: actions/checkout@v7.0.1
 
-      # pnpm v11 ships no darwin-x64 standalone binary, and the pnpm/action-setup
+      # nub run v11 ships no darwin-x64 standalone binary, and the nubjs/setup-nub
       # v6 self-update path needs one; this job stays on the v5 npm-install line.
-      - uses: pnpm/action-setup@v5.0.0
-        with:
-          package_json_file: package.json
-
+      - uses: nubjs/setup-nub@v0
       - uses: actions/setup-node@v7.0.0
         with:
           node-version: 24
-          cache: pnpm
-          cache-dependency-path: pnpm-lock.yaml
 
       - name: Install dependencies
-        run: pnpm install --filter @deepseek-ai/node-addon-system-workspace... --frozen-lockfile
+        run: nub ci
 
       - name: Install musl toolchain
         if: runner.os == 'Linux'
@@ -85,13 +80,13 @@ jobs:
           sudo apt-get install -yq musl-tools
 
       - name: Build TypeScript
-        run: pnpm build:ts
+        run: nub run build:ts
 
       - name: Typecheck
-        run: pnpm typecheck
+        run: nub run typecheck
 
       - name: Build native binaries (this architecture is the builder of record)
-        run: pnpm build:native
+        run: nub run build:native
 
       - name: Entry tests (keyless)
         run: node ./test/entry.test.js
@@ -113,12 +108,12 @@ jobs:
           NALR_REQUIRE_LANDLOCK: ${{ runner.os == 'Linux' && '1' || '0' }}
 
       - name: Verify platform payload rules (Node 24)
-        run: pnpm test:packaging
+        run: nub run test:packaging
 
       - name: Flock behavior (Node 24, built addon)
         run: |
-          pnpm build:test-oracle
-          pnpm test:flock
+          nub run build:test-oracle
+          nub run test:flock
 
       - name: Test the same musl addon on Node 24 without a compiler
         if: runner.os == 'Linux'

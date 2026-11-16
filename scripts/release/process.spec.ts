@@ -3,7 +3,7 @@ import { mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { basename, dirname, join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
-import { capture, pnpmCommand } from './process.ts'
+import { capture, nubCommand } from './process.ts'
 import { packedIdentity, tarballFiles } from './tarball.ts'
 
 const directories: string[] = []
@@ -29,11 +29,11 @@ async function packedTarball(name: string, version: string): Promise<string> {
 }
 
 describe('release process helpers', () => {
-  it('runs pnpm through a JavaScript entry, which spawnSync can start on Windows', () => {
-    const [command, ...args] = pnpmCommand()
-    expect(command === 'pnpm' || /node(?:\.exe)?$/iu.test(command)).toBe(true)
-    if (command !== 'pnpm') expect(args[0]).toMatch(/pnpm/u)
-    expect(capture(command, [...args, '--version'])).toMatch(/^\d+\.\d+\.\d+/u)
+  it('resolves the package manager that launched the script', () => {
+    const [command, ...args] = nubCommand()
+    expect(args).toEqual([])
+    expect(command.endsWith('nub')).toBe(true)
+    expect(capture(command, [...args, '--version'])).toMatch(/^v?\d+\.\d+\.\d+/u)
   })
 })
 

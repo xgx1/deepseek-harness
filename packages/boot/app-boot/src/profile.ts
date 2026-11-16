@@ -212,18 +212,15 @@ const PROFILE_PATCH_TEMPLATE = `# Your patch layer for this dsh profile, applied
 
 // The hoisted linker gives out-of-tree plugins a flat node_modules whose
 // missing peers (cordis and friends) use the runtime resolution, so every plugin shares the
-// installation's single cordis instance instead of a duplicate. pnpm ≥10
-// reads its settings from pnpm-workspace.yaml, not .npmrc.
-const PROFILE_PNPM_WORKSPACE = `packages:
-  - .
-
-nodeLinker: hoisted
-autoInstallPeers: false
+// installation's single cordis instance instead of a duplicate. nub reads its
+// settings from .npmrc.
+const PROFILE_NPMRC = `node-linker=hoisted
+auto-install-peers=false
 `
 
 /**
  * Initialize a profile directory: manifest, empty user patch layer, and the
- * pnpm settings out-of-tree plugins need. Existing files are never touched,
+ * nub settings out-of-tree plugins need. Existing files are never touched,
  * so re-running is a no-op on an initialized profile.
  * @param dir - the profile directory from {@link resolveProfileDir}.
  * @param bundles - the initial `dsh.profile.bundles` layer list.
@@ -245,8 +242,8 @@ export function initProfile(
   }
   const patchPath = resolveProfilePatchPath(dir)
   if (!existsSync(patchPath)) writeFileSync(patchPath, PROFILE_PATCH_TEMPLATE)
-  const workspacePath = join(dir, 'pnpm-workspace.yaml')
-  if (!existsSync(workspacePath)) writeFileSync(workspacePath, PROFILE_PNPM_WORKSPACE)
+  const npmrcPath = join(dir, '.npmrc')
+  if (!existsSync(npmrcPath)) writeFileSync(npmrcPath, PROFILE_NPMRC)
 }
 
 /** Directory where the link backend of the dsh 0.1.5 releases projected bundle-carried packages into a profile. */

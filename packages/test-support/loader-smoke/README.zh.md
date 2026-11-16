@@ -58,7 +58,7 @@ Profile 集成 driver 使用仅限仓库内部的 `tests/fixtures/production-pro
 ### 可能出什么问题
 
 - **进程永不退出**——冒烟测试强制执行截止时间，并在失败信息中报告捕获的流；会 spawn 自身进程树的故障 fixture 可能比冒烟测试存活更久，需要外部清理。
-- **构建模式需要事先构建**——选择 `DSH_EXAMPLE_MODE=lib` 前先运行 `pnpm run build`；拥有该配置的包 manifest（元数据清单）还必须声明配置中点名的每个包。
+- **构建模式需要事先构建**——选择 `DSH_EXAMPLE_MODE=lib` 前先运行 `nub run build`；拥有该配置的包 manifest（元数据清单）还必须声明配置中点名的每个包。
 - **捕获输出受 execa 默认 100 MB `maxBuffer` 约束**——失控子进程在该上限处被终止，而不是在冒烟测试自选的预算处。
 
 -----

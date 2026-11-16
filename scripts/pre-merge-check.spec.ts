@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest'
 import { checkMode, failureDecision, preMergeCheck, preMergeSteps, type PreMergeStep } from './pre-merge-check.ts'
 
 /**
- * Steps that exit with the given codes, so the check runs without pnpm.
+ * Steps that exit with the given codes, so the check runs without a package manager.
  * @param codes - Exit code of each step, in order.
  * @returns The steps.
  */
@@ -47,9 +47,9 @@ describe('pre-merge check', () => {
     const steps = preMergeSteps('/repo', 'b'.repeat(40))
     expect(steps.map(step => step.name)).toEqual(['versions', 'install', 'upgrade guides', 'host contracts', 'client'])
     expect(steps[0]).toEqual({ name: 'versions', command: process.execPath, args: [join('/repo', 'scripts', 'verify-version-sync.ts'), '/repo'] })
-    expect(steps[1]).toEqual({ name: 'install', command: 'pnpm', args: ['install', '--frozen-lockfile'] })
+    expect(steps[1]).toEqual({ name: 'install', command: 'nub', args: ['ci'] })
     expect(steps[2]?.args).toEqual(['run', 'verify-upgrade-guides', '--base', 'b'.repeat(40)])
-    expect(steps[4]?.args).toEqual(['exec', 'tsx', 'scripts/compile-referenced-projects.ts', 'client'])
+    expect(steps[4]?.args).toEqual(['scripts/compile-referenced-projects.ts', 'client'])
   })
 
   it('annotates a failure as a warning and passes in report mode', () => {

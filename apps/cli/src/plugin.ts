@@ -102,7 +102,7 @@ export async function runPlugin(profile: string, args: readonly string[], packag
   }
   if (result.exitCode !== 0) process.stderr.write(`dsh: plugin command failed; diagnostics: ${result.logPath}\n`)
   if (result.exitCode !== 0 && args.some(argument => /^git\+|^github:|\.git(?:#|$)/.test(argument))) {
-    process.stderr.write(`dsh: git-hosted plugins build on install via their prepare script, which pnpm blocks until allowed — add the exact key pnpm printed above under allowBuilds in ${join(resolveProfileDir(profile), 'pnpm-workspace.yaml')}, then re-run\n`)
+    process.stderr.write(`dsh: git-hosted plugins build on install via their prepare script, which the package manager blocks until approved — add the exact key it printed above under allowScripts in ${join(resolveProfileDir(profile), 'package.json')}, then re-run\n`)
   }
   return result.exitCode
 }

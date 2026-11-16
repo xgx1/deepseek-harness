@@ -30,7 +30,7 @@ interface RuntimePlatform {
 
 type RuntimePlatformManifest = Record<string, RuntimePlatform>
 
-const AGENT_PRESET_GLOB = 'packages/bundle/web-app/presets/*.patch.yml'
+const AGENT_PRESET_GLOB = 'packages/bundle/web-app/presets/*.patch.*ml'
 
 export interface RuntimeClosureResult {
   failures: string[]
@@ -95,7 +95,7 @@ export async function verifyRuntimeClosure(
 
   return {
     failures,
-    presetCount: (await Promise.all(presetPaths.map(async path => presetDefinitions(loadCordisYaml(await readFile(resolve(root, path), 'utf8'))).length))).reduce((a, b) => a + b, 0),
+    presetCount: (await Promise.all(presetPaths.map(async path => presetDefinitions(loadCordisYaml(await readFile(resolve(root, path), 'utf8'), path)).length))).reduce((a, b) => a + b, 0),
     workspacePackageCount: queue.length,
   }
 }
@@ -127,7 +127,7 @@ async function missingPresetPlugins(
   const missing = new Map<string, Set<string>>()
   const failures: string[] = []
   for (const presetPath of presetPaths) {
-    const document = loadCordisYaml(await readFile(resolve(root, presetPath), 'utf8'))
+    const document = loadCordisYaml(await readFile(resolve(root, presetPath), 'utf8'), presetPath)
     if (!Array.isArray(document)) {
       failures.push(`${presetPath}: preset root must be a Loader entry array`)
       continue

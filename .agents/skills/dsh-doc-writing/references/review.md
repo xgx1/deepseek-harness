@@ -53,10 +53,10 @@ The `session-persistence-jsonl` README pair ([English](../../../../packages/sess
 Run the smallest focused checks while iterating, then the standing documentation checks:
 
 ```sh
-pnpm run test:docs
-pnpm run verify-translation-pairing --write <pair>
-pnpm run doc-sync
-pnpm run lint
+nub run test:docs
+nub run verify-translation-pairing --write <pair>
+nub run doc-sync
+nub run lint
 git diff --check
 ```
 

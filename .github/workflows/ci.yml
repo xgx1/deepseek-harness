@@ -44,17 +44,13 @@ jobs:
       - name: Check preflights before dependency installation
         working-directory: publisher-isolated
         run: node apps/desktop-publisher/tests/preinstall.mjs
-      - uses: pnpm/action-setup@v5.0.0
-        with:
-          package_json_file: publisher-isolated/package.json
-          dest: ${{ runner.temp }}/setup-pnpm-${{ github.run_id }}-${{ github.run_attempt }}
+      - uses: nubjs/setup-nub@v0
       - name: Install only publisher production dependencies
         working-directory: publisher-isolated
-        run: pnpm --filter @deepseek-ai/dsh-desktop-publisher --fail-if-no-match install --prod --frozen-lockfile --ignore-scripts
+        run: nub ci -F @deepseek-ai/dsh-desktop-publisher --fail-if-no-match -P --ignore-scripts
       - name: Load publisher without Desktop or root development dependencies
         working-directory: publisher-isolated/apps/desktop-publisher
         run: node --import tsx tests/isolated-install.mjs
-
 
   # Three enterprise jobs isolate coverage, static analysis, and the
   # build-backed consumer tail. The consumer job owns the only Linux build so
@@ -101,45 +97,26 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      # Redirect the Node compile cache (enabled by pnpm and TypeScript) off
-      # the root partition's /tmp before the first pnpm call in this lane.
+      # Redirect the Node compile cache (enabled by nub run and TypeScript) off
+      # the root partition's /tmp before the first nub run call in this lane.
       - name: Redirect Node compile cache to runner temp
         run: echo "NODE_COMPILE_CACHE=${{ runner.temp }}/node-compile-cache" >> "$GITHUB_ENV"
 
-      - uses: pnpm/action-setup@v5.0.0
-        with:
-          dest: ${{ runner.temp }}/setup-pnpm-${{ github.run_id }}-${{ github.run_attempt }}
-
+      - uses: nubjs/setup-nub@v0
       - uses: actions/setup-node@v7.0.0
         with:
           node-version: ${{ env.PRIMARY_NODE_VERSION }}
 
-      - name: Configure pnpm store path
-        id: pnpm-store
-        run: |
-          store_root="$HOME/.local/share/pnpm/store"
-          echo "PNPM_CONFIG_STORE_DIR=$store_root" >> "$GITHUB_ENV"
-          store_path=$(PNPM_CONFIG_STORE_DIR="$store_root" pnpm store path --silent)
-          echo "path=$store_path" >> "$GITHUB_OUTPUT"
-
       # Pull requests consume the default-branch cache but do not put cache
       # compression and upload on the paid latency-critical path. Skipped
       # under failover — see the coverage lane's identical rationale.
-      - uses: actions/cache/restore@v6.1.0
-        if: vars.DSH_CI_FAILOVER_LINUX != 'selfhosted' || github.event.pull_request.user.login == 'dependabot[bot]'
-        with:
-          path: ${{ steps.pnpm-store.outputs.path }}
-          key: ${{ runner.os }}-node-${{ env.PRIMARY_NODE_VERSION }}-pnpm-${{ hashFiles('pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-node-${{ env.PRIMARY_NODE_VERSION }}-pnpm-
-
       - name: Install (immutable)
-        run: pnpm install --frozen-lockfile
+        run: nub ci
 
       - name: Run static gates
         env:
           DSH_ARCHIVE_BASE_REF: ${{ github.event.pull_request.base.sha }}
-        run: pnpm run check:ci:static
+        run: nub run check:ci:static
 
   node-24-coverage:
     if: github.event_name == 'pull_request'
@@ -184,39 +161,20 @@ jobs:
           restore-keys: |
             coverage-times-Linux-${{ runner.environment }}-${{ vars.DSH_CI_FAILOVER_LINUX || 'enterprise' }}-
 
-      # Redirect the Node compile cache (enabled by pnpm and TypeScript) off
-      # the root partition's /tmp before the first pnpm call in this lane.
+      # Redirect the Node compile cache (enabled by nub run and TypeScript) off
+      # the root partition's /tmp before the first nub run call in this lane.
       - name: Redirect Node compile cache to runner temp
         run: echo "NODE_COMPILE_CACHE=${{ runner.temp }}/node-compile-cache" >> "$GITHUB_ENV"
 
-      - uses: pnpm/action-setup@v5.0.0
-        with:
-          dest: ${{ runner.temp }}/setup-pnpm-${{ github.run_id }}-${{ github.run_attempt }}
-
+      - uses: nubjs/setup-nub@v0
       - uses: actions/setup-node@v7.0.0
         with:
           node-version: ${{ env.PRIMARY_NODE_VERSION }}
 
-      - name: Configure pnpm store path
-        id: pnpm-store
-        run: |
-          store_root="$HOME/.local/share/pnpm/store"
-          echo "PNPM_CONFIG_STORE_DIR=$store_root" >> "$GITHUB_ENV"
-          store_path=$(PNPM_CONFIG_STORE_DIR="$store_root" pnpm store path --silent)
-          echo "path=$store_path" >> "$GITHUB_OUTPUT"
-
-      # Self-hosted runners reuse the shared persistent pnpm store.
+      # Self-hosted runners reuse the shared persistent nub run store.
       # Hosted runners restore the remote cache into their ephemeral store.
-      - uses: actions/cache/restore@v6.1.0
-        if: vars.DSH_CI_FAILOVER_LINUX != 'selfhosted' || github.event.pull_request.user.login == 'dependabot[bot]'
-        with:
-          path: ${{ steps.pnpm-store.outputs.path }}
-          key: ${{ runner.os }}-node-${{ env.PRIMARY_NODE_VERSION }}-pnpm-${{ hashFiles('pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-node-${{ env.PRIMARY_NODE_VERSION }}-pnpm-
-
       # The persistent self-hosted pool keeps ~/.cache between jobs on its own
-      # layout, so the archive cache follows the hosted-only pnpm store guard.
+      # layout, so the archive cache follows the hosted-only store guard.
       - name: Restore verified bubblewrap archive
         id: bubblewrap-cache
         if: vars.DSH_CI_FAILOVER_LINUX != 'selfhosted' || github.event.pull_request.user.login == 'dependabot[bot]'
@@ -227,7 +185,7 @@ jobs:
 
       - name: Install dependencies and prepare bubblewrap
         run: |
-          pnpm install --frozen-lockfile &
+          nub ci &
           install_pid=$!
           bash scripts/prepare-ci-bubblewrap.sh &
           sandbox_pid=$!
@@ -249,7 +207,7 @@ jobs:
           key: bubblewrap-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('scripts/prepare-ci-bubblewrap.sh') }}
 
       - name: Run exhaustive coverage
-        run: pnpm run check:ci:coverage
+        run: nub run check:ci:coverage
 
       - name: Save coverage duration history
         if: ${{ !cancelled() }}
@@ -288,40 +246,21 @@ jobs:
       - name: Redirect Node compile cache to runner temp
         run: echo "NODE_COMPILE_CACHE=${{ runner.temp }}/node-compile-cache" >> "$GITHUB_ENV"
 
-      - uses: pnpm/action-setup@v5.0.0
-        with:
-          dest: ${{ runner.temp }}/setup-pnpm-${{ github.run_id }}-${{ github.run_attempt }}
-
+      - uses: nubjs/setup-nub@v0
       - uses: actions/setup-node@v7.0.0
         with:
           node-version: ${{ env.PRIMARY_NODE_VERSION }}
 
-      - name: Configure pnpm store path
-        id: pnpm-store
-        run: |
-          store_root="$HOME/.local/share/pnpm/store"
-          echo "PNPM_CONFIG_STORE_DIR=$store_root" >> "$GITHUB_ENV"
-          store_path=$(PNPM_CONFIG_STORE_DIR="$store_root" pnpm store path --silent)
-          echo "path=$store_path" >> "$GITHUB_OUTPUT"
-
-      - uses: actions/cache/restore@v6.1.0
-        if: vars.DSH_CI_FAILOVER_LINUX != 'selfhosted' || github.event.pull_request.user.login == 'dependabot[bot]'
-        with:
-          path: ${{ steps.pnpm-store.outputs.path }}
-          key: ${{ runner.os }}-node-${{ env.PRIMARY_NODE_VERSION }}-pnpm-${{ hashFiles('pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-node-${{ env.PRIMARY_NODE_VERSION }}-pnpm-
-
       - name: Install (immutable)
-        run: pnpm install --frozen-lockfile
+        run: nub ci
 
       # oxlint's type-aware rules resolve workspace imports through the package
       # declarations, so this lane compiles them without bundling anything.
       - name: Compile package declarations
-        run: pnpm run typecheck
+        run: nub run typecheck
 
       - name: Run lint and duplication
-        run: pnpm run check:ci:lint:contracts-ready
+        run: nub run check:ci:lint:contracts-ready
 
   node-24-bench:
     if: github.event_name == 'pull_request'
@@ -339,39 +278,21 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: pnpm/action-setup@v5.0.0
-        with:
-          dest: ${{ runner.temp }}/setup-pnpm-${{ github.run_id }}-${{ github.run_attempt }}
-
+      - uses: nubjs/setup-nub@v0
       - uses: actions/setup-node@v7.0.0
         with:
           node-version: ${{ env.PRIMARY_NODE_VERSION }}
 
-      - name: Configure pnpm store path
-        id: pnpm-store
-        run: |
-          store_root="$HOME/.local/share/pnpm/store"
-          echo "PNPM_CONFIG_STORE_DIR=$store_root" >> "$GITHUB_ENV"
-          store_path=$(PNPM_CONFIG_STORE_DIR="$store_root" pnpm store path --silent)
-          echo "path=$store_path" >> "$GITHUB_OUTPUT"
-
-      - uses: actions/cache/restore@v6.1.0
-        with:
-          path: ${{ steps.pnpm-store.outputs.path }}
-          key: ${{ runner.os }}-node-${{ env.PRIMARY_NODE_VERSION }}-pnpm-${{ hashFiles('pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-node-${{ env.PRIMARY_NODE_VERSION }}-pnpm-
-
       - name: Install (immutable)
-        run: pnpm install --frozen-lockfile
+        run: nub ci
 
       - name: Install benchmark browser and hosted dependencies
-        run: pnpm --filter @deepseek-ai/dsh-benchmarks exec playwright install --with-deps chromium
+        run: nub exec -F @deepseek-ai/dsh-benchmarks playwright install --with-deps chromium
 
       - name: Run performance benchmarks
         env:
           DSH_GATE_VERBOSE: '1'
-        run: pnpm run check:ci:bench
+        run: nub run check:ci:bench
 
       # The report global teardown renders benchmarks/.dsh-report after the run,
       # including after a failing budget assertion. A run that fails before
@@ -419,51 +340,32 @@ jobs:
         with:
           persist-credentials: false
 
-      # Redirect the Node compile cache (enabled by pnpm and TypeScript) off
-      # the root partition's /tmp before the first pnpm call in this lane.
+      # Redirect the Node compile cache (enabled by nub run and TypeScript) off
+      # the root partition's /tmp before the first nub run call in this lane.
       - name: Redirect Node compile cache to runner temp
         run: echo "NODE_COMPILE_CACHE=${{ runner.temp }}/node-compile-cache" >> "$GITHUB_ENV"
 
-      - uses: pnpm/action-setup@v5.0.0
-        with:
-          dest: ${{ runner.temp }}/setup-pnpm-${{ github.run_id }}-${{ github.run_attempt }}
-
+      - uses: nubjs/setup-nub@v0
       - uses: actions/setup-node@v7.0.0
         with:
           node-version: ${{ env.PRIMARY_NODE_VERSION }}
 
-      - name: Configure pnpm store path
-        id: pnpm-store
-        run: |
-          store_root="$HOME/.local/share/pnpm/store"
-          echo "PNPM_CONFIG_STORE_DIR=$store_root" >> "$GITHUB_ENV"
-          store_path=$(PNPM_CONFIG_STORE_DIR="$store_root" pnpm store path --silent)
-          echo "path=$store_path" >> "$GITHUB_OUTPUT"
-
-      # Pull requests restore the pnpm store and Playwright caches without paying
+      # Pull requests restore the nub store and Playwright caches without paying
       # compression and upload on the required path. No master job saves these
       # hosted cache keys, so each restore-keys fallback hits the matching archived
       # entry until it evicts, after which the store is cold. Self-hosted runners
       # reuse the shared persistent store instead of restoring the remote archive.
-      - uses: actions/cache/restore@v6.1.0
-        if: vars.DSH_CI_FAILOVER_LINUX != 'selfhosted' || github.event.pull_request.user.login == 'dependabot[bot]'
-        with:
-          path: ${{ steps.pnpm-store.outputs.path }}
-          key: ${{ runner.os }}-node-${{ env.PRIMARY_NODE_VERSION }}-pnpm-${{ hashFiles('pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-node-${{ env.PRIMARY_NODE_VERSION }}-pnpm-
-
       # Self-hosted runners retain their own browser cache between jobs.
       - uses: actions/cache/restore@v6.1.0
         if: vars.DSH_CI_FAILOVER_LINUX != 'selfhosted' || github.event.pull_request.user.login == 'dependabot[bot]'
         with:
           path: ${{ env.PLAYWRIGHT_BROWSERS_PATH }}
-          key: ${{ runner.os }}-playwright-${{ hashFiles('pnpm-lock.yaml') }}
+          key: ${{ runner.os }}-playwright-${{ hashFiles('nub.lock') }}
           restore-keys: |
             ${{ runner.os }}-playwright-
 
       # The persistent self-hosted pool keeps ~/.cache between jobs on its own
-      # layout, so the archive cache follows the hosted-only pnpm store guard.
+      # layout, so the archive cache follows the hosted-only store guard.
       - name: Restore verified bubblewrap archive
         id: bubblewrap-cache
         if: vars.DSH_CI_FAILOVER_LINUX != 'selfhosted' || github.event.pull_request.user.login == 'dependabot[bot]'
@@ -474,7 +376,7 @@ jobs:
 
       - name: Install dependencies and prepare bubblewrap
         run: |
-          pnpm install --frozen-lockfile &
+          nub ci &
           install_pid=$!
           bash scripts/prepare-ci-bubblewrap.sh &
           sandbox_pid=$!
@@ -516,20 +418,19 @@ jobs:
         # Ephemeral runner images can carry Ubuntu mirrors whose HTTP endpoints are unreachable.
         run: |
           sudo find /etc/apt -maxdepth 2 -type f \( -name '*.list' -o -name '*.sources' \) -exec sed -i -E 's@http://([a-z]{2}\.)?archive\.ubuntu\.com/ubuntu@https://archive.ubuntu.com/ubuntu@g; s@http://security\.ubuntu\.com/ubuntu@https://security.ubuntu.com/ubuntu@g' {} +
-          pnpm --filter @deepseek-ai/dsh-web-frontend exec playwright install --with-deps chromium webkit
+          nub exec -F @deepseek-ai/dsh-web-frontend playwright install --with-deps chromium webkit
 
       # The persistent VM image owns Playwright's Linux system packages; do
       # not mutate the shared host with apt on every failover run.
       - name: Install Playwright Chromium and WebKit on the failover VM
         if: vars.DSH_CI_FAILOVER_LINUX == 'selfhosted' && github.event.pull_request.user.login != 'dependabot[bot]'
-        run: pnpm --filter @deepseek-ai/dsh-web-frontend exec playwright install chromium webkit
+        run: nub exec -F @deepseek-ai/dsh-web-frontend playwright install chromium webkit
 
       - name: Build and execute the Linux Office runtime
-        run: CI=true pnpm run prepare:primary-runtime --target linux-x64 --output "$RUNNER_TEMP/office-runtime" --cache "$RUNNER_TEMP/office-runtime-downloads"
+        run: CI=true nub run prepare:primary-runtime --target linux-x64 --output "$RUNNER_TEMP/office-runtime" --cache "$RUNNER_TEMP/office-runtime-downloads"
 
       - name: Run compatibility, snapshot, and artifact gates
-        run: pnpm run check:ci:consumers
-
+        run: nub run check:ci:consumers
 
   node-compat:
     needs: publisher-isolated
@@ -578,19 +479,15 @@ jobs:
         run: |
           echo "NODE_COMPILE_CACHE=$RUNNER_TEMP/node-compile-cache" >> "$GITHUB_ENV"
           echo "npm_config_devdir=$RUNNER_TEMP/node-gyp" >> "$GITHUB_ENV"
-          echo "PNPM_CONFIG_STORE_DIR=$HOME/.local/share/pnpm/store" >> "$GITHUB_ENV"
+          echo "npm_config_store_dir=$HOME/.local/share/nub/store" >> "$GITHUB_ENV"
 
-      - uses: pnpm/action-setup@v5.0.0
-        with:
-          dest: ${{ runner.temp }}/setup-pnpm-${{ github.run_id }}-${{ github.run_attempt }}
-
+      - uses: nubjs/setup-nub@v0
       - uses: actions/setup-node@v7.0.0
         env:
           # The runner overwrites RUNNER_* step env before starting JavaScript actions.
           NODE_OPTIONS: ${{ runner.environment == 'self-hosted' && '--import=./scripts/ci-compatible-toolcache.mjs' || '' }}
         with:
           node-version: ${{ matrix.node }}
-          cache: ${{ runner.environment == 'github-hosted' && 'pnpm' || '' }}
           package-manager-cache: false
 
       - name: Verify isolated Node installation
@@ -604,10 +501,10 @@ jobs:
           esac
 
       - name: Install (immutable)
-        run: pnpm install --frozen-lockfile
+        run: nub ci
 
       # The persistent self-hosted pool keeps ~/.cache between jobs on its own
-      # layout, so the archive cache follows the hosted-only pnpm store guard.
+      # layout, so the archive cache follows the hosted-only store guard.
       - name: Restore verified bubblewrap archive
         id: bubblewrap-cache
         if: vars.DSH_CI_FAILOVER_LINUX != 'selfhosted' || github.event.pull_request.user.login == 'dependabot[bot]'
@@ -629,13 +526,13 @@ jobs:
       - name: Run compatibility smokes
         env:
           DSH_BUILD_CLIENT_PROFILE: official
-        run: pnpm run check:node-compat
+        run: nub run check:node-compat
 
       # Kept out of the gate aggregate: the shape a Node release carries only
       # changes with the Node version, so this belongs to the version matrix
       # rather than to every commit's checks.
       - name: Check Loader internal shape detection
-        run: pnpm exec vitest run packages/boot/app-boot/tests/loader-shape.compat.spec.ts
+        run: nubx vitest run packages/boot/app-boot/tests/loader-shape.compat.spec.ts
 
   # Single stable required check for branch protection: require "all checks
   # passed" instead of enumerating matrix legs whose names change as lanes and

@@ -4,6 +4,7 @@ import { spawnSync } from 'node:child_process'
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
+import { pathToFileURL } from 'node:url'
 import { afterEach, describe, expect, it } from 'vitest'
 
 const root = resolve(import.meta.dirname, '../..')
@@ -30,7 +31,9 @@ describe.skipIf(process.platform === 'win32')('packed-install npm cache', () => 
       writeFileSync(join(ambient, 'sentinel'), 'ambient cache must survive\n')
       writeFileSync(join(configured, 'sentinel'), 'configured cache must survive\n')
       const npmrc = join(directory, 'npmrc')
-      writeFileSync(npmrc, `cache=${configured}\n`)
+      // npm installs dependency scripts only when the consumer approves that tarball's
+      // resolved identity; the probe lifecycle script is this fixture's own instrumentation.
+      writeFileSync(npmrc, `cache=${configured}\nallow-scripts[]=${pathToFileURL(join(packed, 'dsh.tgz')).href}\n`)
       const evidence = join(directory, 'evidence.json')
       const probe = `
 const fs = require('node:fs')

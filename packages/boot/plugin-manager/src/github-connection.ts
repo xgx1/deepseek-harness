@@ -29,7 +29,7 @@ export interface GithubConnectionOptions {
 }
 
 /**
- * Check a GitHub repository before pnpm starts, without downloading or building its package.
+ * Check a GitHub repository before nub starts, without downloading or building its package.
  * @param spec The parsed installation address; npm packages, local paths and other hosts are not checked.
  * @param dir The profile directory where installation runs.
  * @param options The connection deadline, output bound and operation cancellation.

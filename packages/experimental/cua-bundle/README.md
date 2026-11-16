@@ -31,8 +31,8 @@ On macOS, the bundle ships with DSH and updates with it, so enabling it download
 Native preparation and access requirements belong to the [macOS provider](../cua-macos/README.md) and [Windows provider](../cua-windows/README.md). For source Web, run these commands from the repository root:
 
 ```sh
-pnpm run build
-pnpm dsh web
+nub run build
+nubx dsh web
 ```
 
 For the source Desktop launcher and its separate development profile, follow [Desktop development](../../../apps/desktop/README.md). Enable Computer Use in each profile that needs it.

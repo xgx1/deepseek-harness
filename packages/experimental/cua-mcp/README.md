@@ -28,7 +28,7 @@ This experimental bundle composes the standalone `cua-mcp` profile, an MCP stdio
 
 ### Start the server
 
-The bundle is a runtime dependency of the `dsh` installation, so a profile that selects it as its only layer loads it from the installation; no pnpm, registry, or network access is involved. Create the profile once under the Harness home (`$DSH_HOME`, by default `~/.dsh`); `dsh --profile cua-mcp` is then the stdio command, and a source checkout runs it through `pnpm dsh` after `pnpm run build`. Do not add the bundle to a profile that already composes `dsh-base`, such as the one `dsh plugin --profile cua-mcp add` creates: both compositions declare the same row ids, which is also why the Web plugin page hides this bundle while the Host inventory still reports it as optional.
+The bundle is a runtime dependency of the `dsh` installation, so a profile that selects it as its only layer loads it from the installation; no nub, registry, or network access is involved. Create the profile once under the Harness home (`$DSH_HOME`, by default `~/.dsh`); `dsh --profile cua-mcp` is then the stdio command, and a source checkout runs it through `nubx dsh` after `nub run build`. Do not add the bundle to a profile that already composes `dsh-base`, such as the one `dsh plugin --profile cua-mcp add` creates: both compositions declare the same row ids, which is also why the Web plugin page hides this bundle while the Host inventory still reports it as optional.
 
 ```sh
 mkdir -p "${DSH_HOME:-$HOME/.dsh}/profiles/cua-mcp"
@@ -45,7 +45,7 @@ command = [*resolve_bundled_launch_args(), "--profile", "cua-mcp"]  # the MCP st
 
 ### Connect a client
 
-`dsh --profile cua-mcp` is the stdio command, and `--help` prints its own help. A client entry names the installation's `dsh` executable by absolute path, passes `--profile cua-mcp`, sets `DSH_HOME` when the server should use a Harness home other than the default, `DSH_CUA_CONSENT` for the consent mode, and `DSH_CUA_WORKSPACE` when programs should work in a directory other than the default workspace; from a source checkout the command is `node` with `<checkout>/apps/cli/lib/bin.js` as its first argument, after `pnpm run build`. For Codex, add to `~/.codex/config.toml`:
+`dsh --profile cua-mcp` is the stdio command, and `--help` prints its own help. A client entry names the installation's `dsh` executable by absolute path, passes `--profile cua-mcp`, sets `DSH_HOME` when the server should use a Harness home other than the default, `DSH_CUA_CONSENT` for the consent mode, and `DSH_CUA_WORKSPACE` when programs should work in a directory other than the default workspace; from a source checkout the command is `node` with `<checkout>/apps/cli/lib/bin.js` as its first argument, after `nub run build`. For Codex, add to `~/.codex/config.toml`:
 
 ```toml
 [mcp_servers.dsh_cua]

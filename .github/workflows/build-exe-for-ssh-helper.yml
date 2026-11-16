@@ -67,20 +67,17 @@ jobs:
       - uses: actions/checkout@v6
         with:
           persist-credentials: false
-      - uses: pnpm/action-setup@v4
-        with:
-          dest: ${{ runner.temp }}/setup-pnpm-${{ github.run_id }}-${{ github.run_attempt }}
+      - uses: nubjs/setup-nub@v0
       - uses: actions/setup-node@v6
         with:
           node-version: 24
-          cache: pnpm
       - uses: actions/cache@v4
         with:
           path: ~/.pkg-cache
-          key: ssh-pkg-${{ matrix.target }}-${{ hashFiles('pnpm-lock.yaml') }}
+          key: ssh-pkg-${{ matrix.target }}-${{ hashFiles('nub.lock') }}
           restore-keys: ssh-pkg-${{ matrix.target }}-
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: nub ci
       - name: Prepare Linux compiler and sandbox
         if: runner.os == 'Linux'
         run: |
@@ -96,21 +93,21 @@ jobs:
       - name: Build native release archive
         env:
           HELPER_TARGET: ${{ matrix.target }}
-        run: pnpm exec tsx scripts/build-exe-for-ssh-helper.ts --target="$HELPER_TARGET"
+        run: nub scripts/build-exe-for-ssh-helper.ts --target="$HELPER_TARGET"
       - name: Verify relocated executable and confinement
         env:
           HELPER_TARGET: ${{ matrix.target }}
         run: |
           archives=(dist-exe/ssh-helper/*.tar.gz)
           test "${#archives[@]}" -eq 1
-          pnpm exec tsx scripts/verify-ssh-helper-artifact.ts --archive="${archives[0]}" --sandbox=required --report="dist-exe/ssh-helper/$HELPER_TARGET.json"
+          nub scripts/verify-ssh-helper-artifact.ts --archive="${archives[0]}" --sandbox=required --report="dist-exe/ssh-helper/$HELPER_TARGET.json"
       - name: Verify the packaged Landlock backend
         if: runner.os == 'Linux'
         env:
           HELPER_TARGET: ${{ matrix.target }}
         run: |
           archives=(dist-exe/ssh-helper/*.tar.gz)
-          pnpm exec tsx scripts/verify-ssh-helper-artifact.ts --archive="${archives[0]}" --sandbox=required --backend=landlock-run --report="dist-exe/ssh-helper/$HELPER_TARGET.landlock.json"
+          nub scripts/verify-ssh-helper-artifact.ts --archive="${archives[0]}" --sandbox=required --backend=landlock-run --report="dist-exe/ssh-helper/$HELPER_TARGET.landlock.json"
       - name: Verify OpenSSH on glibc 2.28 without Node
         if: runner.os == 'Linux'
         env:
@@ -118,7 +115,7 @@ jobs:
         run: |
           archives=(dist-exe/ssh-helper/*.tar.gz)
           test "${#archives[@]}" -eq 1
-          pnpm exec tsx scripts/verify-ssh-helper-ssh.ts --archive="${archives[0]}" --report="dist-exe/ssh-helper/$HELPER_TARGET.ssh.json"
+          nub scripts/verify-ssh-helper-ssh.ts --archive="${archives[0]}" --report="dist-exe/ssh-helper/$HELPER_TARGET.ssh.json"
       - name: Upload verified archive and evidence
         uses: actions/upload-artifact@v7
         with:

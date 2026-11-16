@@ -76,7 +76,7 @@ describe('initializeProfileFromDefault', () => {
           dsh: { profile: { bundles: [...template.bundles] } },
         })
         expect(readFileSync(join(dir, PROFILE_PATCH_FILENAME), 'utf8')).toContain('[]')
-        expect(readFileSync(join(dir, 'pnpm-workspace.yaml'), 'utf8')).toContain('nodeLinker: hoisted')
+        expect(readFileSync(join(dir, '.npmrc'), 'utf8')).toContain('node-linker=hoisted')
       })
     },
   )

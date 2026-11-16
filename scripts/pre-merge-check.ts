@@ -33,10 +33,10 @@ export interface PreMergeStep {
 export function preMergeSteps(root: string, base?: string): PreMergeStep[] {
   return [
     { name: 'versions', command: process.execPath, args: [join(root, 'scripts', 'verify-version-sync.ts'), root] },
-    { name: 'install', command: 'pnpm', args: ['install', '--frozen-lockfile'] },
-    ...base === undefined ? [] : [{ name: 'upgrade guides', command: 'pnpm', args: ['run', 'verify-upgrade-guides', '--base', base] }],
-    { name: 'host contracts', command: 'pnpm', args: ['exec', 'tsx', 'scripts/compile-referenced-projects.ts', 'host-contracts'] },
-    { name: 'client', command: 'pnpm', args: ['exec', 'tsx', 'scripts/compile-referenced-projects.ts', 'client'] },
+    { name: 'install', command: 'nub', args: ['ci'] },
+    ...base === undefined ? [] : [{ name: 'upgrade guides', command: 'nub', args: ['run', 'verify-upgrade-guides', '--base', base] }],
+    { name: 'host contracts', command: 'nub', args: ['scripts/compile-referenced-projects.ts', 'host-contracts'] },
+    { name: 'client', command: 'nub', args: ['scripts/compile-referenced-projects.ts', 'client'] },
   ]
 }
 

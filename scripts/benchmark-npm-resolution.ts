@@ -20,6 +20,8 @@ const WORKSPACE_MANIFEST_GLOBS = [
   'native/system/packages/*/package.json',
 ]
 const INSTALLED_MANIFEST_GLOBS = [
+  'node_modules/*/package.json',
+  'node_modules/@*/*/package.json',
   'node_modules/.pnpm/*/node_modules/*/package.json',
   'node_modules/.pnpm/*/node_modules/@*/*/package.json',
 ]
@@ -211,7 +213,7 @@ function addManifest(index: Map<string, Map<string, RegistryVersion>>, manifest:
 
 /**
  * Build registry metadata from installed external packages and workspace manifests.
- * @param root - Repository root containing the pnpm virtual store.
+ * @param root - Repository root containing the installed dependency tree.
  * @param ref - Optional Git ref used instead of working-tree workspace manifests.
  * @returns Package metadata served by the benchmark registry.
  */

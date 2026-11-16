@@ -37,7 +37,7 @@ kind: "package-reference"
 
 ### 注册字典
 
-用已合并进 `LocaleNamespaceMap` 的命名空间调用 `ctx.locale.register(ns, { zh, en, ja })`；编译器会对照该命名空间的类型化键并集检查每个键，并要求两个基础 locale（`zh` 和 `en`）齐全。其他 locale id 为可选项，其字典同样按该命名空间的键检查。消费方通过 `ctx.locale.bind(ns)` 或框架注入的 `t` 席位翻译。UI 已挂载后再注册的字典无需重新挂载即可生效。翻译必须原样保留命名占位符、斜杠命令和 API 字段名；`pnpm run check:i18n` 检查仓库内的字典，并拒绝语言资源中的零宽空格（U+200B）和字节顺序标记（U+FEFF）。
+用已合并进 `LocaleNamespaceMap` 的命名空间调用 `ctx.locale.register(ns, { zh, en, ja })`；编译器会对照该命名空间的类型化键并集检查每个键，并要求两个基础 locale（`zh` 和 `en`）齐全。其他 locale id 为可选项，其字典同样按该命名空间的键检查。消费方通过 `ctx.locale.bind(ns)` 或框架注入的 `t` 席位翻译。UI 已挂载后再注册的字典无需重新挂载即可生效。翻译必须原样保留命名占位符、斜杠命令和 API 字段名；`nub run check:i18n` 检查仓库内的字典，并拒绝语言资源中的零宽空格（U+200B）和字节顺序标记（U+FEFF）。
 
 ### 解析包文本
 

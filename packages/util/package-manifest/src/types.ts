@@ -22,6 +22,8 @@ export interface DshPackageManifest {
   optionalDependencies?: Record<string, string>
   /** Compatible versions of packages supplied by the consuming project. */
   peerDependencies?: Record<string, string>
+  /** Dependency install scripts this project approves, keyed by the package key the package manager prints. */
+  allowScripts?: Record<string, boolean>
   /** Runtime requirements; DSH compatibility is declarative until a reader enforces it. */
   engines?: DshEnginesManifest
   /** DSH-specific author declarations. */

@@ -10,7 +10,7 @@
 
 ```powershell
 & $excelFuzzPython packages/client/ui-sidebar-documentpreview/tests/fuzz/generate.py .artifacts/excel-fuzz-new --seed 4863 --random-cases 400
-pnpm exec tsx packages/client/ui-sidebar-documentpreview/tests/fuzz/run.client.ts .artifacts/excel-fuzz-new
+nubx tsx packages/client/ui-sidebar-documentpreview/tests/fuzz/run.client.ts .artifacts/excel-fuzz-new
 ```
 
 种子控制功能组合、数值和字节变异。ZIP 元数据保持固定；复现还依赖 `manifest.json` 记录的写入器版本。生成器先验证内部关系目标，并用 Openpyxl 重新读取预期单元格，再将工作簿归类为合法文件。被排除的候选保留在 `generatorErrors` 中；随机字节变异单独分类。
@@ -18,7 +18,7 @@ pnpm exec tsx packages/client/ui-sidebar-documentpreview/tests/fuzz/run.client.t
 从已有样本集重跑选定用例：
 
 ```sh
-pnpm exec tsx packages/client/ui-sidebar-documentpreview/tests/fuzz/run.client.ts .artifacts/excel-fuzz-new --only openpyxl-table --report table.json
+nubx tsx packages/client/ui-sidebar-documentpreview/tests/fuzz/run.client.ts .artifacts/excel-fuzz-new --only openpyxl-table --report table.json
 ```
 
 执行器为每个输入设置 10 秒的可终止 Worker 截止时间，并检查输入不变性、单元格值、公式缓存，以及提示顺序和唯一性。`--timeout-ms` 可修改该诊断时限。报告保留全部结果；`repros/` 包含功能组合较少的代表性失败文件，不声称输入已达到全局最小。被接受的损坏 ZIP 仅作为观察结果，需要单独检查。
@@ -38,9 +38,9 @@ pnpm exec tsx packages/client/ui-sidebar-documentpreview/tests/fuzz/run.client.t
 运行 Node 和浏览器 bundle 解析器回归测试：
 
 ```sh
-pnpm exec vitest run packages/client/ui-sidebar-documentpreview/tests/excel-opening.client.spec.ts packages/client/ui-sidebar-documentpreview/tests/excel-opc.client.spec.ts packages/client/ui-sidebar-documentpreview/tests/excel-xml.client.spec.ts
+nubx vitest run packages/client/ui-sidebar-documentpreview/tests/excel-opening.client.spec.ts packages/client/ui-sidebar-documentpreview/tests/excel-opc.client.spec.ts packages/client/ui-sidebar-documentpreview/tests/excel-xml.client.spec.ts
 ```
 
 fuzz 报告记录每个输入的 SHA-256、能否打开以及工作区状态。`validOpened` 和 `validRejected` 将打开失败与值差异分开，严格退出状态仍会拒绝这两类缺陷。已知的 1904 时间／累计时长偏移和空字符串公式缓存差异仍作为诊断失败。解析器接受的损坏输入继续作为观察结果单列。
 
-通过 `pnpm patch` 和 `pnpm patch-commit` 对发布包维护 ExcelJS 补丁。已安装的依赖树包含生成的启动脚本，不得混入补丁。在依赖缓存安装上的测试结果之前，先用 `pnpm patch --edit-dir <new-directory>` 全新解包，验证补丁能够应用。
+通过 `nub patch` 和 `nub patch-commit` 对发布包维护 ExcelJS 补丁。已安装的依赖树包含生成的启动脚本，不得混入补丁。在依赖缓存安装上的测试结果之前，先用 `nub patch --edit-dir <new-directory>` 全新解包，验证补丁能够应用。

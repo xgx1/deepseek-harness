@@ -75,7 +75,7 @@ args = [ "mcp" ]
 ```sh
 DSH_COMPUTER_USE_MCP_EXECUTABLE=/absolute/path/to/cua-driver \
 DSH_COMPUTER_USE_MCP_ARGS='["mcp","--direct"]' \
-pnpm run test:e2e packages/experimental/computer-use-cua-driver-mcp/tests/installed-driver.e2e.ts
+nub run test:e2e packages/experimental/computer-use-cua-driver-mcp/tests/installed-driver.e2e.ts
 ```
 
 </details>

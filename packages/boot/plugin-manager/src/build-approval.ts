@@ -1,22 +1,28 @@
-/** Approve pnpm's pending dependency scripts in the current profile's workspace settings. */
+/** Approve nub's pending dependency scripts in the current profile's manifest. */
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import { isAlias, isMap, isNode, isScalar, parseDocument, visit } from 'yaml'
-import { ManagementFailure } from './failure.ts'
 import { writeFileAtomic } from '@deepseek-ai/dsh-atomic-write'
+import { ManagementFailure } from './failure.ts'
 
-/** Value pnpm leaves for a build script that still needs a decision. */
-const UNDECIDED_BUILD = 'set this to true or false'
+/** nub wraps a long report line onto `│` continuation lines at its own width; joining them restores the value it named. */
+function unwrap(report: string): string {
+  return report.replace(/\n[ \t]*│[ \t]?/gu, '')
+}
 
 /** Where a non-interactive run names the build scripts it skipped. */
 const IGNORED_BUILDS = /\bIgnored build scripts: (.+)/
 
-/** The `allowBuilds` key pnpm suggests when it refuses to prepare a git-hosted package; a subdirectory key can contain spaces. */
-const GIT_DEP_PREPARE = /ERR_PNPM_GIT_DEP_PREPARE_NOT_ALLOWED[\s\S]*?^allowBuilds:\r?\n[ \t]+(.+?): true$/m
+/**
+ * The key a run prints for a git-hosted package it refused to prepare. nub prints a `package.json` example, wrapped
+ * at its own width, while a project whose policy still lives in `pnpm-workspace.yaml` gets pnpm's YAML example.
+ * shortcut: a key that itself contains a space loses it when the wrap is rejoined, upgrade when nub prints keys unwrapped.
+ */
+const GIT_DEP_PREPARE = /ERR_(?:PNPM|NUB)_GIT_DEP_PREPARE_NOT_ALLOWED[\s\S]*?"allowScripts":\s*\{\s*"([\s\S]*?)"\s*:\s*true\s*\}/
+const GIT_DEP_PREPARE_YAML = /ERR_(?:PNPM|NUB)_GIT_DEP_PREPARE_NOT_ALLOWED[\s\S]*?^allowBuilds:\r?\n[ \t]+(.+?): true$/m
 
 /**
- * Whether an `allowBuilds` key names a git URL that carries a credential: a password, or any user name over HTTP(S).
- * Such a key is not recorded, so the credential stays out of the profile settings and the pending list.
+ * Whether an `allowScripts` key names a git URL that carries a credential: a password, or any user name over HTTP(S).
+ * Such a key is not recorded, so the credential stays out of the profile manifest and the pending list.
  */
 function carriesCredential(key: string): boolean {
   const at = key.indexOf('@git+')
@@ -25,72 +31,72 @@ function carriesCredential(key: string): boolean {
   return url !== null && (url.password !== '' || (url.username !== '' && /^https?:$/.test(url.protocol)))
 }
 
-async function readPolicy(dir: string) {
+/** The profile manifest's fields and the `allowScripts` decisions they record. */
+interface BuildPolicy {
+  fields: Record<string, unknown>
+  decisions: Record<string, boolean>
+}
+
+/**
+ * Read the profile manifest and its `allowScripts` decisions; an absent manifest or field records none.
+ * nub refuses an entry that is not a boolean, so every present key is a decision: `true` allows the scripts, `false` denies them.
+ */
+async function readManifest(dir: string): Promise<BuildPolicy> {
   let text: string
-  try { text = await readFile(join(dir, 'pnpm-workspace.yaml'), 'utf8') }
+  try { text = await readFile(join(dir, 'package.json'), 'utf8') }
   catch (error) {
     if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
     text = '{}\n'
   }
-  const document = parseDocument(text)
-  if (document.errors[0] !== undefined) throw document.errors[0]
-  if (!isMap(document.contents)) throw new Error('pnpm-workspace.yaml must be a YAML mapping')
-  const builds = document.get('allowBuilds')
-  if (builds !== undefined && !isMap(builds)) throw new Error('allowBuilds must be a YAML mapping')
-  visit(builds ?? null, (_key, node) => {
-    if (isAlias(node) || (isNode(node) && 'anchor' in node && node.anchor)) {
-      throw new Error('allowBuilds must not contain YAML anchors or aliases')
-    }
-  })
-  const keys = isMap(builds) ? builds.items.flatMap(({ key }) =>
-    isScalar(key) && typeof key.value === 'string' ? [key.value] : []) : []
-  const pending = isMap(builds) ? builds.items.flatMap(({ key, value }) =>
-    isScalar(key) && typeof key.value === 'string' && !/[*?]/.test(key.value)
-      && isScalar(value) && value.value === UNDECIDED_BUILD ? [key.value] : []) : []
-  return { document, pending, keys }
+  const manifest: unknown = JSON.parse(text)
+  if (manifest === null || typeof manifest !== 'object' || Array.isArray(manifest)) {
+    throw new Error('package.json must hold a JSON object')
+  }
+  const fields = manifest as Record<string, unknown>
+  const scripts = fields.allowScripts
+  if (scripts !== undefined && (scripts === null || typeof scripts !== 'object' || Array.isArray(scripts))) {
+    throw new Error('allowScripts must be a JSON object')
+  }
+  return { fields, decisions: (scripts ?? {}) as Record<string, boolean> }
 }
 
 /**
- * Record the build scripts a failed run reported as blocked, then list every `allowBuilds` key awaiting a decision.
+ * List the build scripts a failed run reported that the manifest has not decided yet.
  *
- * pnpm writes those policy entries itself only when it can prompt, and the
- * manager always runs it non-interactively, so the run's own report is the
- * record that survives.
+ * The run reports an unapproved script because the manager always installs non-interactively, and the manifest records
+ * decisions only, so that report is the one record of an undecided name.
  * @param dir Current profile directory.
  * @param output Captured output of the failed run.
- * @returns Exact `allowBuilds` keys awaiting a build decision; wildcard rules are excluded.
+ * @returns Exact `allowScripts` keys awaiting a build decision; decided keys and wildcard rules are excluded.
  */
 export async function recordPendingBuilds(dir: string, output: string): Promise<string[]> {
-  const { document, pending, keys } = await readPolicy(dir)
-  const known = new Set(keys)
-  const added = blockedBuildNames(output).filter(name => !known.has(name))
-  if (added.length === 0) return pending
-  for (const name of added) document.setIn(['allowBuilds', name], UNDECIDED_BUILD)
-  await writeFileAtomic(join(dir, 'pnpm-workspace.yaml'), String(document), { mode: 0o600 })
-  return [...pending, ...added]
+  const { decisions } = await readManifest(dir)
+  return blockedBuildNames(output).filter(name => !Object.hasOwn(decisions, name))
 }
 
 /**
- * Read the `allowBuilds` keys a pnpm run reported as ignored build scripts or as a git-hosted package it refused to prepare.
+ * Read the keys a run reported as ignored build scripts or as a git-hosted package it refused to prepare.
  * @param output Captured output of the run.
  * @returns Exact keys in report order; wildcard patterns and git keys carrying a credential are excluded.
  */
 export function blockedBuildNames(output: string): string[] {
-  const ignored = IGNORED_BUILDS.exec(output)?.[1]?.split(',') ?? []
-  const git = GIT_DEP_PREPARE.exec(output)?.[1]
+  const report = unwrap(output)
+  const ignored = IGNORED_BUILDS.exec(report)?.[1]?.split(',') ?? []
+  const git = GIT_DEP_PREPARE.exec(report)?.[1] ?? GIT_DEP_PREPARE_YAML.exec(report)?.[1]
   return [...ignored, ...git === undefined ? [] : [git]]
-    .map(name => name.trim()).filter(name => name !== '' && !/[*?]/.test(name) && !carriesCredential(name))
+    .map(name => name.replace(/\s*\n\s*/g, '').trim())
+    .filter(name => name !== '' && !/[*?]/.test(name) && !carriesCredential(name))
 }
 
 /** Persist approval without running scripts; the caller holds the profile manifest lock.
  * @param dir Current profile directory.
  * @param names Explicit package names from the pending build list.
- * @throws If a name is no longer pending or allowBuilds contains YAML anchors or aliases; no approvals are written.
+ * @throws If a name already has an `allowScripts` decision or the manifest holds no JSON object; no approvals are written.
  */
 export async function approveBuilds(dir: string, names: readonly string[]): Promise<void> {
-  const { document, pending } = await readPolicy(dir)
-  if (names.some(name => !pending.includes(name))) throw new ManagementFailure('stale-approval')
+  const { fields, decisions } = await readManifest(dir)
+  if (names.some(name => Object.hasOwn(decisions, name))) throw new ManagementFailure('stale-approval')
   if (names.length === 0) return
-  for (const name of names) document.setIn(['allowBuilds', name], true)
-  await writeFileAtomic(join(dir, 'pnpm-workspace.yaml'), String(document), { mode: 0o600 })
+  fields.allowScripts = { ...decisions, ...Object.fromEntries(names.map(name => [name, true])) }
+  await writeFileAtomic(join(dir, 'package.json'), JSON.stringify(fields, undefined, 2) + '\n', { mode: 0o600 })
 }

@@ -176,7 +176,7 @@ export function verifyProductUse(
       if (typeof path !== 'string') { failures.push(`${display(from)}: Include path must be a literal string`); continue }
       const filename = path.startsWith('file:') ? fileURLToPath(path) : resolve(dirname(from), path)
       if (stack.has(filename)) { failures.push(`${display(from)}: cyclic Include ${display(filename)}`); continue }
-      const content: unknown = existsSync(filename) ? loadCordisYaml(readFileSync(filename, 'utf8')) : row.config.initial
+      const content: unknown = existsSync(filename) ? loadCordisYaml(readFileSync(filename, 'utf8'), filename) : row.config.initial
       configs.add(filename)
       if (!Array.isArray(content)) { failures.push(`${display(filename)}: Include requires an entry array or initial entries`); continue }
       const entries = applyEntryPatches(content as EntryOptions[], row.config.patches as PatchOptions[] | undefined, () => {})

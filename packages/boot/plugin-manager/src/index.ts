@@ -28,7 +28,7 @@ import {
 import { OPTIONAL_BUNDLES, OFFICIAL_ON_DEMAND_CATALOG, PROTECTED_PLUGINS } from '@deepseek-ai/dsh-official-bundles'
 import type {} from '@deepseek-ai/dsh-hmr'
 import type { ProfileContext, ProfileManifest } from '@deepseek-ai/dsh-app-boot'
-import { bundleManifest, readProfileRegistry, registryArguments, runProfilePnpm, saveManifest, viewProfilePackage } from './operations.ts'
+import { bundleManifest, LOCKFILE, readProfileRegistry, registryArguments, runProfilePnpm, saveManifest, viewProfilePackage } from './operations.ts'
 import { classifyInstallFailure } from './install-failure.ts'
 import { officialBundleInstallTarget } from './official-install-target.ts'
 import { dependencySpec, InvalidInstallSpecError, parseInstallSpec, pinnedGitOrigin, type ParsedInstallSpec } from './install-spec.ts'
@@ -39,7 +39,7 @@ import { PluginManagerError, readProfileState } from './error.ts'
 import { approveBuilds, recordPendingBuilds } from './build-approval.ts'
 import { checkGitConnection, checkGithubConnection, type GithubConnectionFailure } from './github-connection.ts'
 import { chooseGitTransport, sshGitSpec } from './git-transport.ts'
-import { newerVersions, VERSION_FIELDS, VERSION_LIST_FIELDS, versionFacts } from './versions.ts'
+import { newerVersions, versionFacts } from './versions.ts'
 import type {
   BundleDetail, BundleInfo, BundleRowInfo, ChangeResult, InspectOptions, InstallBundleOptions, ListVersionsOptions, ManagementError,
   PackageResult, PluginChange, PluginEntryId, PluginInfo, PluginInstallCancellation, PluginInstallProgress, PluginInstallRequestId,
@@ -52,10 +52,10 @@ export { classifyInstallFailure, type InstallFailureFacts } from './install-fail
 export { PluginManagerError, type PluginManagerErrorCode } from './error.ts'
 export { InvalidInstallSpecError, parseInstallSpec, pinnedGitOrigin, type ParsedInstallSpec } from './install-spec.ts'
 
-/** The pnpm executable, registries, and limits for diagnostics, lookups and connection checks. */
+/** The nub executable, registries, and limits for diagnostics, lookups and connection checks. */
 export interface Config {
-  /** The pnpm executable name or path; resolved through `PATH` like the `dsh plugin` command. */
-  pnpmCommand?: string
+  /** The nub executable name or path, resolved through `PATH`. */
+  packageManagerCommand?: string
   /** Maximum retained package-operation diagnostic bytes. */
   outputBytes?: number
   /** Maximum time to wait for another process's profile package operation. */
@@ -68,11 +68,11 @@ export interface Config {
   gitTransportTimeoutMs?: number
   /** Maximum time one captured package run may print nothing before the manager terminates it, in milliseconds. */
   idleTimeoutMs?: number
-  /** The registry lookups and installations ask first, as an http(s) URL; absent, the one pnpm's own configuration names. */
+  /** The registry lookups and installations ask first, as an http(s) URL; absent, the one nub's own configuration names. */
   registry?: string
   /**
    * Registries asked in turn, as http(s) URLs, while the one before is unreachable or holds no copy of the package.
-   * A registry outside this set and `registry` is asked alone, and so is the one pnpm's own configuration names
+   * A registry outside this set and `registry` is asked alone, and so is the one nub's own configuration names
    * unless that is npm's own registry or one of these.
    */
   fallbackRegistries?: string[]
@@ -93,16 +93,13 @@ export interface Config {
 /** The Fetch route serving images beside bundle detail documents. */
 const DETAIL_FILE_PATH = '/api/plugin-manager/detail-file'
 
-/** An http(s) URL, as pnpm's `--registry` takes it. */
+/** An http(s) URL, as `--registry` takes it. */
 const REGISTRY_URL = /^https?:\/\/\S+$/
 
 /** The profile files an installation writes and a failed or cancelled one restores. */
-const RESTORED_FILES = ['package.json', 'pnpm-lock.yaml'] as const
+const RESTORED_FILES = ['package.json', LOCKFILE] as const
 
-/** The manifest fields an inspection reads for a registry spec. */
-const INSPECT_FIELDS = ['name', 'version', 'description', 'dsh'] as const
-
-/** pnpm's colour escapes, which a JSON answer may be wrapped in. */
+/** The package manager's colour escapes, which a JSON answer may be wrapped in. */
 const ANSI_SEQUENCE = /\x1b\[[0-9;]*m/g
 
 /** Preserve the exact observed diagnostic, including non-Error failures. */
@@ -126,7 +123,7 @@ class InstallCancelledError extends Error {
 /** One installation the manager owns until its call settles. */
 interface InstallControl {
   readonly abort: AbortController
-  /** `applying` once pnpm has exited and the bundle is being selected and loaded, which cannot be stopped. */
+  /** `applying` once the package manager has exited and the bundle is being selected and loaded, which cannot be stopped. */
   phase: 'installing' | 'applying'
   /** The active install's result, shared with clients recovering a lost response. */
   result: Promise<ChangeResult | null>
@@ -235,11 +232,11 @@ async function mapConcurrent<T, R>(
   return answers
 }
 
-/** The refusal `pnpm view --json` prints on stdout, `{ error: { code, message } }`, as one log line; empty for anything else. */
+/** The refusal `view --json` prints on stdout, `{ error: { code, message } }`, as one log line; empty for anything else. */
 function printedError(printed: string): string {
   let parsed: unknown
   try { parsed = JSON.parse(printed || 'null') }
-  catch { return '' /* not JSON: nothing pnpm printed as a refusal */ }
+  catch { return '' /* not JSON: nothing the run printed as a refusal */ }
   const error = typeof parsed === 'object' && parsed !== null ? (parsed as { error?: unknown }).error : undefined
   if (typeof error !== 'object' || error === null) return ''
   const { code, message } = error as { code?: unknown; message?: unknown }
@@ -255,7 +252,7 @@ function bundleSelection(manifest: ProfileManifest): readonly string[] {
 }
 
 /**
- * The package an installation spec names before pnpm runs: a registry name, a local directory's manifest name, or the
+ * The package an installation spec names before the run: a registry name, a local directory's manifest name, or the
  * dependency saved with this git or tarball spec or the SSH form of its Git URL, compared as the plugin list shows saved specs.
  * @param spec The installation spec.
  * @param dependencies The profile's saved dependencies.
@@ -276,7 +273,7 @@ function packageName(dir: string): string | undefined {
   try {
     return readProfileManifest('dsh', dir).name
   } catch (_error) {
-    // pnpm reports the unreadable directory itself.
+    // The package manager reports the unreadable directory itself.
     return undefined
   }
 }
@@ -325,7 +322,7 @@ declare module '@deepseek-ai/cordis' {
 export class PluginManager extends TypertRemoteService {
   static inject = ['loader', 'profileContext']
   static Config: z<Config> = z.object({
-    pnpmCommand: z.string().default('pnpm'),
+    packageManagerCommand: z.string().default('nub'),
     outputBytes: z.number().step(1).min(1).default(16384),
     lockWaitMs: z.number().step(1).min(0).default(120000),
     inspectTimeoutMs: z.number().step(1).min(1000).default(20000),
@@ -344,8 +341,8 @@ export class PluginManager extends TypertRemoteService {
   /** Management bundles remain protected if their files become unreadable. */
   private readonly managementBundles = new Set<string>()
   /**
-   * The registry each package was last installed from by this manager in this process. pnpm verifies lockfile tarball
-   * URLs against its default registry unless they belong to a named registry, so a later removal names it again.
+   * The registry each package was last installed from by this manager in this process. The lockfile check verifies
+   * tarball URLs against the default registry unless they belong to a named registry, so a later removal names it again.
    */
   private readonly installedFrom = new Map<string, Registry>()
   private readonly ownerEntryId: string | undefined
@@ -357,7 +354,7 @@ export class PluginManager extends TypertRemoteService {
   private readonly githubConnectionTimeoutMs: number
   private readonly gitTransportTimeoutMs: number
   private readonly idleTimeoutMs: number
-  private readonly pnpmCommand: string
+  private readonly packageManagerCommand: string
   private readonly versionListLimit: number
   private readonly versionLookupConcurrency: number
   private readonly configuredRegistries: Omit<PluginRegistries, 'resolved'>
@@ -379,7 +376,7 @@ export class PluginManager extends TypertRemoteService {
     this.githubConnectionTimeoutMs = (config as Required<Config>).githubConnectionTimeoutMs
     this.gitTransportTimeoutMs = (config as Required<Config>).gitTransportTimeoutMs
     this.idleTimeoutMs = (config as Required<Config>).idleTimeoutMs
-    this.pnpmCommand = (config as Required<Config>).pnpmCommand
+    this.packageManagerCommand = (config as Required<Config>).packageManagerCommand
     this.versionListLimit = (config as Required<Config>).versionListLimit
     this.versionLookupConcurrency = (config as Required<Config>).versionLookupConcurrency
     this.configuredRegistries = {
@@ -605,15 +602,15 @@ export class PluginManager extends TypertRemoteService {
     return bundles
   }
 
-  /** Read the registries this manager asks: the configured first one, its fallbacks in order, and what pnpm's own configuration names.
-   * @returns The registries in pnpm's comparison form; null is the one pnpm's own configuration names, `resolved` as pnpm reads it now.
+  /** Read the registries this manager asks: the configured first one, its fallbacks in order, and what nub's own configuration names.
+   * @returns The registries in nub's comparison form; null is the one nub's own configuration names, `resolved` as nub reads it now.
    */
   @Remote
   async registries(): Promise<PluginRegistries> {
     return {
       ...this.configuredRegistries, fallbackRegistries: [...this.configuredRegistries.fallbackRegistries],
       resolved: await readProfileRegistry(this.profile.dir, {
-        ...this.profile.packageManager ?? { command: this.pnpmCommand }, timeoutMs: this.inspectTimeoutMs,
+        ...this.packageManager(), timeoutMs: this.inspectTimeoutMs,
       }),
     }
   }
@@ -662,12 +659,12 @@ export class PluginManager extends TypertRemoteService {
       }
       case 'registry': {
         if (known.has(parsed.name)) return refused('already-installed', `${parsed.name} is already installed`)
-        const asked = await this.askRegistries(spec.trim(), INSPECT_FIELDS, plan, parsed, signal)
+        const asked = await this.askRegistries(spec.trim(), plan, parsed, signal)
         const registries = asked.attempts.map(attempt => attempt.registry)
         if (asked.status === 'refused') return { status: 'refused', problem: asked.problem, reason: asked.reason, registries }
-        // pnpm prints a range's highest match as one object; npm's array of every match is read by its last entry.
+        // The answer is one version's manifest; an array of matches is read by its last entry.
         const latest: unknown = Array.isArray(asked.answer) ? asked.answer.at(-1) : asked.answer
-        if (typeof latest !== 'object' || latest === null) return { status: 'refused', problem: 'unknown', reason: 'pnpm view answered no package', registries }
+        if (typeof latest !== 'object' || latest === null) return { status: 'refused', problem: 'unknown', reason: 'nub view answered no package', registries }
         const inspection = inspectionOf('registry', latest, asked.registry)
         const named = inspection.name === undefined ? { ...inspection, name: parsed.name } : inspection
         if (!named.bundle) return { status: 'refused', problem: 'not-a-bundle', reason: `${named.name} declares no dsh.bundle`, registries }
@@ -690,7 +687,7 @@ export class PluginManager extends TypertRemoteService {
     if (typeof target === 'string') return { status: 'refused', problem: 'not-updatable', reason: target, attempts: [] }
     if (target.kind === 'git') return { status: 'refused', problem: 'not-updatable', reason: `${name} is installed from Git, which lists no versions`, attempts: [] }
     const plan = registryPlan(this.registryFor(name, options?.registry), await this.registries())
-    const listing = await this.askRegistries(name, VERSION_LIST_FIELDS, plan, target.parsed, signal)
+    const listing = await this.askRegistries(name, plan, target.parsed, signal)
     if (listing.status === 'refused') return listing
     let newer
     try { newer = newerVersions(listing.answer, target.installed) }
@@ -699,7 +696,7 @@ export class PluginManager extends TypertRemoteService {
     const exemptions = readProfileVersionExemptions(this.profile.dir)
     const looked = await mapConcurrent(listed, this.versionLookupConcurrency, async (published) => {
       const spec = `${name}@${published.version}`
-      const answer = await this.askRegistries(spec, VERSION_FIELDS, [listing.registry], { kind: 'registry', spec, name }, signal)
+      const answer = await this.askRegistries(spec, [listing.registry], { kind: 'registry', spec, name }, signal)
       if (answer.status === 'refused') return answer
       const facts = versionFacts(answer.answer, name, published.version)
       let compatibility
@@ -728,8 +725,8 @@ export class PluginManager extends TypertRemoteService {
    * Replace an installed bundle with a newer version. A registry copy updates to `name@version`, checked on the registry
    * first: it must exist, declare a bundle, and accept the running DSH version, or nothing changes. A Git copy updates
    * to the Git spec `options.spec` names, which must pin a full commit of the repository directory the copy came from;
-   * with HMR, a network failure or timeout reaching its repository stops the update before anything changes. pnpm reads
-   * a Git package only while installing it, so its bundle and compatibility are checked then. Either target
+   * with HMR, a network failure or timeout reaching its repository stops the update before anything changes. A Git
+   * package is read only while installing it, so its bundle and compatibility are checked then. Either target
    * installation is undone, profile files and modules included, before its bundle loads unless it installs `name` at
    * `version`. With HMR the installed version is removed, so its plugins stop, and the target is installed with the same
    * selection; when that installation fails or is cancelled, the removed version is installed again: a registry copy
@@ -828,7 +825,7 @@ export class PluginManager extends TypertRemoteService {
 
   /**
    * Check that the network reaches the repository of a Git update's target. Only a network failure or a timeout
-   * counts: a check Git cannot run, or one the repository refuses without credentials, leaves the answer to pnpm.
+   * counts: a check Git cannot run, or one the repository refuses without credentials, leaves the answer to the install.
    * @param spec The target's pinned Git spec.
    * @returns The failed check, or undefined when the host answered or the check could not tell.
    */
@@ -863,7 +860,7 @@ export class PluginManager extends TypertRemoteService {
     const spec = `${name}@${version}`
     if (options?.spec !== undefined) return { code: 'invalid-spec', diagnostic: `${name} is installed from a registry and updates only to ${spec}` }
     const plan = registryPlan(this.registryFor(name, options?.registry), await this.registries())
-    const checked = await this.askRegistries(spec, VERSION_FIELDS, plan, { kind: 'registry', spec, name })
+    const checked = await this.askRegistries(spec, plan, { kind: 'registry', spec, name })
     if (checked.status === 'refused') return { code: 'operation-error', diagnostic: checked.reason }
     const facts = versionFacts(checked.answer, name, version)
     if (!facts.bundle) return { code: 'not-bundle' }
@@ -885,30 +882,28 @@ export class PluginManager extends TypertRemoteService {
   }
 
   /**
-   * Ask registries in turn through `pnpm view`, moving to the next one while a failure is the registry's: unreachable,
+   * Ask registries in turn through `nub view`, moving to the next one while a failure is the registry's: unreachable,
    * timed out, or without the package or version, which a mirror not yet synced reports.
    * @param spec The registry spec viewed.
-   * @param fields The manifest fields printed.
    * @param plan The registries, in order; never empty.
    * @param parsed The spec's form, which decides whether a failure was the registry's.
    * @param signal Ends the lookup; a dropped lookup is not carried to the next registry.
    * @returns The parsed answer and the registry that gave it, or the last refusal, with every registry asked.
    */
   private async askRegistries(
-    spec: string, fields: readonly string[], plan: readonly Registry[], parsed: ParsedInstallSpec, signal?: AbortSignal,
+    spec: string, plan: readonly Registry[], parsed: ParsedInstallSpec, signal?: AbortSignal,
   ): Promise<RegistryAnswer> {
     const attempts: RegistryAttempt[] = []
     for (const [index, registry] of plan.entries()) {
       const view = await viewProfilePackage(this.profile.dir, spec, {
-        ...this.profile.packageManager ?? { command: this.pnpmCommand },
-        fields, timeoutMs: this.inspectTimeoutMs, ...signal === undefined ? {} : { signal }, registry,
+        ...this.packageManager(), timeoutMs: this.inspectTimeoutMs, ...signal === undefined ? {} : { signal }, registry,
       })
       const printed = view.stdout.replace(ANSI_SEQUENCE, '').trim()
       if (view.exitCode !== 0 || view.cause !== undefined || view.timedOut) {
-        // pnpm prints a refusal as `{ error: { code, message } }` on stdout, with nothing on stderr.
+        // A refusal printed as `{ error: { code, message } }` on stdout is the whole of its report.
         const log = [view.stderr.trim(), printedError(printed), view.cause === undefined ? '' : messageOf(view.cause)].filter(Boolean).join('\n')
         const kind = classifyInstallFailure({ log, timedOut: view.timedOut, ...view.cause === undefined ? {} : { cause: view.cause } })
-        const reason = view.timedOut ? `pnpm view timed out after ${String(this.inspectTimeoutMs)}ms` : log || printed || `pnpm view exited with ${String(view.exitCode)}`
+        const reason = view.timedOut ? `nub view timed out after ${String(this.inspectTimeoutMs)}ms` : log || printed || `nub view exited with ${String(view.exitCode)}`
         const problem = kind === 'not-found' || kind === 'no-matching-version' ? 'not-found' : kind === 'network' || kind === 'timeout' ? 'network' : 'unknown'
         attempts.push({ registry, problem, reason })
         if (index < plan.length - 1 && signal?.aborted !== true && attributeFailure(kind, log, parsed) === 'registry') continue
@@ -919,7 +914,7 @@ export class PluginManager extends TypertRemoteService {
         attempts.push({ registry })
         return { status: 'answered', answer, registry, attempts }
       } catch (error) {
-        const reason = `unreadable pnpm view output: ${messageOf(error)}`
+        const reason = `unreadable nub view output: ${messageOf(error)}`
         attempts.push({ registry, problem: 'unknown', reason })
         return { status: 'refused', problem: 'unknown', reason, attempts }
       }
@@ -960,14 +955,14 @@ export class PluginManager extends TypertRemoteService {
   }
 
   /**
-   * Install a package using the same pnpm implementation as dsh plugin. GitHub
-   * repositories get a connection check bounded by githubConnectionTimeoutMs before pnpm starts;
+   * Install a package using the same package manager as dsh plugin. GitHub
+   * repositories get a connection check bounded by githubConnectionTimeoutMs before the run starts;
    * only network failures or timeouts stop installation, and a stop streams the check's diagnostic
-   * as the installation's install-log run under its request id, while pnpm owns authentication and transport fallback. An
+   * as the installation's install-log run under its request id, while the run owns authentication and transport fallback. An
    * HTTP(S) Git URL on another host is installed over SSH instead when access probes bounded by gitTransportTimeoutMs
    * find that only SSH can read it. A run
    * that fails, is cancelled, or adds a package without a bundle patch restores
-   * `package.json` and `pnpm-lock.yaml` as they were; downloaded files can stay.
+   * `package.json` and `nub.lock` as they were; downloaded files can stay.
    * @param spec One package spec, including local paths relative to the invocation directory.
    * @param options Whether to activate the installed bundle (defaults to true), the request id a cancellation names,
    * the pending build scripts to allow, whether to save an exact dependency, and the registry asked first.
@@ -1016,7 +1011,7 @@ export class PluginManager extends TypertRemoteService {
           const { argv, ...packageResult } = connectionFailure
           result.packageResult = packageResult
           result.failedAt = 'spec-host'
-          // pnpm never runs, so the check is the installation's only run: stream its failure into the install log.
+          // Nothing is installed, so the check is the installation's only run: stream its failure into the install log.
           // A timed-out Git reports no exit code of its own, unlike the result, which records the status it is read as.
           if (requestId !== undefined) {
             this.ownerContext.emit('plugin-manager/install-log', {
@@ -1043,7 +1038,7 @@ export class PluginManager extends TypertRemoteService {
           result.registries.push(registry)
           used = registry
           announce('installing', { registry, index: index + 1, total: plan.length })
-          run = await this.runPnpm(
+          run = await this.runPackageCommand(
             ['add', installSpec, ...options?.saveExact === true ? ['--save-exact'] : [], ...registryArguments(registry)],
             control.abort.signal, requestId, options?.expected,
           )
@@ -1053,9 +1048,9 @@ export class PluginManager extends TypertRemoteService {
           if (run.incompatible !== undefined) throw new ManagementFailure('incompatible-version', run.incompatible)
           // So is a run that installed another package, version, or no bundle where the caller expects one.
           if (run.unmet !== undefined) throw new ManagementFailure(run.unmet)
-          // A run this manager terminated is not a success, even when pnpm trapped the signal and exited 0.
+          // A run this manager terminated is not a success, even when it trapped the signal and exited 0.
           if (run.exitCode === 0 && run.timedOut !== true) break
-          /* v8 ignore next 2 -- runPnpm classifies every run it does not report as succeeded */
+          /* v8 ignore next 2 -- runPackageCommand classifies every run it does not report as succeeded */
           if (run.kind === undefined) break
           // What the last failed run could not reach; a later run that succeeds leaves nothing to say.
           delete result.failedAt
@@ -1071,10 +1066,10 @@ export class PluginManager extends TypertRemoteService {
         const succeeded = run.exitCode === 0 && run.timedOut !== true
         if (succeeded) delete result.failedAt
         if (!succeeded) {
-          // pnpm-workspace.yaml is not restored, so the names it left undecided, or reported as blocked, are offered for approval.
+          // The manifest records decisions only, so the failed run's own report is the one record of an undecided script.
           try { result.pendingBuilds = await recordPendingBuilds(this.profile.dir, run.output) }
           catch (error) {
-            this.ownerContext.logger.warn('Could not read pending build approvals after pnpm failed', error)
+            this.ownerContext.logger.warn('Could not read pending build approvals after the package manager failed', error)
           }
           throw new Error(run.output)
         }
@@ -1097,7 +1092,7 @@ export class PluginManager extends TypertRemoteService {
         version = manifest.version
         this.installedFrom.set(name, used)
       } catch (error) {
-        // pnpm has exited by now, so the files it rewrote go back as they were.
+        // The run has exited by now, so the files it rewrote go back as they were.
         await this.restoreFiles(files)
         throw error
       }
@@ -1132,7 +1127,7 @@ export class PluginManager extends TypertRemoteService {
 
   /** Stop an installation this manager owns and wait until its files are back.
    * @param requestId The id the installation was started with.
-   * @returns `cancelled` once the Git check or pnpm exited and the files are restored, `too-late` once the bundle is being
+   * @returns `cancelled` once the Git check or the run exited and the files are restored, `too-late` once the bundle is being
    * applied, `not-running` for any other id.
    */
   @Remote
@@ -1147,7 +1142,7 @@ export class PluginManager extends TypertRemoteService {
     return { status: 'cancelled' }
   }
 
-  /** Unload and remove a profile-owned bundle dependency through dsh plugin's pnpm path; a selected name no
+  /** Unload and remove a profile-owned bundle dependency through dsh plugin's package path; a selected name no
    * dependency holds is only deselected.
    * @param name Installed dependency or selected bundle name.
    * @returns Removal diagnostics and the remaining profile state.
@@ -1175,16 +1170,24 @@ export class PluginManager extends TypertRemoteService {
         return bundle.installed
       })
       if (!installed) return
-      // `pnpm remove` takes no `--registry` option; the generic configuration flag sets the same setting. A package
-      // installed before this process started is removed with the registry an installation asks first.
+      // `nub remove` takes `--registry`. A package installed before this process started is removed with the registry
+      // an installation asks first.
       const registry = this.installedFrom.has(name) ? this.installedFrom.get(name) : this.configuredRegistries.registry
-      result.packageResult = await this.runPnpm(['remove', name, ...typeof registry === 'string' ? [`--config.registry=${registry}`] : []])
+      result.packageResult = await this.runPackageCommand(['remove', name, ...typeof registry === 'string' ? [`--registry=${registry}`] : []])
       if (result.packageResult.exitCode !== 0 || result.packageResult.timedOut === true) {
         throw new Error(result.packageResult.output)
       }
       this.installedFrom.delete(name)
       Object.assign(result, await this.configure(() => this.publishAndReload()))
     }, { stage: 'remove', target: name }, 'remove')
+  }
+
+  /** The package manager every operation runs: the launcher's own invocation for an application-owned profile, else the
+   * configured command, else `NUB_BIN`, else `nub` from `PATH`.
+   * @returns The executable, its prefix arguments, and the environment that applies only to these subprocesses.
+   */
+  private packageManager(): { command: string; args?: readonly string[]; env?: Readonly<Record<string, string>> } {
+    return this.profile.packageManager ?? { command: this.packageManagerCommand || process.env.NUB_BIN || 'nub' }
   }
 
   /** The rows a bundle's patch inserts and the existing rows it changes; an unreadable patch throws. */
@@ -1220,16 +1223,22 @@ export class PluginManager extends TypertRemoteService {
     return { rows, overrides }
   }
 
-  /** Run one pnpm command in the profile, streaming its output as install-log chunks; `expected` is the package an `add` must install. */
-  private async runPnpm(
+  /** Run one package-manager command in the profile, streaming its output as install-log chunks.
+   * @param args The command and its arguments.
+   * @param signal Ends the run early.
+   * @param requestId Names the run's progress, logs, and cancellation.
+   * @param expected The package an `add` must install.
+   */
+  private async runPackageCommand(
     args: readonly string[], signal?: AbortSignal, requestId?: PluginInstallRequestId, expected?: InstallBundleOptions['expected'],
   ): Promise<PackageResult> {
     const jobId = randomUUID()
-    const argv = ['pnpm', ...args]
+    const invocation = this.packageManager()
+    const argv = [invocation.command, ...invocation.args ?? [], ...args]
     const cwd = this.profile.dir
     const identity = requestId === undefined ? {} : { requestId }
     const task = runProfilePnpm({ ...this.profile, profile: this.profile.name }, args, {
-      execution: 'service', ...this.profile.packageManager ?? { command: this.pnpmCommand },
+      execution: 'service', ...invocation,
       signal: signal === undefined ? this.abort.signal : AbortSignal.any([this.abort.signal, signal]),
       outputBytes: this.outputBytes, activateNewBundles: false, idleTimeoutMs: this.idleTimeoutMs,
       lookupTimeoutMs: this.inspectTimeoutMs, ...expected === undefined ? {} : { expected },
@@ -1243,7 +1252,7 @@ export class PluginManager extends TypertRemoteService {
       this.ownerContext.emit('plugin-manager/install-log', {
         ...identity, jobId, argv, cwd, stream: 'stdout', text: '', exitCode: signal?.aborted === true ? null : result.exitCode,
       })
-      // A terminated run keeps its own kind even when pnpm trapped the signal and exited 0.
+      // A terminated run keeps its own kind even when it trapped the signal and exited 0.
       if (result.exitCode === 0 && result.timedOut !== true) return result
       return {
         ...result,
@@ -1267,7 +1276,7 @@ export class PluginManager extends TypertRemoteService {
     return files
   }
 
-  /** Put the profile files back; pnpm has exited by the time this runs. */
+  /** Put the profile files back; the run has exited by the time this happens. */
   private async restoreFiles(files: Map<string, string | undefined>): Promise<void> {
     for (const [path, content] of files) {
       if (content === undefined) await rm(path, { force: true })
@@ -1455,7 +1464,7 @@ export class PluginManager extends TypertRemoteService {
   }
 
   private diskState(): string {
-    return ['package.json', 'cordis.patch.yml', 'cordis.patch.toml', 'cordis.yml', 'cordis.toml', 'pnpm-workspace.yaml', PROFILE_COMPATIBILITY_FILENAME].map((file) => {
+    return ['package.json', 'cordis.patch.yml', 'cordis.patch.toml', 'cordis.yml', 'cordis.toml', PROFILE_COMPATIBILITY_FILENAME].map((file) => {
       try { return readFileSync(join(this.profile.dir, file), 'utf8') }
       catch (error) {
         if ((error as NodeJS.ErrnoException).code === 'ENOENT') return ''

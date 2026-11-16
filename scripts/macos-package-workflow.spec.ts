@@ -25,10 +25,10 @@ describe.each(['arm64', 'x64'])('macOS %s packaging', (arch) => {
     }>
   }
 
-  it('archives using the same persistent pnpm store as packaging', () => {
+  it('archives using the same persistent nub store as packaging', () => {
     const cache = (job: string) => workflow.jobs[job]!.steps.find(step => step.name === 'Configure persistent package caches')
     expect(cache('upload-artifact')).toEqual(cache('package'))
-    expect(cache('upload-artifact')?.run).toContain('PNPM_CONFIG_STORE_DIR=')
+    expect(cache('upload-artifact')?.run).toContain('npm_config_store_dir=')
   })
 
   it('confines signed Mac packaging to manual dispatch and a dedicated Apple Silicon runner', () => {
@@ -64,13 +64,14 @@ describe.each(['arm64', 'x64'])('macOS %s packaging', (arch) => {
     expect(steps.filter(step => step.run?.includes('args+=(--skip-notarization)'))).toHaveLength(2)
   })
 
-  it('retains build inputs outside checkout and run-specific pnpm installations', () => {
+  // nub's setup action installs no configurable per-run toolchain directory, so only the store location is asserted.
+  it('retains build inputs outside checkout', () => {
     const env = workflow.jobs.package!.env
     expect(JSON.stringify(env)).not.toContain('runner.')
     const steps = workflow.jobs.package!.steps
     const cache = steps.find(step => step.name === 'Configure persistent package caches')!
     expect(cache.env?.DSH_DESKTOP_PACKAGE_CACHE_DIR).toBe('${{ runner.tool_cache }}/dsh-desktop-package-cache')
-    expect(cache.run).toContain('PNPM_CONFIG_STORE_DIR=$DSH_DESKTOP_PACKAGE_CACHE_DIR/workspace-pnpm-store')
+    expect(cache.run).toContain('npm_config_store_dir=$DSH_DESKTOP_PACKAGE_CACHE_DIR/workspace-nub-store')
     expect(cache.run).toContain('DSH_DESKTOP_PACKAGE_CACHE_DIR=$DSH_DESKTOP_PACKAGE_CACHE_DIR')
     expect(steps.indexOf(cache)).toBeLessThan(steps.findIndex(step => step.name === 'Install locked dependencies'))
   })
@@ -91,8 +92,8 @@ describe.each(['arm64', 'x64'])('macOS %s packaging', (arch) => {
     // Sources whose dsh does not ship the bundle, or that predate helper packaging, skip staging.
     expect(run.indexOf("dependencies?.['@deepseek-ai/dsh-cua-bundle']")).toBeLessThan(run.indexOf('scripts/cua-helper/package.ts --out'))
     expect(run.indexOf('[[ ! -f scripts/cua-helper/package.ts ]]')).toBeLessThan(run.indexOf('scripts/cua-helper/package.ts --out'))
-    expect(run).toContain('pnpm exec tsx scripts/cua-helper/package.ts --out dist/cua-helper')
-    expect(run).toContain('pnpm exec tsx scripts/cua-helper/stage.ts --from dist/cua-helper/extracted')
+    expect(run).toContain('nub scripts/cua-helper/package.ts --out dist/cua-helper')
+    expect(run).toContain('nub scripts/cua-helper/stage.ts --from dist/cua-helper/extracted')
   })
 
   it('passes the same target to preparation, packaging and retention', () => {
@@ -110,7 +111,7 @@ describe.each(['arm64', 'x64'])('macOS %s packaging', (arch) => {
     const job = workflow.jobs.package!
     expect(job.env.DSH_DESKTOP_TARGET_PLATFORM).toBe('darwin')
     expect(job.env.DSH_DESKTOP_TARGET_ARCH).toBe(arch)
-    const builds = job.steps.filter(step => step.run?.includes('pnpm run package:desktop:mac:'))
+    const builds = job.steps.filter(step => step.run?.includes('nub run package:desktop:mac:'))
     expect(builds).toHaveLength(2)
     for (const step of builds) expect(step.run).toContain(`package:desktop:mac:${arch}`)
     expect(archive.env.DESKTOP_ARCHIVE_NAME).toBe('macos-' + arch + '-${{ needs.package.outputs.mode }}-${{ needs.package.outputs.version }}-${{ github.run_id }}-${{ needs.package.outputs.attempt }}.zip')

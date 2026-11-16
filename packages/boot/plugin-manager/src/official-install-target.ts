@@ -38,7 +38,7 @@ export function officialBundleInstallTarget(name: string, installAnchor: string,
     .filter(entry => entry.manifest.name === name)
   const selected = matches[0]
   if (matches.length !== 1 || selected === undefined) {
-    throw new Error(`Official bundle ${name}: expected one workspace package in ${root}, found ${matches.length}; restore the checkout and run pnpm install`)
+    throw new Error(`Official bundle ${name}: expected one workspace package in ${root}, found ${matches.length}; restore the checkout and run nub install`)
   }
   const { file, manifest } = selected
   const directory = realpathSync(dirname(file))
@@ -47,7 +47,7 @@ export function officialBundleInstallTarget(name: string, installAnchor: string,
   }
   const main = typeof manifest.main === 'string' ? resolve(directory, manifest.main) : undefined
   if (main === undefined || !existsSync(main) || !statSync(main).isFile()) {
-    throw new Error(`Official bundle ${name}: built runtime is missing in ${directory}; run pnpm install and pnpm run build in ${root}`)
+    throw new Error(`Official bundle ${name}: built runtime is missing in ${directory}; run nub install and nub run build in ${root}`)
   }
   for (const patch of bundlePatchPaths(directory, manifest.dsh.bundle)) {
     if (!existsSync(patch) || !statSync(patch).isFile()) {

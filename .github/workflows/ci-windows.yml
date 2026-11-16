@@ -45,13 +45,10 @@ jobs:
       - name: Check preflights before dependency installation
         working-directory: publisher-isolated
         run: node apps/desktop-publisher/tests/preinstall.mjs
-      - uses: pnpm/action-setup@v5.0.0
-        with:
-          package_json_file: publisher-isolated/package.json
-          dest: ${{ runner.temp }}/setup-pnpm-js-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.job }}
+      - uses: nubjs/setup-nub@v0
       - name: Install only publisher production dependencies
         working-directory: publisher-isolated
-        run: pnpm --filter @deepseek-ai/dsh-desktop-publisher --fail-if-no-match install --prod --frozen-lockfile --ignore-scripts
+        run: nub ci -F @deepseek-ai/dsh-desktop-publisher --fail-if-no-match -P --ignore-scripts
       - name: Load publisher without Desktop or root development dependencies
         working-directory: publisher-isolated/apps/desktop-publisher
         run: node --import tsx tests/isolated-install.mjs
@@ -85,28 +82,16 @@ jobs:
         run: >-
           reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock"
           /t REG_DWORD /f /v "AllowDevelopmentWithoutDevLicense" /d "1"
-      - uses: pnpm/action-setup@v5.0.0
-        with:
-          dest: ${{ runner.temp }}/setup-pnpm-js-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.job }}
+      - uses: nubjs/setup-nub@v0
       - uses: actions/setup-node@v7.0.0
         with:
           node-version: ${{ env.PRIMARY_NODE_VERSION }}
       - name: Install (immutable)
         shell: pwsh
-        # See 2026-08-30-windows-refs-store-block-clone-install for the
-        # ReFS block-clone rationale; detect the workspace filesystem and
-        # pass --package-import-method=clone only on ReFS.
-        run: >-
-          $drive = (Split-Path -Qualifier $env:GITHUB_WORKSPACE).TrimEnd(':');
-          $fs = (Get-Volume -DriveLetter $drive).FileSystem;
-          if ($fs -eq 'ReFS') {
-            corepack pnpm install --frozen-lockfile --package-import-method=clone
-          } else {
-            pnpm install --frozen-lockfile
-          }
+        run: nub ci
       - name: Run blocking Windows builds
         shell: pwsh
-        run: pnpm run check:ci:windows-blocking
+        run: nub run check:ci:windows-blocking
       - name: Verify Desktop updater dependency versions
         shell: pwsh
         run: |
@@ -142,7 +127,7 @@ jobs:
         env:
           DSH_GATE_FAIL_FAST: ''
           DSH_PUBLINT_CONCURRENCY: ${{ vars.DSH_CI_FAILOVER_WINDOWS == 'selfhosted' && github.event.pull_request.user.login != 'dependabot[bot]' && '8' || '' }}
-        run: pnpm run check:ci:windows-observational-ready
+        run: nub run check:ci:windows-observational-ready
       - name: Report Windows observational failures
         continue-on-error: true
         if: steps.observational.outcome == 'failure'
@@ -193,25 +178,13 @@ jobs:
         run: >-
           reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock"
           /t REG_DWORD /f /v "AllowDevelopmentWithoutDevLicense" /d "1"
-      - uses: pnpm/action-setup@v5.0.0
-        with:
-          dest: ${{ runner.temp }}/setup-pnpm-js-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.job }}
+      - uses: nubjs/setup-nub@v0
       - uses: actions/setup-node@v7.0.0
         with:
           node-version: ${{ env.PRIMARY_NODE_VERSION }}
       - name: Install (immutable)
         shell: pwsh
-        # See 2026-08-30-windows-refs-store-block-clone-install for the
-        # ReFS block-clone rationale; detect the workspace filesystem and
-        # pass --package-import-method=clone only on ReFS.
-        run: >-
-          $drive = (Split-Path -Qualifier $env:GITHUB_WORKSPACE).TrimEnd(':');
-          $fs = (Get-Volume -DriveLetter $drive).FileSystem;
-          if ($fs -eq 'ReFS') {
-            corepack pnpm install --frozen-lockfile --package-import-method=clone
-          } else {
-            pnpm install --frozen-lockfile
-          }
+        run: nub ci
       # No build before coverage, matching the Linux lane: workspace imports
       # resolve to src through the tsconfig paths map, and the lib-consuming
       # suites (webworker-packer image-loadable, webworker-runtime
@@ -219,7 +192,7 @@ jobs:
       # unbuilt checkouts.
       - name: Run Windows coverage
         shell: pwsh
-        run: pnpm run check:ci:coverage
+        run: nub run check:ci:coverage
       - name: Save coverage duration history
         # Coverage flakes must not prevent the cache from building; the
         # measured durations remain useful even when a partition failed. The
@@ -249,29 +222,17 @@ jobs:
         run: >-
           reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock"
           /t REG_DWORD /f /v "AllowDevelopmentWithoutDevLicense" /d "1"
-      - uses: pnpm/action-setup@v5.0.0
-        with:
-          dest: ${{ runner.temp }}/setup-pnpm-js-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.job }}
+      - uses: nubjs/setup-nub@v0
       - uses: actions/setup-node@v7.0.0
         with:
           node-version: ${{ env.PRIMARY_NODE_VERSION }}
       - name: Install (immutable)
         shell: pwsh
-        # See 2026-08-30-windows-refs-store-block-clone-install for the
-        # ReFS block-clone rationale; detect the workspace filesystem and
-        # pass --package-import-method=clone only on ReFS.
-        run: >-
-          $drive = (Split-Path -Qualifier $env:GITHUB_WORKSPACE).TrimEnd(':');
-          $fs = (Get-Volume -DriveLetter $drive).FileSystem;
-          if ($fs -eq 'ReFS') {
-            corepack pnpm install --frozen-lockfile --package-import-method=clone
-          } else {
-            pnpm install --frozen-lockfile
-          }
+        run: nub ci
       - name: Run Windows-specific native tests
         shell: pwsh
         run: >-
-          pnpm exec vitest run
+          nubx vitest run
           --no-file-parallelism
           --testTimeout 90000
           packages/shell/tool-pwsh/tests/loader.spec.ts

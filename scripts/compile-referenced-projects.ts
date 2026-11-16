@@ -8,7 +8,7 @@ import { relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parseArgs } from 'node:util'
 import ts from 'typescript'
-import { pnpmCommand } from './release/process.ts'
+import { nubCommand } from './release/process.ts'
 
 type CompilationMode = 'checked' | 'benchmark-emit'
 
@@ -34,8 +34,8 @@ export interface LibraryStep {
  * @param args - Package-manager arguments, without shell quoting.
  * @throws If the command cannot start or exits unsuccessfully.
  */
-export function runPnpmCommand(root: string, args: readonly string[]): void {
-  const [command, ...prefix] = pnpmCommand()
+export function runNubCommand(root: string, args: readonly string[]): void {
+  const [command, ...prefix] = nubCommand()
   const result = spawnSync(command, [...prefix, ...args], { cwd: root, stdio: 'inherit' })
   if (result.error !== undefined) throw result.error
   if (result.status !== 0) {
@@ -159,8 +159,8 @@ function typertStep(): LibraryStep {
 }
 
 function pnpmStep(id: LibraryStepId, label: string, args: readonly string[], needs: readonly LibraryStepId[]): LibraryStep {
-  const [command, ...prefix] = pnpmCommand()
-  return { id, label, displayCommand: `pnpm ${args.join(' ')}`, command, args: [...prefix, ...args], needs }
+  const [command, ...prefix] = nubCommand()
+  return { id, label, displayCommand: `nub ${args.join(' ')}`, command, args: [...prefix, ...args], needs }
 }
 
 /**
@@ -183,7 +183,7 @@ export function libraryBuildSteps(root: string, faces: 'host' | 'all', mode: Com
   if (faces === 'host') return host
   return [
     ...host,
-    pnpmStep('desktop-bundle', 'Desktop bundle', ['--filter', '@deepseek-ai/dsh-desktop', 'run', 'bundle'], ['host-bundle']),
+    pnpmStep('desktop-bundle', 'Desktop bundle', ['run', '-F', '@deepseek-ai/dsh-desktop', 'bundle'], ['host-bundle']),
     compilerStep(root, 'client', mode, ['desktop-bundle']),
     pnpmStep('client-bundle', 'Client bundle', ['exec', 'tsdown', '--config-loader', 'native', '--env.DSH_BUILD_FACE', 'client'], ['client-src']),
   ]

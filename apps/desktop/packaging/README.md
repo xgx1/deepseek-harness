@@ -56,7 +56,7 @@ Version mode `build-number` appends the UTC date, workflow run number and attemp
 Pass the confirmed version to the packaging command as `--build-version`, which reaches the artifact names, the update feed, and the upload validation as one value. The manifests keep the product version, so a test build no longer rewrites the release family and leaves nothing to revert:
 
 ```sh
-pnpm --dir apps/desktop run package:win:x64 --build-version 0.1.6-alpha.1.20260916.1
+nub run --cwd apps/desktop package:win:x64 --build-version 0.1.6-alpha.1.20260916.1
 ```
 
 `--build-version auto` proposes the next index for today, reading the published objects in the destination bucket and falling back to this target's local output directory when no bucket is configured or the listing cannot finish within its deadline. Confirm the proposal it prints before an upload; a run script forwards `--` on its own, and the packaging entry accepts it either way.
@@ -80,21 +80,21 @@ Outside machine-preset mode, packaging, upload, and manual macOS signature verif
 Every package command checks the application ID and its mode-specific update and signing configuration before building or downloading, then probes the external tools the run will use: the archive reader, and on a Windows target the installer compiler. macOS checks the identity, Team ID, one complete notarization strategy, readable local `CSC_LINK` p12 file, explicit `CSC_KEY_PASSWORD`, and referenced API key and keychain files; Windows checks the public code-signing certificate, SignTool file, container name, and PIN format. Windows preparation-only builds and explicit unsigned builds on either platform do not require signing credentials. Configuration checks do not authenticate the PIN, log in to the token, unlock a keychain, or contact Apple; actual signing and notarization perform those checks. Without a machine preset, `--build-version auto` contacts the destination bucket, including under `--check`. Run the same checks separately:
 
 ```sh
-pnpm --dir apps/desktop run check:package
+nub run --cwd apps/desktop check:package
 ```
 
 `prepare:desktop` is not a prerequisite:
 
 ```sh
-pnpm run package:desktop
+nub run package:desktop
 ```
 
 Release automation uses fixed target commands so runtime preparation, dsh preparation, and electron-builder receive the same platform and architecture:
 
 ```sh
-pnpm run package:desktop:mac:arm64
-pnpm run package:desktop:mac:x64
-pnpm run package:desktop:win:x64
+nub run package:desktop:mac:arm64
+nub run package:desktop:mac:x64
+nub run package:desktop:win:x64
 ```
 
 The macOS arm64 command requires Apple Silicon. The macOS x64 command runs on Intel macOS or Apple Silicon with Rosetta. The Windows x64 command requires Windows x64. Linux is not a supported Desktop release target.
@@ -156,22 +156,22 @@ The installer copies its startup script into `runner/dsh-service`, sets the serv
 On Windows x64, use the complete unsigned packaging command for local installation testing:
 
 ```sh
-pnpm run package:desktop:win:x64:unsigned
+nub run package:desktop:win:x64:unsigned
 ```
 
 The command reads `.env.windows` and requires `DSH_DESKTOP_APP_ID` and the [mandatory-update policy settings](../README.md#mandatory-update-policy), including a real HTTPS service origin. The local run and CI use Node 24; the remaining tools are the root `packageManager` version of pnpm, Git, PowerShell 7 (`pwsh`), tar, Python, Visual C++ Build Tools and a Windows SDK. Set `PYTHON` when Python is absent from `PATH`. It writes the installer to `.desktop-build/targets/win-x64/unsigned-artifacts/`, omits ordinary automatic-update configuration, strips signing credentials, and creates no release completion record. EV and upload credentials are unnecessary. Signed packaging and upload retain their release requirements.
 
-Run `pnpm install --frozen-lockfile`, then `pnpm run package:desktop:win:x64:unsigned --check` to validate configuration and tooling before the full command above. Packaging performs its own complete build and isolated runtime smoke without an online model. Stage logs remain under `.desktop-build/packaging-runs/`; a successful build alone does not qualify the installer. Dependency installation and runtime preparation need access to npm, GitHub release assets and nodejs.org; use the existing registry and proxy configuration when the network requires it. Caches and tool locations belong to the build machine, not tracked personal paths.
+Run `nub ci`, then `nub run package:desktop:win:x64:unsigned --check` to validate configuration and tooling before the full command above. Packaging performs its own complete build and isolated runtime smoke without an online model. Stage logs remain under `.desktop-build/packaging-runs/`; a successful build alone does not qualify the installer. Dependency installation and runtime preparation need access to npm, GitHub release assets and nodejs.org; use the existing registry and proxy configuration when the network requires it. Caches and tool locations belong to the build machine, not tracked personal paths.
 
 <a id="local-macos-dmg-without-release-signing"></a>
 
 ## Local macOS DMG without release signing
 
-After `pnpm install`, run one command from the repository root. No `.env.macos`, Apple account, certificate, or update service configuration is required:
+After `nub install`, run one command from the repository root. No `.env.macos`, Apple account, certificate, or update service configuration is required:
 
 ```sh
-pnpm run package:desktop:mac:arm64:unsigned
-pnpm run package:desktop:mac:x64:unsigned
+nub run package:desktop:mac:arm64:unsigned
+nub run package:desktop:mac:x64:unsigned
 ```
 
 Add `--check` to validate local configuration and tools without building, or `--dir` to stop at the unpacked application. The DMG is `apps/desktop/.desktop-build/targets/<target>/unsigned-artifacts/deepseek-harness-<version>-mac-<arch>-unsigned.dmg`. After all checks pass, the command prints `DMG:` followed by its absolute path. Open it and copy the application to a local test directory.
@@ -182,7 +182,7 @@ These commands ignore `.env.macos` and inherited release settings, use `com.deep
 
 ## macOS release signing and diagnostics
 
-The signed macOS configuration uses the required release environment instead of accepting whichever certificate appears first in a keychain. It rejects empty values, a malformed Team ID, a signing identity that includes electron-builder's unsupported `Developer ID Application:` prefix, and incomplete notarization credentials. Signed macOS packaging requires the configured identity and its private key. Runtime preparation applies that identity, a secure timestamp, and hardened runtime to every embedded Mach-O file outside the notarized Computer Use helper bundles; for those bundles it verifies the deep signature, release identity, stapled ticket, and Gatekeeper acceptance without re-signing their files. A signed local build of a source that ships Computer Use therefore needs the notarized helper staged first with `scripts/cua-helper/package.ts` and `stage.ts`; an ad-hoc `build:native` output under `native/bin` fails this verification; after signing the application, a deep strict check rejects any other leaf authority or Team ID before artifact creation. The signed fixed-target macOS installer commands create separate copies of the signed application and run two artifact lanes concurrently. One lane notarizes and staples the App before generating the ZIP and its update metadata. The other encloses its signed App copy in a signed DMG, then notarizes, staples, and verifies the DMG; its inner App has no individually stapled ticket. Both lanes must finish successfully before their artifacts reach the final directory and the release completion record is written. Signed directory-only commands also require notarization credentials and wait for Apple notarization and App stapling. The [parallel notarization decision](../../../.agents/notes/implemented/process/2026-09-09-parallel-macos-notarization.md) owns copy isolation and container ticket semantics. `CSC_LINK` must name a local p12 containing the Developer ID Application certificate and private key; URLs and Base64 inputs are not supported. `CSC_KEY_PASSWORD` is its export password, not an Apple account or login password; an explicitly empty value supports an unencrypted p12. Before building, packaging creates and unlocks a private temporary keychain, imports the p12, authorizes signing, and signs a small probe. Runtime and App signing use this keychain explicitly; existing login keychains require no setup or manual unlocking. Child processes receive its path without the p12 password. The keychain is deleted after success or ordinary failure; CI must clean temporary credentials after forced termination. Ephemeral CI writes the certificate and `.env.macos` from its secret store, restricts file access, and deletes both after the job; self-hosted machine presets retain private files outside the checkout. Ambient `CSC_NAME` and certificate discovery order do not select the release owner. Notary credentials may instead use electron-builder's complete Apple ID or keychain-profile strategy. The two macOS identity variables are also required when repeating the application check manually with `pnpm --dir apps/desktop run verify:mac-signature -- <path-to-app>`.
+The signed macOS configuration uses the required release environment instead of accepting whichever certificate appears first in a keychain. It rejects empty values, a malformed Team ID, a signing identity that includes electron-builder's unsupported `Developer ID Application:` prefix, and incomplete notarization credentials. Signed macOS packaging requires the configured identity and its private key. Runtime preparation applies that identity, a secure timestamp, and hardened runtime to every embedded Mach-O file outside the notarized Computer Use helper bundles; for those bundles it verifies the deep signature, release identity, stapled ticket, and Gatekeeper acceptance without re-signing their files. A signed local build of a source that ships Computer Use therefore needs the notarized helper staged first with `scripts/cua-helper/package.ts` and `stage.ts`; an ad-hoc `build:native` output under `native/bin` fails this verification; after signing the application, a deep strict check rejects any other leaf authority or Team ID before artifact creation. The signed fixed-target macOS installer commands create separate copies of the signed application and run two artifact lanes concurrently. One lane notarizes and staples the App before generating the ZIP and its update metadata. The other encloses its signed App copy in a signed DMG, then notarizes, staples, and verifies the DMG; its inner App has no individually stapled ticket. Both lanes must finish successfully before their artifacts reach the final directory and the release completion record is written. Signed directory-only commands also require notarization credentials and wait for Apple notarization and App stapling. The [parallel notarization decision](../../../.agents/notes/implemented/process/2026-09-09-parallel-macos-notarization.md) owns copy isolation and container ticket semantics. `CSC_LINK` must name a local p12 containing the Developer ID Application certificate and private key; URLs and Base64 inputs are not supported. `CSC_KEY_PASSWORD` is its export password, not an Apple account or login password; an explicitly empty value supports an unencrypted p12. Before building, packaging creates and unlocks a private temporary keychain, imports the p12, authorizes signing, and signs a small probe. Runtime and App signing use this keychain explicitly; existing login keychains require no setup or manual unlocking. Child processes receive its path without the p12 password. The keychain is deleted after success or ordinary failure; CI must clean temporary credentials after forced termination. Ephemeral CI writes the certificate and `.env.macos` from its secret store, restricts file access, and deletes both after the job; self-hosted machine presets retain private files outside the checkout. Ambient `CSC_NAME` and certificate discovery order do not select the release owner. Notary credentials may instead use electron-builder's complete Apple ID or keychain-profile strategy. The two macOS identity variables are also required when repeating the application check manually with `nub run --cwd apps/desktop verify:mac-signature -- <path-to-app>`.
 
 macOS signing visits real files without following Framework symlink aliases. PAK resources retain all shipped languages and are sealed by the enclosing Framework or application signature instead of receiving individual signatures. The [release policy](../../../.agents/notes/implemented/architecture/2026-08-25-electron-desktop-packaging-and-updates.md) owns the dependency patch and verification requirements.
 
@@ -200,12 +200,12 @@ Mac packaging reads these tuning fields from `.env.macos`:
 |---|---|---|
 | `DSH_DESKTOP_MACOS_PACK_CONCURRENCY` | `4` | Workers for first-party and vendor workspace tarballs; requires a positive integer. |
 | `DSH_DESKTOP_MACOS_ZIP_COMPRESSION_LEVEL` | `3` | Final update ZIP compression, integer `0`–`9`; lower levels trade larger downloads for shorter builds. App notarization archives and DMG compression are unchanged. |
-| `DSH_DESKTOP_MACOS_DOWNLOAD_PROXY` | Empty | HTTP/HTTPS proxy origin for Electron, runtime assets, pnpm installation and builder downloads. |
+| `DSH_DESKTOP_MACOS_DOWNLOAD_PROXY` | Empty | HTTP/HTTPS proxy origin for Electron, runtime assets, nub installation and builder downloads. |
 | `DSH_DESKTOP_MACOS_NOTARIZATION_PROXY` | Empty | HTTP proxy origin for Apple tools through temporary system proxy settings. |
 
 The proxy fields are independent and reject URL credentials, paths, queries and fragments. Empty values preserve inherited networking. An explicit download proxy replaces child-process proxy variables and bypasses local hosts only; it does not change system settings. Company proxy addresses belong in the ignored local file; see internal documentation for addresses.
 
-Apple tooling uses the active macOS network service's HTTP/HTTPS proxies. Configured notarization routing checks proxy reachability, saves that service's settings, enables the proxy around both artifact lanes, and restores the saved settings after both lanes settle. An originally disabled proxy with an empty server and port zero is restored by disabling it; the temporary server and port may remain stored but inactive. Directory-only builds apply it to App notarization after the signed directory build. This temporarily affects other applications and requires permission to change system proxies; PAC, auto-discovery, SOCKS and authenticated proxy configurations must be disabled first. Packaging and recovery acquire the same per-user POSIX file lock before reading recovery data or changing proxies; process exit releases ownership, while the lock file remains in place. The lock loads `@deepseek-ai/node-addon-system/flock` at first use rather than at script start, so `check:package` and the packaging entry load on a checkout that has not built `native/system`; when the host addon binary or the entry's JavaScript is missing at lock time, the loader runs `pnpm run build:native-system` and `pnpm --dir native/system run build:ts` before locking, so recovery works on such a checkout as well. This prevents overlapping proxy transactions across checkouts; other users and network-setting tools must not change these settings concurrently. SIGINT/SIGTERM wait for active work before restoration. After forced termination or a restoration error, stop any remaining notarization processes and run `pnpm --dir apps/desktop run restore:mac-proxy`; the saved record remains until restoration succeeds. Configuration checks validate URL syntax without changing system settings or contacting the proxy.
+Apple tooling uses the active macOS network service's HTTP/HTTPS proxies. Configured notarization routing checks proxy reachability, saves that service's settings, enables the proxy around both artifact lanes, and restores the saved settings after both lanes settle. An originally disabled proxy with an empty server and port zero is restored by disabling it; the temporary server and port may remain stored but inactive. Directory-only builds apply it to App notarization after the signed directory build. This temporarily affects other applications and requires permission to change system proxies; PAC, auto-discovery, SOCKS and authenticated proxy configurations must be disabled first. Packaging and recovery acquire the same per-user POSIX file lock before reading recovery data or changing proxies; process exit releases ownership, while the lock file remains in place. The lock loads `@deepseek-ai/node-addon-system/flock` at first use rather than at script start, so `check:package` and the packaging entry load on a checkout that has not built `native/system`; when the host addon binary or the entry's JavaScript is missing at lock time, the loader runs `nub run build:native-system` and `nub run --cwd native/system build:ts` before locking, so recovery works on such a checkout as well. This prevents overlapping proxy transactions across checkouts; other users and network-setting tools must not change these settings concurrently. SIGINT/SIGTERM wait for active work before restoration. After forced termination or a restoration error, stop any remaining notarization processes and run `nub run --cwd apps/desktop restore:mac-proxy`; the saved record remains until restoration succeeds. Configuration checks validate URL syntax without changing system settings or contacting the proxy.
 
 <a id="directory-and-preparation"></a>
 
@@ -214,14 +214,14 @@ Apple tooling uses the active macOS network service's HTTP/HTTPS proxies. Config
 Create a runnable application directory instead of an installer by using the matching `:dir` command, such as:
 
 ```sh
-pnpm run package:desktop:dir
-pnpm run package:desktop:mac:arm64:dir
+nub run package:desktop:dir
+nub run package:desktop:mac:arm64:dir
 ```
 
 To inspect or troubleshoot the prepared host-target resources without invoking electron-builder, stop the same pipeline after preparation:
 
 ```sh
-pnpm run prepare:desktop
+nub run prepare:desktop
 ```
 
 This diagnostic command is an alternative stopping point, not the first half of a two-command build. A later `package:desktop*` command repeats the build selected by its signing mode and all preparation so it cannot consume stale dsh packages, runtime files, or dsh content.
@@ -233,16 +233,16 @@ This diagnostic command is an alternative stopping point, not the first half of 
 The test DMG excludes the provider runtimes the Official on-demand catalog advertises, and a release publishes matching bundle versions to npm. To install locally built bundles before that release, start a loopback registry that packs and serves the catalog's complete local dependency closure:
 
 ```sh
-pnpm run dev:bundle-registry
+nub run dev:bundle-registry
 ```
 
-The command validates the catalog and the workspace inventory, runs `pnpm run build:official`, packs the closure into a new `dist/test-bundles/<run-id>/` directory, writes `bundle-registry.json` last as the completion marker, and only then prints the artifact path, the registry URL, and the exact `name@version` specs. It serves `127.0.0.1` on an allocated port under a fresh namespace until Ctrl+C or SIGTERM, and stopping it leaves both the artifacts and the installed packages on disk. It needs no `.env.macos`, Apple credentials, or npm credentials, and it does not change `pnpm run package:desktop:unsigned`.
+The command validates the catalog and the workspace inventory, runs `nub run build:official`, packs the closure into a new `dist/test-bundles/<run-id>/` directory, writes `bundle-registry.json` last as the completion marker, and only then prints the artifact path, the registry URL, and the exact `name@version` specs. It serves `127.0.0.1` on an allocated port under a fresh namespace until Ctrl+C or SIGTERM, and stopping it leaves both the artifacts and the installed packages on disk. It needs no `.env.macos`, Apple credentials, or npm credentials, and it does not change `nub run package:desktop:unsigned`.
 
 In the packaged application, open Plugins → Add plugin, paste one printed spec, choose **Custom address**, paste the printed registry URL, and install. A custom registry is asked alone, so this process must answer every dependency: repository-owned packages come from the run's own archives, and third-party packages keep npm's real metadata and bytes through a fixed redirect to `registry.npmjs.org`, which still requires network access. The installed entry stays Official because its package name is in the catalog. The registry choice is remembered in this browser; choose an offered registry again to switch back.
 
-A run's artifacts are immutable, so a rebuild serves a new namespace and a new URL, and the Official **Update** control does not appear while the installed and running versions match. The profile records the previous run's tarball URL in `pnpm-lock.yaml`, and pnpm verifies recorded entries, so installing or reinstalling that bundle against a new URL is refused with `ERR_PNPM_TARBALL_URL_MISMATCH` and can leave the earlier files in place. To test changed code at the same version, clear the stale resolution first — `pnpm clean --lockfile` in `$DSH_HOME/profiles/<profile>`, or install into a fresh profile — then install again from the new URL. `bundle-registry.json` records each archive's version, filename, size, and SHA-512 integrity together with the packing checkout's commit and dirty flag.
+A run's artifacts are immutable, so a rebuild serves a new namespace and a new URL, and the Official **Update** control does not appear while the installed and running versions match. The profile records the previous run's tarball URL in `nub.lock`, and pnpm verifies recorded entries, so installing or reinstalling that bundle against a new URL is refused with `ERR_PNPM_TARBALL_URL_MISMATCH` and can leave the earlier files in place. To test changed code at the same version, clear the stale resolution first — `pnpm clean --lockfile` in `$DSH_HOME/profiles/<profile>`, or install into a fresh profile — then install again from the new URL. `bundle-registry.json` records each archive's version, filename, size, and SHA-512 integrity together with the packing checkout's commit and dirty flag.
 
-The served `time` is the real packing time, so pnpm 11's default 24-hour `minimumReleaseAge` records the exemption it granted in the profile's `pnpm-workspace.yaml` (`minimumReleaseAgeExclude`); an explicitly stricter policy there fails the installation with pnpm's own message instead of being overridden. A `@scope:registry` route in `~/.npmrc` or the profile's `.npmrc` overrides `--registry` for that scope, so it must not route the served scope.
+The served `time` is the real packing time, so nub's default 24-hour `minimum-release-age` records the exemption it granted in `.npmrc` (`minimumReleaseAgeExclude`); an explicitly stricter policy there fails the installation with pnpm's own message instead of being overridden. A `@scope:registry` route in `~/.npmrc` or the profile's `.npmrc` overrides `--registry` for that scope, so it must not route the served scope.
 
 <a id="runtime-file-selection"></a>
 

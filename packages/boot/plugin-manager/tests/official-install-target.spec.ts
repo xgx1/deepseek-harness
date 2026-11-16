@@ -88,7 +88,7 @@ it.each(['missing-main', 'missing-output', 'directory-output'])('refuses an unbu
     rmSync(output)
     if (kind === 'directory-output') mkdirSync(output)
   }
-  expect(() => officialBundleInstallTarget(name, anchor, version)).toThrow('run pnpm install and pnpm run build')
+  expect(() => officialBundleInstallTarget(name, anchor, version)).toThrow('run nub install and nub run build')
 })
 
 it.each(['missing', 'directory'])('refuses an unavailable bundle patch: %s', (kind) => {

@@ -19,8 +19,8 @@ import { createServer, type Server, type ServerResponse } from 'node:http'
 import { join, resolve } from 'node:path'
 import { execa } from 'execa'
 import semver from 'semver'
-import { pnpmInvocation } from './pnpm-invocation.ts'
-import { capture, pnpmCommand } from './release/process.ts'
+import { pmInvocation } from './pm-invocation.ts'
+import { capture, nubCommand } from './release/process.ts'
 import { releaseFamily, tarballName, type ReleaseFamily, type ReleaseMember } from './release/families.ts'
 import { packedManifest, tarballFiles } from './release/tarball.ts'
 
@@ -154,13 +154,13 @@ export interface ReleaseEntry {
  * @param args - pnpm arguments.
  * @returns A command and argument array suitable for `spawn` without a shell.
  */
-export function pnpmInvocationFor(args: readonly string[]): { command: string; args: string[] } {
+export function pmInvocationFor(args: readonly string[]): { command: string; args: string[] } {
   const entrypoint = process.env.npm_execpath
   // `npm run` and `yarn run` set the same variable; handing them pnpm's arguments would write a different lockfile.
   if (entrypoint !== undefined && /[\\/]pnpm[\\/]/u.test(entrypoint) && /\.[cm]?js$/u.test(entrypoint)) {
-    return pnpmInvocation(args)
+    return pmInvocation(args)
   }
-  const [command, ...prefix] = pnpmCommand()
+  const [command, ...prefix] = nubCommand()
   return { command, args: [...prefix, ...args] }
 }
 
@@ -363,7 +363,7 @@ export async function packBundleArtifacts(options: {
   const { root, destination, members, release } = options
   if (members.length === 0) throw new Error('no local packages were selected to pack')
   await mkdir(destination, { recursive: true })
-  const invocation = pnpmInvocationFor([
+  const invocation = pmInvocationFor([
     'pack', '--recursive', `--workspace-concurrency=${String(Math.min(4, members.length))}`,
     ...members.map(member => `--filter=${member.name}`), '--pack-destination', destination,
   ])

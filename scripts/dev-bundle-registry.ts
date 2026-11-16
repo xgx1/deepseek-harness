@@ -21,7 +21,7 @@ import {
   createRegistryManifest,
   hostPlatform,
   packBundleArtifacts,
-  pnpmInvocationFor,
+  pmInvocationFor,
   readReleaseMembers,
   readWorkspacePackages,
   selectBundleDependencies,
@@ -56,7 +56,7 @@ class Interrupted extends Error {
  * @param label - step name used in the failure message.
  */
 async function runStep(root: string, args: readonly string[], signal: AbortSignal, label: string): Promise<void> {
-  const invocation = pnpmInvocationFor(args)
+  const invocation = pmInvocationFor(args)
   let result
   try {
     result = await execa(invocation.command, invocation.args, {

@@ -88,26 +88,28 @@ describe('Node compatibility self-hosted routing', () => {
       { node: 26, name: 'node 26', runner: 'ubuntu-latest', gate_concurrency: '1' },
     ])
     expect(job.env.DSH_GATE_CONCURRENCY).toBe('${{ matrix.gate_concurrency }}')
-    expect(job.steps.map(step => step.run)).toContain('pnpm run check:node-compat')
-    expect(job.steps.map(step => step.run)).toContain('pnpm exec vitest run packages/boot/app-boot/tests/loader-shape.compat.spec.ts')
+    expect(job.steps.map(step => step.run)).toContain('nub run check:node-compat')
+    expect(job.steps.map(step => step.run)).toContain('nubx vitest run packages/boot/app-boot/tests/loader-shape.compat.spec.ts')
     expect(pythonWorkflow.jobs['python-sdk']['runs-on']).toBe('ubuntu-latest')
   })
 
-  it('isolates version installs and enables hosted package caching only on hosted runners', () => {
+  it('isolates version installs and configures no package-manager cache', () => {
     const setup = job.steps.find(step => step.uses === 'actions/setup-node@v7.0.0')!
     expect(setup.env).toEqual({
       NODE_OPTIONS: "${{ runner.environment == 'self-hosted' && '--import=./scripts/ci-compatible-toolcache.mjs' || '' }}",
     })
     expect(setup.with?.['node-version']).toBe('${{ matrix.node }}')
     expect(setup.with?.['package-manager-cache']).toBe(false)
-    for (const [environment, cache] of [['github-hosted', 'pnpm'], ['self-hosted', '']]) {
+    // nub keys no cache on its lockfile, so setup-node configures none.
+    expect(setup.with).not.toHaveProperty('cache')
+    for (const environment of ['github-hosted', 'self-hosted']) {
       const context = { runner: { environment, temp: '/runner/temp', tool_cache: '/runner/toolcache' } }
-      expect(evaluate(setup.with?.cache as string, context)).toBe(cache)
       expect(evaluate(setup.env!.NODE_OPTIONS!, context)).toBe(
         environment === 'self-hosted' ? '--import=./scripts/ci-compatible-toolcache.mjs' : '',
       )
     }
     expect(job.steps[0]?.with).toEqual({ 'persist-credentials': false })
+    expect(job.steps.map(step => step.run)).toContain('nub ci')
     // The verified bubblewrap archive is the one remote cache this job restores
     // and saves; it must stay excluded from the persistent self-hosted pool.
     const remoteCaches = job.steps.filter(step => step.uses?.startsWith('actions/cache/'))
@@ -162,11 +164,11 @@ describe('Node compatibility self-hosted routing', () => {
     }
   })
 
-  it.skipIf(process.platform === 'win32')('configures generated caches before pnpm without changing HOME or global links', () => {
+  it.skipIf(process.platform === 'win32')('configures generated caches before nub without changing HOME or global links', () => {
     const index = job.steps.findIndex(step => step.name === 'Isolate compatibility caches')
     const step = job.steps[index]!
     expect(index).toBeGreaterThan(0)
-    expect(index).toBeLessThan(job.steps.findIndex(candidate => candidate.uses === 'pnpm/action-setup@v5.0.0'))
+    expect(index).toBeLessThan(job.steps.findIndex(candidate => candidate.uses === 'nubjs/setup-nub@v0'))
     expect(step.if).toBe("runner.environment == 'self-hosted'")
     const root = mkdtempSync(join(tmpdir(), 'ci-compatible-selfhosted-'))
     try {
@@ -184,7 +186,7 @@ describe('Node compatibility self-hosted routing', () => {
         expect(output).toBe([
           'NODE_COMPILE_CACHE=' + temp + '/node-compile-cache',
           'npm_config_devdir=' + temp + '/node-gyp',
-          'PNPM_CONFIG_STORE_DIR=' + join(root, 'shared home') + '/.local/share/pnpm/store',
+          'npm_config_store_dir=' + join(root, 'shared home') + '/.local/share/nub/store',
           '',
         ].join('\n'))
         return output

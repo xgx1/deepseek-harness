@@ -8,9 +8,6 @@ import { expect, it, onTestFinished, vi } from 'vitest'
 import { getDshRuntimeVersion, initProfile, readProfileManifest } from '@deepseek-ai/dsh-app-boot'
 import { anchorPathSpec, readProfileRegistry, runPluginCommand, runProfilePnpm, viewProfilePackage } from '../src/operations.ts'
 
-/** The manifest fields an inspection prints. */
-const VIEW_FIELDS = ['name', 'version', 'description', 'dsh'] as const
-
 /** What execa resolves for a run that settled, including the buffered output the pre-install lookup is read for. */
 interface FakeOutcome {
   exitCode: number | undefined
@@ -38,9 +35,11 @@ interface FakePnpm {
   output: string
   /** Exit code of the `install` run that repairs a post-install refusal. */
   repairExit: number
-  /** What the pre-install `pnpm view` lookup answers for one spec; `{}` declares no peers. */
+  /** Whether the test's own `install` command applies the mutation; the manager's repair install only reports its exit code. */
+  installRunMutates: boolean
+  /** What the pre-install `nub view` lookup answers for one spec; `{}` declares no peers. */
   view: (spec: string) => { exitCode: number; stdout: string }
-  /** The specs the pre-install check asked `pnpm view` about, in order. */
+  /** The specs the pre-install check asked `nub view` about, in order. */
   views: string[]
 }
 
@@ -72,6 +71,7 @@ function fixture() {
     exitCode: 0,
     output: '',
     repairExit: 0,
+    installRunMutates: false,
     view: () => ({ exitCode: 0, stdout: '{}' }),
     views: [],
   }
@@ -85,7 +85,8 @@ function fixture() {
       const answer = pnpm.view(spec)
       return result(answer.exitCode, answer.stdout)
     }
-    if (argv.includes('--frozen-lockfile') || argv.includes('--config.lockfile=false')) return result(pnpm.repairExit, '')
+    // The repair run is the `install` the manager issues after a refusal, unless the test drives one itself.
+    if (argv.includes('--frozen-lockfile') || (argv[0] === 'install' && !pnpm.installRunMutates)) return result(pnpm.repairExit, '')
     return result(pnpm.exitCode, pnpm.output, () => { pnpm.mutate(runDir) })
   })
   onTestFinished(() => { command.run.mockReset(); treeWait.skip = false; rmSync(home, { recursive: true, force: true }) })
@@ -110,7 +111,7 @@ function result(
   if (details.code === undefined) {
     void done.then(() => { setTimeout(() => { raw.emit('exit', exitCode, null) }, 0) }, () => {})
   } else {
-    setTimeout(() => { raw.emit('error', Object.assign(new Error('pnpm failed to launch'), { code: details.code })) }, 0)
+    setTimeout(() => { raw.emit('error', Object.assign(new Error('nub failed to launch'), { code: details.code })) }, 0)
   }
   return Object.assign(done, { stdout, stderr, nodeChildProcess: raw })
 }
@@ -230,7 +231,7 @@ it.each([
   const { home, dir, context } = fixture()
   writePathSpec(home, '999.0.0')
   const manifestBefore = readFileSync(join(dir, 'package.json'), 'utf8')
-  writeFileSync(join(dir, 'pnpm-lock.yaml'), 'original-lock\n')
+  writeFileSync(join(dir, 'nub.lock'), 'original-lock\n')
   const messages: string[] = []
   const outcome = await runProfilePnpm(context, ['add', spec(home)], {
     execution: 'service', outputBytes: 8192, onOutput: (text) => { messages.push(text) },
@@ -248,7 +249,7 @@ it.each([
   expect(command.run).not.toHaveBeenCalled()
   expect(existsSync(join(dir, 'node_modules'))).toBe(false)
   expect(readFileSync(join(dir, 'package.json'), 'utf8')).toBe(manifestBefore)
-  expect(readFileSync(join(dir, 'pnpm-lock.yaml'), 'utf8')).toBe('original-lock\n')
+  expect(readFileSync(join(dir, 'nub.lock'), 'utf8')).toBe('original-lock\n')
 })
 
 it.each(['plugin@1.0.0', '@scope/plugin@1.0.0'])('rejects the registry spec %s the pre-install lookup denies, without installing it', async (spec) => {
@@ -281,7 +282,8 @@ it('rejects a registry spec whose engines.dsh the pre-install lookup denies, ign
   const outcome = await runProfilePnpm(context, ['add', 'plugin@1.0.0'], { execution: 'service', outputBytes: 8192 })
   expect(outcome).toMatchObject({ exitCode: 1 })
   expect(outcome.incompatible).toMatchObject([{ name: 'plugin', version: '1.0.0', requirements: { 'engines.dsh': '999.0.0' } }])
-  expect(command.run.mock.calls[0]?.[1] as readonly string[]).toEqual(expect.arrayContaining(['view', 'engines', 'peerDependencies']))
+  // nub answers one version's whole manifest, which carries engines and peers together.
+  expect(command.run.mock.calls[0]?.[1] as readonly string[]).toEqual(['view', 'plugin@1.0.0', '--json', '--fetch-retries=0'])
   expect(command.run).toHaveBeenCalledTimes(1)
 })
 
@@ -389,12 +391,12 @@ it('makes no registry lookup for commands that are not installs', async () => {
 it.each([true, false])('rejects incompatible installed manifests before activation (%s) and restores exact profile files', async (activateNewBundles) => {
   const { dir, context, pnpm } = fixture()
   const manifestBefore = readFileSync(join(dir, 'package.json'), 'utf8')
-  writeFileSync(join(dir, 'pnpm-lock.yaml'), 'original-lock\n')
+  writeFileSync(join(dir, 'nub.lock'), 'original-lock\n')
   const messages: string[] = []
   // Only the installed manifest carries the incompatibility, so it is the post-install check that refuses it.
   pnpm.mutate = (target) => {
     installGuarded(target, 'incompatible')
-    writeFileSync(join(target, 'pnpm-lock.yaml'), 'changed-lock\n')
+    writeFileSync(join(target, 'nub.lock'), 'changed-lock\n')
   }
   const outcome = await runProfilePnpm(context, ['add', 'incompatible'], {
     execution: 'service', outputBytes: 8192, activateNewBundles, onOutput: (text) => { messages.push(text) },
@@ -406,7 +408,7 @@ it.each([true, false])('rejects incompatible installed manifests before activati
   expect(readFileSync(outcome.logPath, 'utf8')).toContain('incompatible@1.0.0')
   expect(messages.join('')).toContain('installation rejected')
   expect(readFileSync(join(dir, 'package.json'), 'utf8')).toBe(manifestBefore)
-  expect(readFileSync(join(dir, 'pnpm-lock.yaml'), 'utf8')).toBe('original-lock\n')
+  expect(readFileSync(join(dir, 'nub.lock'), 'utf8')).toBe('original-lock\n')
   // The refused run replaced the installed tree, so the restored lockfile is reinstalled.
   expect(command.run).toHaveBeenLastCalledWith(expect.anything(), ['install', '--frozen-lockfile'], expect.anything())
   expect(outcome.output).toContain('and node_modules')
@@ -418,10 +420,10 @@ it.each([
 ] as const)('undoes a run that installs %s than the caller expects, with its modules', async (_name, name, version) => {
   const { dir, context, pnpm } = fixture()
   const manifestBefore = readFileSync(join(dir, 'package.json'), 'utf8')
-  writeFileSync(join(dir, 'pnpm-lock.yaml'), 'original-lock\n')
+  writeFileSync(join(dir, 'nub.lock'), 'original-lock\n')
   pnpm.mutate = (target) => {
     installGuarded(target, name, name, version, '*')
-    writeFileSync(join(target, 'pnpm-lock.yaml'), 'changed-lock\n')
+    writeFileSync(join(target, 'nub.lock'), 'changed-lock\n')
   }
   const outcome = await runProfilePnpm(context, ['add', `git+https://host.example/g/r.git#${'b'.repeat(40)}`], {
     execution: 'service', outputBytes: 8192, activateNewBundles: false, expected: { name: 'extra', version: '1.1.0' },
@@ -431,7 +433,7 @@ it.each([
   expect(outcome.unmet).toBe('unexpected-package')
   expect(outcome.output).toContain(`${name}@${version} is installed where extra@1.1.0 was expected`)
   expect(readFileSync(join(dir, 'package.json'), 'utf8')).toBe(manifestBefore)
-  expect(readFileSync(join(dir, 'pnpm-lock.yaml'), 'utf8')).toBe('original-lock\n')
+  expect(readFileSync(join(dir, 'nub.lock'), 'utf8')).toBe('original-lock\n')
   expect(command.run).toHaveBeenLastCalledWith(expect.anything(), ['install', '--frozen-lockfile'], expect.anything())
 })
 
@@ -450,7 +452,7 @@ it('undoes a run that leaves the expected package at another version without cha
 it('undoes a run whose expected package declares no bundle, with its modules', async () => {
   const { dir, context, pnpm } = fixture()
   const manifestBefore = readFileSync(join(dir, 'package.json'), 'utf8')
-  writeFileSync(join(dir, 'pnpm-lock.yaml'), 'original-lock\n')
+  writeFileSync(join(dir, 'nub.lock'), 'original-lock\n')
   pnpm.mutate = (target) => {
     install(target, 'extra')
     writeFileSync(join(target, 'node_modules', 'extra', 'package.json'), JSON.stringify({ name: 'extra', version: '1.1.0' }))
@@ -467,7 +469,7 @@ it('undoes a run whose expected package declares no bundle, with its modules', a
 it('undoes a run whose expected bundle patch cannot load, with its modules', async () => {
   const { dir, context, pnpm } = fixture()
   const manifestBefore = readFileSync(join(dir, 'package.json'), 'utf8')
-  writeFileSync(join(dir, 'pnpm-lock.yaml'), 'original-lock\n')
+  writeFileSync(join(dir, 'nub.lock'), 'original-lock\n')
   pnpm.mutate = (target) => {
     install(target, 'extra')
     writeFileSync(join(target, 'node_modules', 'extra', 'package.json'), JSON.stringify({ name: 'extra', version: '1.1.0', dsh: { bundle: { patch: './cordis.patch.yml' } } }))
@@ -512,12 +514,12 @@ it('repairs a profile that had no lockfile without creating one', async () => {
   const { dir, context, pnpm } = fixture()
   pnpm.mutate = (target) => {
     installGuarded(target, 'incompatible')
-    writeFileSync(join(target, 'pnpm-lock.yaml'), 'created-lock\n')
+    writeFileSync(join(target, 'nub.lock'), 'created-lock\n')
   }
   const outcome = await runProfilePnpm(context, ['add', 'incompatible'], { execution: 'service', outputBytes: 8192 })
   expect(outcome.exitCode).toBe(1)
-  expect(existsSync(join(dir, 'pnpm-lock.yaml'))).toBe(false)
-  expect(command.run).toHaveBeenLastCalledWith(expect.anything(), ['install', '--config.lockfile=false'], expect.anything())
+  expect(existsSync(join(dir, 'nub.lock'))).toBe(false)
+  expect(command.run).toHaveBeenLastCalledWith(expect.anything(), ['install'], expect.anything())
   expect(outcome.output).toContain('and node_modules')
 })
 
@@ -544,14 +546,14 @@ it('detects a version update that keeps the dependency spec and removes a lockfi
       name: 'updated', version: '2.0.0', peerDependencies: { '@deepseek-ai/dsh-app-boot': '>=999.0.0' },
       dsh: { bundle: { patch: './cordis.patch.yml' } },
     }))
-    writeFileSync(join(target, 'pnpm-lock.yaml'), 'changed-lock\n')
+    writeFileSync(join(target, 'nub.lock'), 'changed-lock\n')
   }
   const outcome = await runProfilePnpm(context, ['update'], { execution: 'service', outputBytes: 8192 })
   expect(outcome).toMatchObject({ exitCode: 1 })
   expect(outcome.output).toContain('updated@2.0.0')
   expect(readFileSync(join(dir, 'package.json'), 'utf8')).toBe(before)
   // The run created the lockfile, so the refusal removes it instead of restoring one.
-  expect(existsSync(join(dir, 'pnpm-lock.yaml'))).toBe(false)
+  expect(existsSync(join(dir, 'nub.lock'))).toBe(false)
 })
 
 it('does not fail an unrelated installation on an untouched incompatible dependency', async () => {
@@ -609,6 +611,7 @@ it.each(['list', 'remove'])('allows %s with preexisting incompatible packages', 
 
 it.each(['devDependencies', 'optionalDependencies'])('checks installed direct plugins in %s', async (field) => {
   const { context, pnpm } = fixture()
+  pnpm.installRunMutates = true
   pnpm.mutate = (target) => {
     installGuarded(target, 'incompatible')
     const manifest = readProfileManifest('test', target)
@@ -671,7 +674,7 @@ it('checks scoped components in nested groups while leaving unresolved and local
 
 it('reports unreadable snapshot files before invoking pnpm', async () => {
   const { dir, context } = fixture()
-  mkdirSync(join(dir, 'pnpm-lock.yaml'))
+  mkdirSync(join(dir, 'nub.lock'))
   await expect(runProfilePnpm(context, ['install'], { execution: 'service', outputBytes: 100 })).rejects.toThrow()
   expect(command.run).not.toHaveBeenCalled()
 })
@@ -857,7 +860,7 @@ it('records the install that repairs a refused installation', async () => {
   const base = command.run.getMockImplementation() as (...call: unknown[]) => Promise<FakeOutcome> & FakeChild
   const repair = observingChild(dir, 4343)
   command.run.mockImplementation((...call: unknown[]) => {
-    if (!(call[1] as readonly string[]).includes('--config.lockfile=false')) return base(...call)
+    if ((call[1] as readonly string[])[0] !== 'install') return base(...call)
     repair.spawned()
     return repair.child
   })
@@ -872,7 +875,7 @@ it('terminates a run that stopped printing and reports the silence bound', async
   command.run.mockImplementationOnce(() => silentChild('installing\n'))
   const outcome = await runProfilePnpm(context, ['add', './extra'], { execution: 'service', outputBytes: 100, idleTimeoutMs: 20 })
   expect(outcome).toMatchObject({ exitCode: 1, timedOut: true })
-  expect(outcome.output).toBe('installing\ndsh: pnpm printed nothing for 20ms and was terminated\n')
+  expect(outcome.output).toBe('installing\ndsh: the package manager printed nothing for 20ms and was terminated\n')
   expect(readFileSync(outcome.logPath, 'utf8')).toBe(outcome.output)
 })
 
@@ -884,7 +887,7 @@ it('settles a run whose pipes stay open past the process exit', async () => {
     execution: 'service', outputBytes: 100, activateNewBundles: false,
   })
   expect(outcome).toMatchObject({ exitCode: 0 })
-  expect(outcome.output).toBe('installed\ndsh: pnpm output was cut short after its process exited\n')
+  expect(outcome.output).toBe('installed\ndsh: package-manager output was cut short after its process exited\n')
   // The pipes never ended on their own, so the run settled by cutting them here.
   expect(child.stdout.destroyed).toBe(true)
   expect(child.stderr.destroyed).toBe(true)
@@ -977,9 +980,9 @@ it.each([
   })
   expect(outcome.exitCode).toBe(expected)
   expect(outcome.truncated).toBe(true)
-  expect(readFileSync(outcome.logPath, 'utf8')).toBe(shortMessage ?? 'pnpm failed')
+  expect(readFileSync(outcome.logPath, 'utf8')).toBe(shortMessage ?? 'the package manager failed')
   // A run that printed nothing still streams the diagnostic its log carries.
-  expect(messages).toEqual([shortMessage ?? 'pnpm failed'])
+  expect(messages).toEqual([shortMessage ?? 'the package manager failed'])
 })
 
 it('cancels and settles package output when the output consumer fails', async () => {
@@ -1058,7 +1061,7 @@ it('reads the registry pnpm\'s own configuration names in the profile, and answe
   const answer = (value: object) => command.run.mockResolvedValueOnce(value as never)
   answer({ exitCode: 0, stdout: 'https://registry.npmmirror.com/\n', stderr: '' })
   expect(await readProfileRegistry(dir, { timeoutMs: 5 })).toBe('https://registry.npmmirror.com/')
-  expect(command.run).toHaveBeenLastCalledWith('pnpm', ['config', 'get', 'registry'], expect.objectContaining({ cwd: dir, timeout: 5, reject: false, stdin: 'ignore' }))
+  expect(command.run).toHaveBeenLastCalledWith('nub', ['config', 'get', 'registry'], expect.objectContaining({ cwd: dir, timeout: 5, reject: false, stdin: 'ignore' }))
   // Output pnpm prefixes with a notice keeps its last line; a failed or empty answer, or one that is no URL, reads as unknown.
   answer({ exitCode: 0, stdout: 'WARN  something\nhttps://npm.corp.example/', stderr: '' })
   expect(await readProfileRegistry(dir, { command: '/app/pnpm', args: ['--x'], timeoutMs: 5 })).toBe('https://npm.corp.example/')
@@ -1071,32 +1074,32 @@ it('reads the registry pnpm\'s own configuration names in the profile, and answe
   expect(await readProfileRegistry(dir, { timeoutMs: 5 })).toBeNull()
 })
 
-it('asks the registry through pnpm view in the profile directory, without pnpm\'s own retries, and reports how the lookup ended', async () => {
+it('asks the registry through nub view in the profile directory, without retries, and reports how the lookup ended', async () => {
   const { dir } = fixture()
   const answer = (value: object) => command.run.mockResolvedValueOnce(value as never)
   answer({ exitCode: 0, stdout: '{"name":"x"}', stderr: '', timedOut: false, isCanceled: false })
-  expect(await viewProfilePackage(dir, 'x@^1', { fields: VIEW_FIELDS, timeoutMs: 5 })).toEqual({ exitCode: 0, stdout: '{"name":"x"}', stderr: '', timedOut: false })
-  expect(command.run).toHaveBeenLastCalledWith('pnpm', ['view', 'x@^1', 'name', 'version', 'description', 'dsh', '--json', '--config.fetch-retries=0'],
+  expect(await viewProfilePackage(dir, 'x@^1', { timeoutMs: 5 })).toEqual({ exitCode: 0, stdout: '{"name":"x"}', stderr: '', timedOut: false })
+  expect(command.run).toHaveBeenLastCalledWith('nub', ['view', 'x@^1', '--json', '--fetch-retries=0'],
     expect.objectContaining({ cwd: dir, timeout: 5, reject: false, stdin: 'ignore' }))
   expect((command.run.mock.lastCall as unknown[])[2]).not.toHaveProperty('cancelSignal')
-  // A registry asked by URL goes on the command line; null leaves the choice to pnpm's own configuration.
+  // A registry asked by URL goes on the command line; null leaves the choice to nub's own configuration.
   answer({ exitCode: 0, stdout: '{"name":"x"}', stderr: '', timedOut: false, isCanceled: false })
-  await viewProfilePackage(dir, 'x', { fields: VIEW_FIELDS, timeoutMs: 5, registry: 'https://registry.npmmirror.com/' })
-  expect((command.run.mock.lastCall as unknown[])[1]).toEqual(['view', 'x', 'name', 'version', 'description', 'dsh', '--json', '--registry=https://registry.npmmirror.com/', '--config.fetch-retries=0'])
+  await viewProfilePackage(dir, 'x', { timeoutMs: 5, registry: 'https://registry.npmmirror.com/' })
+  expect((command.run.mock.lastCall as unknown[])[1]).toEqual(['view', 'x', '--json', '--registry=https://registry.npmmirror.com/', '--fetch-retries=0'])
   answer({ exitCode: 0, stdout: '{"name":"x"}', stderr: '', timedOut: false, isCanceled: false })
-  await viewProfilePackage(dir, 'x', { fields: VIEW_FIELDS, timeoutMs: 5, registry: null })
-  expect((command.run.mock.lastCall as unknown[])[1]).toEqual(['view', 'x', 'name', 'version', 'description', 'dsh', '--json', '--config.fetch-retries=0'])
+  await viewProfilePackage(dir, 'x', { timeoutMs: 5, registry: null })
+  expect((command.run.mock.lastCall as unknown[])[1]).toEqual(['view', 'x', '--json', '--fetch-retries=0'])
   const signal = AbortSignal.abort()
   answer({ exitCode: undefined, stdout: '', stderr: '', timedOut: true, isCanceled: false })
-  expect(await viewProfilePackage(dir, 'x', { fields: VIEW_FIELDS, timeoutMs: 5, signal })).toEqual({ exitCode: null, stdout: '', stderr: '', timedOut: true })
+  expect(await viewProfilePackage(dir, 'x', { timeoutMs: 5, signal })).toEqual({ exitCode: null, stdout: '', stderr: '', timedOut: true })
   expect((command.run.mock.lastCall as unknown[])[2]).toMatchObject({ cancelSignal: signal })
   answer({ exitCode: undefined, stdout: '', stderr: '', timedOut: false, isCanceled: true })
-  expect(await viewProfilePackage(dir, 'x', { command: 'node', fields: VIEW_FIELDS, timeoutMs: 5 })).toEqual({ exitCode: null, stdout: '', stderr: '', timedOut: false })
+  expect(await viewProfilePackage(dir, 'x', { command: 'node', timeoutMs: 5 })).toEqual({ exitCode: null, stdout: '', stderr: '', timedOut: false })
   expect((command.run.mock.lastCall as unknown[])[0]).toBe('node')
-  answer({ exitCode: undefined, stdout: '', stderr: '', timedOut: false, isCanceled: false, code: 'ENOENT', shortMessage: 'spawn pnpm ENOENT' })
-  const missing = await viewProfilePackage(dir, 'x', { fields: VIEW_FIELDS, timeoutMs: 5 })
+  answer({ exitCode: undefined, stdout: '', stderr: '', timedOut: false, isCanceled: false, code: 'ENOENT', shortMessage: 'spawn nub ENOENT' })
+  const missing = await viewProfilePackage(dir, 'x', { timeoutMs: 5 })
   expect(missing).toMatchObject({ exitCode: null, timedOut: false })
-  expect(missing.cause).toMatchObject({ message: 'spawn pnpm ENOENT', code: 'ENOENT' })
+  expect(missing.cause).toMatchObject({ message: 'spawn nub ENOENT', code: 'ENOENT' })
 })
 
 it('uses application-owned executable arguments and environment for package operations and inspection', async () => {
@@ -1106,8 +1109,8 @@ it('uses application-owned executable arguments and environment for package oper
   expect(command.run.mock.calls[0]).toEqual([runtime.command, [...runtime.args, 'add', resolve(context.cwd, 'extra')],
     expect.objectContaining({ env: expect.objectContaining(runtime.env) as unknown })])
   command.run.mockResolvedValueOnce(Object.assign({ exitCode: 0, failed: false }, { stdout: '{}', stderr: '', timedOut: false }))
-  await viewProfilePackage(dir, 'example', { ...runtime, fields: VIEW_FIELDS, timeoutMs: 1000 })
+  await viewProfilePackage(dir, 'example', { ...runtime, timeoutMs: 1000 })
   expect(command.run).toHaveBeenLastCalledWith(runtime.command,
-    [...runtime.args, 'view', 'example', 'name', 'version', 'description', 'dsh', '--json', '--config.fetch-retries=0'],
+    [...runtime.args, 'view', 'example', '--json', '--fetch-retries=0'],
     expect.objectContaining({ env: expect.objectContaining(runtime.env) as unknown }))
 })

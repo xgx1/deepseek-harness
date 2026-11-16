@@ -120,7 +120,7 @@ No effect on a live request prefix. A resumed loop can reuse the provider cache 
 <a id="known-limitations-and-deferred-work"></a>
 
 - **Single-writer ownership is in-process.** The backend tracks write ownership per instance; two processes opening the same database for write are not refused. Run one host per database file.
-- **No automatic migration.** Sessions stored by `dsh-session-persistence-jsonl` are not read; copy them once with `pnpm exec tsx scripts/migrate-session-store.ts <jsonl-root> <turso-path>` before switching.
+- **No automatic migration.** Sessions stored by `dsh-session-persistence-jsonl` are not read; copy them once with `nub scripts/migrate-session-store.ts <jsonl-root> <turso-path>` before switching.
 - **No per-Session artifact location.** Snapshots report `eventCount` only, so diagnostics cannot point at a per-Session file.
 
 <a id="dev-note"></a>

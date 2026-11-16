@@ -61,28 +61,10 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: pnpm/action-setup@v5.0.0
-        with:
-          dest: ${{ runner.temp }}/setup-pnpm-${{ github.run_id }}-${{ github.run_attempt }}
-
+      - uses: nubjs/setup-nub@v0
       - uses: actions/setup-node@v7.0.0
         with:
           node-version: ${{ env.PRIMARY_NODE_VERSION }}
-
-      - name: Configure pnpm store path
-        id: pnpm-store
-        run: |
-          store_root="$HOME/.local/share/pnpm/store"
-          echo "PNPM_CONFIG_STORE_DIR=$store_root" >> "$GITHUB_ENV"
-          store_path=$(PNPM_CONFIG_STORE_DIR="$store_root" pnpm store path --silent)
-          echo "path=$store_path" >> "$GITHUB_OUTPUT"
-
-      - uses: actions/cache/restore@v6.1.0
-        with:
-          path: ${{ steps.pnpm-store.outputs.path }}
-          key: ${{ runner.os }}-node-${{ env.PRIMARY_NODE_VERSION }}-pnpm-${{ hashFiles('pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-node-${{ env.PRIMARY_NODE_VERSION }}-pnpm-
 
       # Master CI restores and seeds the image-specific Wine dependency cache.
       - name: Compose Wine apt cache key
@@ -137,7 +119,7 @@ jobs:
   # Push-triggered, so this lane always executes the base branch's own
   # workflow definition. This workflow never listens to pull_request, so the
   # drill does not appear in PR checks. No cache steps because the VM's
-  # persistent pnpm store and tool caches make them redundant (and saving here
+  # persistent nub store and tool caches make them redundant (and saving here
   # would poison the hosted cache namespace with self-hosted paths).
   serial-linux-selfhosted:
     if: github.event_name == 'push' && github.ref == 'refs/heads/master'
@@ -152,30 +134,27 @@ jobs:
         with:
           fetch-depth: 0
 
-      # Redirect the Node compile cache (enabled by pnpm and TypeScript) off
-      # the root partition's /tmp before the first pnpm call in this lane.
+      # Redirect the Node compile cache (enabled by nub run and TypeScript) off
+      # the root partition's /tmp before the first nub run call in this lane.
       # see .github/workflows/ci.yml.
       - name: Redirect Node compile cache to runner temp
         run: echo "NODE_COMPILE_CACHE=${{ runner.temp }}/node-compile-cache" >> "$GITHUB_ENV"
 
-      - uses: pnpm/action-setup@v5.0.0
-        with:
-          dest: ${{ runner.temp }}/setup-pnpm-${{ github.run_id }}-${{ github.run_attempt }}
-
+      - uses: nubjs/setup-nub@v0
       - uses: actions/setup-node@v7.0.0
         with:
           node-version: ${{ env.PRIMARY_NODE_VERSION }}
 
-      - name: Configure persistent pnpm store
-        run: echo "PNPM_CONFIG_STORE_DIR=$HOME/.local/share/pnpm/store" >> "$GITHUB_ENV"
+      - name: Configure nub store path
+        run: echo "npm_config_store_dir=$HOME/.local/share/nub/store" >> "$GITHUB_ENV"
 
       - name: Install (immutable)
-        run: pnpm install --frozen-lockfile
+        run: nub ci
 
       # The persistent VM image owns Playwright's Linux system packages; this
       # step also proves that browser provisioning remains usable for failover.
       - name: Install Playwright Chromium and WebKit
-        run: pnpm --filter @deepseek-ai/dsh-web-frontend exec playwright install chromium webkit
+        run: nub exec -F @deepseek-ai/dsh-web-frontend playwright install chromium webkit
 
       - name: Prepare bubblewrap (unrestrict userns)
         run: bash scripts/prepare-ci-bubblewrap.sh
@@ -189,7 +168,7 @@ jobs:
           DSH_OXLINT_THREADS: '1'
           DSH_PUBLINT_CONCURRENCY: '1'
           DSH_SNAPSHOT_MAX_CONCURRENCY: '1'
-        run: pnpm run check:ci:linux-primary
+        run: nub run check:ci:linux-primary
 
   # TODO(hosted-serial-ci): Re-enable the one remaining disabled hosted serial
   # reference job (serial-macos) before release. Re-enabling serial-macos does
@@ -202,16 +181,13 @@ jobs:
     steps:
       - uses: actions/checkout@v7.0.1
 
-      - uses: pnpm/action-setup@v5.0.0
-        with:
-          dest: ${{ runner.temp }}/setup-pnpm-${{ github.run_id }}-${{ github.run_attempt }}
-
+      - uses: nubjs/setup-nub@v0
       - uses: actions/setup-node@v7.0.0
         with:
           node-version: ${{ env.PRIMARY_NODE_VERSION }}
 
       - name: Install (immutable)
-        run: pnpm install --frozen-lockfile
+        run: nub ci
 
       - name: Run complete unsharded primary Node CI serially
         env:
@@ -220,7 +196,7 @@ jobs:
           DSH_GATE_CONCURRENCY: '1'
           DSH_PUBLINT_CONCURRENCY: '1'
           DSH_SNAPSHOT_MAX_CONCURRENCY: '1'
-        run: pnpm run check:ci
+        run: nub run check:ci
 
   # Hot-standby drill for the in-house self-hosted Windows pool: every master
   # move re-runs the complete unsharded Windows gate inventory on the persistent
@@ -230,7 +206,7 @@ jobs:
   # runbook, no merge required). Push-triggered, so this lane always executes
   # the base branch's own workflow definition. This workflow never listens to
   # pull_request, so the drill does not appear in PR checks. No cache steps
-  # because the VM's persistent pnpm store and tool caches make them redundant
+  # because the VM's persistent nub store and tool caches make them redundant
   # (and saving here would poison the hosted cache namespace with self-hosted
   # paths).
   serial-windows:
@@ -247,34 +223,22 @@ jobs:
           reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock"
           /t REG_DWORD /f /v "AllowDevelopmentWithoutDevLicense" /d "1"
 
-      - uses: pnpm/action-setup@v5.0.0
-        with:
-          dest: ${{ runner.temp }}/setup-pnpm-${{ github.run_id }}-${{ github.run_attempt }}
-
+      - uses: nubjs/setup-nub@v0
       - uses: actions/setup-node@v7.0.0
         with:
           node-version: ${{ env.PRIMARY_NODE_VERSION }}
 
-      - name: Configure persistent pnpm store
+      - name: Configure nub store path
         shell: pwsh
         # The store must share the ReFS workspace volume for the clone
         # import method below. Runner workspaces can reside on different drives.
         run: |
-          $storeRoot = Join-Path ([IO.Path]::GetPathRoot($env:GITHUB_WORKSPACE)) '.pnpm-store'
-          echo "PNPM_CONFIG_STORE_DIR=$storeRoot" >> $env:GITHUB_ENV
+          $storeRoot = Join-Path ([IO.Path]::GetPathRoot($env:GITHUB_WORKSPACE)) '.nub-store'
+          echo "npm_config_store_dir=$storeRoot" >> $env:GITHUB_ENV
 
       - name: Install (immutable)
         shell: pwsh
-        # See 2026-08-30-windows-refs-store-block-clone-install for the
-        # ReFS block-clone rationale; use clone only on ReFS.
-        run: >-
-          $drive = (Split-Path -Qualifier $env:GITHUB_WORKSPACE).TrimEnd(':');
-          $fs = (Get-Volume -DriveLetter $drive).FileSystem;
-          if ($fs -eq 'ReFS') {
-            corepack pnpm install --frozen-lockfile --package-import-method=clone
-          } else {
-            pnpm install --frozen-lockfile
-          }
+        run: nub ci
 
       - name: Run complete unsharded Windows gate inventory serially
         shell: pwsh
@@ -283,7 +247,7 @@ jobs:
           DSH_COVERAGE_TEST_TIMEOUT_MS: '90000'
           DSH_GATE_CONCURRENCY: '1'
           DSH_PUBLINT_CONCURRENCY: '1'
-        run: pnpm run check:ci:windows-complete
+        run: nub run check:ci:windows-complete
 
   # Manual, bounded comparison of the actual critical Linux and Windows lanes.
   # The named pools are restricted at the organization level to this repository.
@@ -367,16 +331,12 @@ jobs:
     steps:
       - uses: actions/checkout@v7.0.1
 
-      - uses: pnpm/action-setup@v5.0.0
-        with:
-          dest: ${{ runner.temp }}/setup-pnpm-${{ github.run_id }}-${{ github.run_attempt }}
-
+      - uses: nubjs/setup-nub@v0
       # The benchmark's Windows lanes deliberately skip the store cache like
       # the independent native Windows job; an empty input disables caching.
       - uses: actions/setup-node@v7.0.0
         with:
           node-version: ${{ env.PRIMARY_NODE_VERSION }}
-          cache: ${{ matrix.platform == 'linux' && 'pnpm' || '' }}
 
       - name: Report runner capacity
         run: >-
@@ -385,15 +345,15 @@ jobs:
           memoryGiB: Math.round(os.totalmem() / 2 ** 30) }))"
 
       - name: Install (immutable)
-        run: pnpm install --frozen-lockfile
+        run: nub ci
 
       - name: Run critical Linux typecheck lane
         if: matrix.platform == 'linux'
-        run: pnpm run typecheck
+        run: nub run typecheck
 
       - name: Run critical Windows production-site lane
         if: matrix.platform == 'windows'
-        run: pnpm run docs:build
+        run: nub run docs:build
 
   # Manual comparison of the intended low-fanout topology. Linux runs the
   # complete unsharded primary aggregate with bounded in-runner parallelism;
@@ -478,16 +438,12 @@ jobs:
     steps:
       - uses: actions/checkout@v7.0.1
 
-      - uses: pnpm/action-setup@v5.0.0
-        with:
-          dest: ${{ runner.temp }}/setup-pnpm-${{ github.run_id }}-${{ github.run_attempt }}
-
+      - uses: nubjs/setup-nub@v0
       # Unlike the larger-runner suite, both platforms cache the store here:
       # the consolidated topology measures cache mechanics as workload.
       - uses: actions/setup-node@v7.0.0
         with:
           node-version: ${{ env.PRIMARY_NODE_VERSION }}
-          cache: pnpm
 
       - name: Report runner capacity
         run: >-
@@ -501,7 +457,7 @@ jobs:
       - name: Install and prepare Linux
         if: matrix.platform == 'linux'
         run: |
-          pnpm install --frozen-lockfile &
+          nub ci &
           install_pid=$!
           bash scripts/prepare-ci-bubblewrap.sh &
           sandbox_pid=$!
@@ -515,7 +471,7 @@ jobs:
       - name: Install (immutable)
         if: matrix.platform == 'windows'
         shell: pwsh
-        run: pnpm install --frozen-lockfile
+        run: nub ci
 
       - name: Run complete unsharded primary Node CI concurrently
         if: matrix.platform == 'linux'
@@ -525,11 +481,11 @@ jobs:
           DSH_OXLINT_THREADS: ${{ matrix.workers }}
           DSH_PUBLINT_CONCURRENCY: ${{ matrix.workers }}
           DSH_SNAPSHOT_MAX_CONCURRENCY: ${{ matrix.workers }}
-        run: pnpm run check:ci
+        run: nub run check:ci
 
       - name: Run blocking Windows builds concurrently
         if: matrix.platform == 'windows'
         shell: pwsh
         env:
           DSH_GATE_CONCURRENCY: ${{ matrix.workers }}
-        run: pnpm run check:ci:windows-blocking
+        run: nub run check:ci:windows-blocking

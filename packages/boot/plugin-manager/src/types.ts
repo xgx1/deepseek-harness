@@ -93,7 +93,7 @@ export interface BundleInfo {
   /** Whether the profile declares this dependency; availability separately reports whether its files can be read. */
   installed: boolean
   /**
-   * Present for a profile dependency the installation does not also supply: the spec `pnpm add` accepts, with local
+   * Present for a profile dependency the installation does not also supply: the spec `nub add` accepts, with local
    * paths made absolute and the user information of an http(s) URL removed.
    */
   source?: string
@@ -118,14 +118,14 @@ export interface BundleInfo {
   overrides: string[]
 }
 
-/** A registry to install from: an http(s) URL, or null for the one pnpm's own configuration names. */
+/** A registry to install from: an http(s) URL, or null for the one nub's own configuration names. */
 export type Registry = string | null
 
-/** The registries the manager asks: the configured first one, its fallbacks in order, and what pnpm's own configuration names. */
+/** The registries the manager asks: the configured first one, its fallbacks in order, and what nub's own configuration names. */
 export interface PluginRegistries {
   readonly registry: Registry
   readonly fallbackRegistries: readonly string[]
-  /** The URL pnpm's own configuration names in the profile, read from pnpm; null when it could not be read. */
+  /** The URL nub's own configuration names in the profile, read from nub; null when it could not be read. */
   readonly resolved: string | null
 }
 
@@ -182,11 +182,11 @@ export interface ChangeResult {
   /** Pre-existing inactive entries the operation left as they were. */
   warnings?: string[]
   packageResult?: PackageResult
-  /** The bundle an installation added, once pnpm and the bundle check accepted it. */
+  /** The bundle an installation added, once nub and the bundle check accepted it. */
   bundle?: string
-  /** The installed bundle's manifest version, when declared; pnpm's `minimumReleaseAge` can make it older than the newest release. */
+  /** The installed bundle's manifest version, when declared; a launcher's `minimumReleaseAge` can make it older than the newest release. */
   version?: string
-  /** Exact `allowBuilds` keys awaiting explicit script approval in the profile's pnpm settings, read after a failed run. */
+  /** Exact `allowScripts` keys the failed run reported and the profile manifest has not decided, read after that run. */
   pendingBuilds?: string[]
   /** Package script permissions saved before this installation attempt. */
   approvedBuilds?: string[]
@@ -227,7 +227,7 @@ export interface InspectOptions {
   readonly registry?: Registry
 }
 
-/** The form one install spec takes, in pnpm's vocabulary. */
+/** The form one install spec takes, in nub's vocabulary. */
 export type InstallSpecKind = 'registry' | 'path' | 'git' | 'tarball'
 
 /** Why a spec was refused before anything installed. */
@@ -243,7 +243,7 @@ export type PluginInspectProblem =
 /**
  * What a spec names, read before installing it: the registry's answer for a
  * name, a directory's manifest for a path, and only the form for a git or
- * tarball spec, whose package is known once pnpm has fetched it.
+ * tarball spec, whose package is known once nub has fetched it.
  */
 export type PluginSpecInspection =
   | {
@@ -263,7 +263,7 @@ export type PluginSpecInspection =
   | {
     readonly status: 'refused'
     readonly problem: PluginInspectProblem
-    /** What pnpm, the registry, or the file system said. */
+    /** What nub, the registry, or the file system said. */
     readonly reason: string
     /** The registries asked, in order, when the refusal came from asking them; `reason` is the last one's. */
     readonly registries?: Registry[]
@@ -274,7 +274,7 @@ export interface RegistryAttempt {
   readonly registry: Registry
   /** Why this registry gave no usable answer; absent for the registry that answered. */
   readonly problem?: 'not-found' | 'network' | 'unknown'
-  /** What pnpm or the registry said, verbatim. */
+  /** What nub or the registry said, verbatim. */
   readonly reason?: string
 }
 
@@ -372,7 +372,7 @@ export interface PluginInstallCancellation {
   readonly status: 'cancelled' | 'too-late' | 'not-running'
 }
 
-/** One chunk of an installation run's output: a pnpm run, or the GitHub connection check that stopped it. */
+/** One chunk of an installation run's output: a nub run, or the GitHub connection check that stopped it. */
 export interface PluginInstallLogChunk {
   /** The installation the run belongs to, when its caller supplied a request id. */
   readonly requestId?: PluginInstallRequestId

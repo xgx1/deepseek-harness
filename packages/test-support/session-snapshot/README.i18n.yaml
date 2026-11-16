@@ -9,8 +9,8 @@
   en: b184b97e2d1e1fa7
   zh: 7d4b4cc8d73446af
 /deepseek-ai-dsh-session-snapshot/summary:
-  en: 5d11e1dbbf5dd1cf
-  zh: 7a54089ed26ddd8f
+  en: 8ebc8bba404aacbc
+  zh: 2f1a26bca344e0d7
 /deepseek-ai-dsh-session-snapshot/table-of-contents:
   en: d152484eb41ac6b4
   zh: 09388d293f9be9cb
@@ -18,11 +18,11 @@
   en: 594ad1f3e6f02054
   zh: 7ca4f565976704be
 /deepseek-ai-dsh-session-snapshot/use-this-package/writing-a-snapshot-suite:
-  en: 57ff7c89e7696ee8
-  zh: b885ac1b4edc8c56
+  en: e79d59829b1780a9
+  zh: 93fd578d6a95624f
 /deepseek-ai-dsh-session-snapshot/use-this-package/record-replay-and-refresh:
-  en: bd9dcb62ea4e77db
-  zh: be9615f0ae662c9e
+  en: 9e928618ff61766b
+  zh: 8747698baf5a9bfd
 /deepseek-ai-dsh-session-snapshot/use-this-package/pinning-request-headers-and-system-prompts:
   en: fe59b0197fa5e34c
   zh: dfa1844c2c965358
@@ -30,8 +30,8 @@
   en: 64666ea2894acc4a
   zh: 0e78df32bcfd3633
 /deepseek-ai-dsh-session-snapshot/use-this-package/what-can-go-wrong:
-  en: 0b03592947ca43d6
-  zh: b14a64238c4b5f80
+  en: 48ced69986d5a445
+  zh: 1bc9a0ebc33c950e
 /deepseek-ai-dsh-session-snapshot/understand-the-implementation:
   en: 18ff76b440fe40da
   zh: 4dbf2eb5f9ee98a2
@@ -54,8 +54,8 @@
   en: ca75c51c89c2c9b0
   zh: f57cc48a1b5cbfa9
 /deepseek-ai-dsh-session-snapshot/known-limitations-and-deferred-work:
-  en: 42e871839dddaf6d
-  zh: b7ab1d313527612b
+  en: e8d707d8f41e4c4b
+  zh: 498fbd838b9446a9
 /deepseek-ai-dsh-session-snapshot/known-limitations-and-deferred-work/dev-note:
   en: e67f633dc6fe7773
   zh: 3bb0c20c93f16f98

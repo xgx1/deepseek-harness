@@ -1,5 +1,5 @@
 /**
- * Reading an install spec before pnpm sees it: which of pnpm's spec forms it
+ * Reading an install spec before nub sees it: which of nub's spec forms it
  * takes, for a registry name whether it is one the registry can accept, and
  * for a Git spec pinned to a commit the repository directory it installs from.
  * @module @deepseek-ai/dsh-plugin-manager/install-spec
@@ -10,7 +10,7 @@ import { isAbsolute, resolve } from 'node:path'
 
 /**
  * One spec read into its form and the parts an inspection needs. A git spec
- * and a tarball URL carry the `host` pnpm fetches them from, which no registry
+ * and a tarball URL carry the `host` nub fetches them from, which no registry
  * stands in for; only their dependencies come from the registry.
  */
 export type ParsedInstallSpec =
@@ -19,11 +19,11 @@ export type ParsedInstallSpec =
   | { readonly kind: 'tarball'; readonly spec: string; readonly path?: string; readonly host?: string }
   | { readonly kind: 'git'; readonly spec: string; readonly host: string }
 
-/** The forms pnpm resolves through a git host: a host shorthand, a git URL, or a hosted repository URL. */
+/** The forms nub resolves through a git host: a host shorthand, a git URL, or a hosted repository URL. */
 const GIT_SHORTHAND = /^(?:github|gitlab|bitbucket|gist):/i
 const GIT_URL = /^git(?:\+[a-z]+)?:\/\/|^git@[^:]+:/i
 const HOSTED_REPOSITORY_URL = /^https?:\/\/[^/]+\/[^/]+\/[^/#]+(?:\.git)?(?:#.*)?$/i
-/** The hosts pnpm's shorthands stand for. */
+/** The hosts nub's shorthands stand for. */
 const GIT_SHORTHAND_HOSTS: Readonly<Record<string, string>> = {
   github: 'github.com', gitlab: 'gitlab.com', bitbucket: 'bitbucket.org', gist: 'gist.github.com',
 }
@@ -33,7 +33,7 @@ const TARBALL_SPEC = /\.(?:tgz|tar\.gz)(?:#.*)?$/i
 const PACKAGE_NAME = /^(?:@[a-z0-9][a-z0-9._~-]*\/)?[a-z0-9][a-z0-9._~-]*$/
 const PACKAGE_NAME_MAX_LENGTH = 214
 
-/** A spec neither pnpm nor the registry would take; `reason` is what the person reads. */
+/** A spec neither nub nor the registry would take; `reason` is what the person reads. */
 export class InvalidInstallSpecError extends Error {
   /**
    * @param spec - the spec as typed, trimmed.
@@ -97,7 +97,7 @@ const FULL_COMMIT = /^[0-9a-f]{40}$/i
 
 /**
  * Where a Git spec pinned to a full commit installs from: the lower-case host and the repository path, without
- * transport, user, or `.git`, then `#` and the `path:` directory. The origin ignores the form pnpm saves, so the SSH
+ * transport, user, or `.git`, then `#` and the `path:` directory. The origin ignores the form nub saves, so the SSH
  * form saved for an HTTPS repository it cannot read, and the host shortcut saved for a known host, have the HTTPS
  * form's origin. Equal origins name one repository on a host that serves it at the same path over every transport,
  * as Git forges do; on a plain SSH server, an scp-like path is relative to the login's home directory.
@@ -117,7 +117,7 @@ export function pinnedGitOrigin(spec: string): string | undefined {
   const parameters = parsed.spec.slice(hash + 1).split('&')
   const paths = parameters.filter(part => part.startsWith('path:'))
   const others = parameters.filter(part => !part.startsWith('path:'))
-  // pnpm reads the last of repeated parameters, so a spec that repeats one names no single origin.
+  // nub reads the last of repeated parameters, so a spec that repeats one names no single origin.
   if (paths.length > 1 || others.length !== 1 || !FULL_COMMIT.test(others.join(''))) return undefined
   const path = (paths[0]?.slice('path:'.length) ?? '').replace(/^\/+|\/+$/g, '')
   const location = parsed.spec.slice(0, hash)
@@ -127,15 +127,15 @@ export function pinnedGitOrigin(spec: string): string | undefined {
   return `${location}#${path}`
 }
 
-/** A recorded dependency value pnpm resolves outside a registry: a protocol other than a registry alias, or an scp-like git address. */
+/** A recorded dependency value nub resolves outside a registry: a protocol other than a registry alias, or an scp-like git address. */
 const NON_REGISTRY_VALUE = /^(?!(?:npm|jsr|workspace|catalog):)[a-z][a-z0-9+.-]*:|^[^@/:\s]+@[^:/\s]+:/i
 /** The user information of an http(s) URL, up to the last `@` before the path, which holds a password or access token when present. */
 export const HTTP_USER_INFO = /^((?:git\+)?https?:\/\/)[^/]*@/i
 
 /**
- * The spec `pnpm add` accepts for a dependency the profile manifest records. A git address, URL, or other
+ * The spec `nub add` accepts for a dependency the profile manifest records. A git address, URL, or other
  * non-registry protocol is the recorded value without the user information of an http(s) URL, whose query string
- * is kept; a `file:` or `link:` path, which pnpm records relative to the profile or with `~` for the home
+ * is kept; a `file:` or `link:` path, which nub records relative to the profile or with `~` for the home
  * directory, becomes absolute. A registry range, tag, or alias follows the dependency name after `@`, as does a
  * non-registry value installed under a name other than the package's own.
  * @param name - the dependency name.

@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs'
 import { createHash } from 'node:crypto'
+import { createRequire } from 'node:module'
 import { mkdir, mkdtemp, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { basename, join } from 'node:path'
@@ -136,16 +137,13 @@ it('gives Python-only payloads a distinct identity', () => {
   expect(primaryRuntimePayloadDigest('linux-x64', lock, undefined)).not.toBe(primaryRuntimePayloadDigest('linux-x64', lock, '11.7.0'))
 })
 
-it('keeps carrier pnpm versions aligned with the shared payload build', () => {
-  const root = JSON.parse(readFileSync(new URL('../../package.json', import.meta.url), 'utf8')) as {
-    packageManager: string
-    devDependencies: { pnpm: string }
-  }
+// The workspace runs on nub (package.json#devEngines); only the desktop carrier still bundles pnpm.
+it('keeps the carrier pnpm pin resolvable from the shared payload build', () => {
   const desktop = JSON.parse(readFileSync(new URL('../../apps/desktop/package.json', import.meta.url), 'utf8')) as {
     devDependencies: { pnpm: string }
   }
-  expect(desktop.devDependencies.pnpm).toBe(root.devDependencies.pnpm)
-  expect(root.packageManager).toBe(`pnpm@${root.devDependencies.pnpm}`)
+  const resolved = JSON.parse(readFileSync(createRequire(import.meta.url).resolve('pnpm'), 'utf8')) as { version: string }
+  expect(resolved.version).toBe(desktop.devDependencies.pnpm)
 })
 
 it.each([

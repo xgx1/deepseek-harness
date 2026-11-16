@@ -60,7 +60,7 @@ async function invalidInputStyles(page: Page, input: Locator) {
 it('cancels installation, retries and highlights the enabled plugin at 40% alpha, and recovers unknown results', async () => {
   const scratch = await mkdtemp(join(tmpdir(), 'dsh-install-cancel-'))
   const overlay = join(scratch, 'cordis.patch.yml')
-  await writeFile(overlay, `- id: plugin-manager\n  config: ${JSON.stringify({ pnpmCommand: process.execPath })}\n`)
+  await writeFile(overlay, `- id: plugin-manager\n  config: ${JSON.stringify({ packageManagerCommand: process.execPath })}\n`)
   let scaffold: WebScaffold | undefined
   try {
     scaffold = await launchWebScaffold({ profile: { packages: [] }, extraOverlayPath: overlay })

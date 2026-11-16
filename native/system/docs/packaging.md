@@ -19,7 +19,7 @@ The `./landlock-run` API stays importable without native payloads and reports un
 
 ## Pack verification
 
-Platform tarballs use npm pack to preserve the launcher's executable bit. The entry uses pnpm pack to convert workspace dependency versions. Prepack rejects missing or undeclared payloads, invalid ELF/Mach-O architecture or type, addons without Node-API exports, and launchers without executable permission.
+Platform tarballs use npm pack to preserve the launcher's executable bit. The entry uses nub pack to convert workspace dependency versions. Prepack rejects missing or undeclared payloads, invalid ELF/Mach-O architecture or type, addons without Node-API exports, and launchers without executable permission.
 
 Maintained manifests identify the public source repository. When `GITHUB_REPOSITORY` is set, the release packer copies packages and prepack scripts into a temporary workspace and sets the copied manifests' repository URL from that workflow repository and `GITHUB_SERVER_URL` (default `https://github.com`). The published tarballs and npm Repository link identify that workflow repository; source manifests retain the public source home. GitHub Actions requires a valid repository identity; local packing without workflow context retains the public source URL. The temporary workspace also carries the repository root license so pnpm retains its usual inheritance when an entry has no package-local license. Staging is removed after packing or a prepack failure, and publication consumes the resulting tarballs unchanged.
 

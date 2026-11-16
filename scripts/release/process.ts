@@ -1,11 +1,10 @@
 /**
  * Process helpers shared by the release scripts: the release steps drive `git`,
- * `pnpm`, `npm`, and `tar`, and each needs one of three failure behaviours.
+ * `nub`, `npm`, and `tar`, and each needs one of three failure behaviours.
  */
 
 import { spawn, spawnSync } from 'node:child_process'
-import { existsSync, realpathSync } from 'node:fs'
-import { dirname, join } from 'node:path'
+import { realpathSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 
 /** Where and with what environment a release step runs a command. */
@@ -103,27 +102,14 @@ export function isEntry(moduleUrl: string): boolean {
 }
 
 /**
- * Resolve pnpm as a command prefix that spawns without a shell. On Windows the
- * `pnpm` shim is a `.cmd` batch file, which `spawnSync` refuses to run unless a
- * shell interprets it, so the prefix runs pnpm's JavaScript entry with the
- * current Node instead: the entry that launched this script when a run-script
- * did, or the workspace's own pnpm dependency otherwise. pnpm's manifest does
- * not export its bin entry, so the dependency is located on disk rather than
- * through module resolution.
- * @returns Command and leading arguments to prepend before pnpm's arguments.
+ * Resolve the workspace package manager that owns this process.
+ * Prefers the launcher the running script inherited through `npm_execpath`, then
+ * `NUB_BIN`, then nub from PATH.
+ * @returns Command and leading arguments to prepend before nub arguments.
  */
-export function pnpmCommand(): readonly [command: string, ...args: string[]] {
-  const execpath = process.env.npm_execpath
-  // `npm run` and `yarn run` set this too, and handing pnpm's arguments to either would write a different lockfile.
-  if (execpath !== undefined && /[\\/]pnpm[\\/]/u.test(execpath) && /\.[cm]?js$/u.test(execpath)) return [process.execPath, execpath]
-  for (let directory = dirname(fileURLToPath(import.meta.url)); ; directory = dirname(directory)) {
-    const entry = join(directory, 'node_modules', 'pnpm', 'bin', 'pnpm.cjs')
-    if (existsSync(entry)) return [process.execPath, entry]
-    if (dirname(directory) === directory) break
-  }
-  // Windows resolves a bare `pnpm` to a batch shim that spawnSync cannot start, so say that rather than fail later.
-  if (process.platform === 'win32') {
-    throw new Error('release: cannot locate pnpm\'s JavaScript entry; run this through a pnpm script or install workspace dependencies')
-  }
-  return ['pnpm']
+export function nubCommand(): readonly [command: string, ...args: string[]] {
+  const execpath = process.env.npm_execpath?.trim()
+  if (execpath !== undefined && execpath !== '') return [execpath]
+  const configured = process.env.NUB_BIN?.trim()
+  return [configured !== undefined && configured !== '' ? configured : 'nub']
 }

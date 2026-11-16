@@ -5,7 +5,7 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { execa } from 'execa'
 import { describe, expect, it } from 'vitest'
-import { pnpmInvocation } from '../../../../scripts/pnpm-invocation.ts'
+import { pmInvocation } from '../../../../scripts/pm-invocation.ts'
 
 const packageDirectory = fileURLToPath(new URL('..', import.meta.url))
 const built = [
@@ -45,7 +45,7 @@ describe.skipIf(!built)('experimental Inspector built artifact', () => {
       })
       return pending
     }
-    const invocation = pnpmInvocation(['pack', '--pack-destination', root])
+    const invocation = pmInvocation(['pack', '--pack-destination', root])
     await run(invocation.command, invocation.args, packageDirectory)
     const archives = (await readdir(root)).filter(name => name.endsWith('.tgz'))
     expect(archives).toHaveLength(1)

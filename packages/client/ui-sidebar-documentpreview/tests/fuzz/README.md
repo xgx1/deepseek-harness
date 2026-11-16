@@ -10,7 +10,7 @@ Install workspace dependencies and use a Python interpreter with Openpyxl, XlsxW
 
 ```powershell
 & $excelFuzzPython packages/client/ui-sidebar-documentpreview/tests/fuzz/generate.py .artifacts/excel-fuzz-new --seed 4863 --random-cases 400
-pnpm exec tsx packages/client/ui-sidebar-documentpreview/tests/fuzz/run.client.ts .artifacts/excel-fuzz-new
+nubx tsx packages/client/ui-sidebar-documentpreview/tests/fuzz/run.client.ts .artifacts/excel-fuzz-new
 ```
 
 The seed controls feature combinations, values, and byte mutations. ZIP metadata is fixed; reproducibility also requires the writer versions recorded in `manifest.json`. The generator validates internal relationship targets and reloads oracle cells with Openpyxl before classifying a workbook as valid. Rejected candidates remain in `generatorErrors`; random byte mutations are classified separately.
@@ -18,7 +18,7 @@ The seed controls feature combinations, values, and byte mutations. ZIP metadata
 Replay selected cases from an existing corpus:
 
 ```sh
-pnpm exec tsx packages/client/ui-sidebar-documentpreview/tests/fuzz/run.client.ts .artifacts/excel-fuzz-new --only openpyxl-table --report table.json
+nubx tsx packages/client/ui-sidebar-documentpreview/tests/fuzz/run.client.ts .artifacts/excel-fuzz-new --only openpyxl-table --report table.json
 ```
 
 The runner gives each input a disposable-worker deadline of 10 seconds and checks input immutability, cell values, formula caches, and notice ordering/uniqueness. `--timeout-ms` changes that diagnostic deadline. Reports retain every outcome; `repros/` contains representative failures with fewer feature combinations, not a claim of globally minimal inputs. Accepted damaged ZIPs are informational and need separate inspection.
@@ -38,9 +38,9 @@ The [opening fixtures](../excel-opening-fixture.ts) derive Strict URI aliases, r
 Run the Node and browser-bundle parser regressions:
 
 ```sh
-pnpm exec vitest run packages/client/ui-sidebar-documentpreview/tests/excel-opening.client.spec.ts packages/client/ui-sidebar-documentpreview/tests/excel-opc.client.spec.ts packages/client/ui-sidebar-documentpreview/tests/excel-xml.client.spec.ts
+nubx vitest run packages/client/ui-sidebar-documentpreview/tests/excel-opening.client.spec.ts packages/client/ui-sidebar-documentpreview/tests/excel-opc.client.spec.ts packages/client/ui-sidebar-documentpreview/tests/excel-xml.client.spec.ts
 ```
 
 Fuzz reports record each input's SHA-256, whether it opened, and the worktree status. `validOpened` and `validRejected` separate opening failures from value differences; strict exit status still rejects either defect. Known 1904 time/duration offsets and empty-string formula-cache differences remain diagnostic failures. Corrupt inputs accepted by the parser remain informational.
 
-Maintain the ExcelJS patch with `pnpm patch` and `pnpm patch-commit` against the published package. Installed dependency trees contain generated launchers that must not enter the patch. Validate patch application in a fresh `pnpm patch --edit-dir <new-directory>` extraction before relying on tests against a cached installation.
+Maintain the ExcelJS patch with `nub patch` and `nub patch-commit` against the published package. Installed dependency trees contain generated launchers that must not enter the patch. Validate patch application in a fresh `nub patch --edit-dir <new-directory>` extraction before relying on tests against a cached installation.

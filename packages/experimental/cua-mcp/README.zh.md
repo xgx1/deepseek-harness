@@ -28,7 +28,7 @@ kind: "package-bundle"
 
 ### 启动服务器
 
-组合包是 `dsh` 安装的运行时依赖，因此只选它这一层的 profile 直接从安装中加载它；不涉及 pnpm、registry 或网络。在 Harness home（`$DSH_HOME`，默认 `~/.dsh`）下创建一次 profile，之后 `dsh --profile cua-mcp` 就是 stdio 命令，源码检出在 `pnpm run build` 之后通过 `pnpm dsh` 运行它。不要把组合包加进已经组合了 `dsh-base` 的 profile（例如 `dsh plugin --profile cua-mcp add` 创建的那种）：两套组合声明同样的行 id，Web 插件页也因此隐藏本组合包，而 Host 清单仍把它报告为可选组合包。
+组合包是 `dsh` 安装的运行时依赖，因此只选它这一层的 profile 直接从安装中加载它；不涉及 nub、registry 或网络。在 Harness home（`$DSH_HOME`，默认 `~/.dsh`）下创建一次 profile，之后 `dsh --profile cua-mcp` 就是 stdio 命令，源码检出在 `nub run build` 之后通过 `nubx dsh` 运行它。不要把组合包加进已经组合了 `dsh-base` 的 profile（例如 `dsh plugin --profile cua-mcp add` 创建的那种）：两套组合声明同样的行 id，Web 插件页也因此隐藏本组合包，而 Host 清单仍把它报告为可选组合包。
 
 ```sh
 mkdir -p "${DSH_HOME:-$HOME/.dsh}/profiles/cua-mcp"
@@ -45,7 +45,7 @@ command = [*resolve_bundled_launch_args(), "--profile", "cua-mcp"]  # the MCP st
 
 ### 接入客户端
 
-`dsh --profile cua-mcp` 就是 stdio 命令，`--help` 打印它自己的帮助。客户端配置项以绝对路径指向安装的 `dsh` 可执行程序，传入 `--profile cua-mcp`，在服务器应使用非默认 Harness home 时设置 `DSH_HOME`，用 `DSH_CUA_CONSENT` 设置授权模式，并在程序应工作于默认工作区之外的目录时设置 `DSH_CUA_WORKSPACE`；源码检出在 `pnpm run build` 之后以 `node` 为命令、`<checkout>/apps/cli/lib/bin.js` 为首个参数。Codex 在 `~/.codex/config.toml` 中加入：
+`dsh --profile cua-mcp` 就是 stdio 命令，`--help` 打印它自己的帮助。客户端配置项以绝对路径指向安装的 `dsh` 可执行程序，传入 `--profile cua-mcp`，在服务器应使用非默认 Harness home 时设置 `DSH_HOME`，用 `DSH_CUA_CONSENT` 设置授权模式，并在程序应工作于默认工作区之外的目录时设置 `DSH_CUA_WORKSPACE`；源码检出在 `nub run build` 之后以 `node` 为命令、`<checkout>/apps/cli/lib/bin.js` 为首个参数。Codex 在 `~/.codex/config.toml` 中加入：
 
 ```toml
 [mcp_servers.dsh_cua]

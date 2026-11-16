@@ -183,14 +183,14 @@ Endpoint data comes from the public provider/model catalog and uppercase URL pla
 After updating pi-ai or changing the generator, install the updated locked dependencies, then run these commands from the repository root:
 
 ```sh
-pnpm run gen-provider-data
-pnpm run verify-provider-data
+nub run gen-provider-data
+nub run verify-provider-data
 git add packages/llm/llm-pi-ai/src/provider-data.generated.ts
 ```
 
 Review the generated diff and stage the dependency or generator changes with it. Do not edit the generated file by hand. Generation errors must be resolved before committing.
 
-The `pre-commit` hook runs `node_modules/.bin/tsx packages/llm/llm-pi-ai/scripts/gen-provider-data.ts --check --cached` when `pnpm-lock.yaml`, this package's `package.json`, the generator, or the generated file is staged. It compares the staged generated file with expected data computed from the installed dependency and current generator. It does not rewrite files or stage them. Updating only the working file is insufficient; stage the generated file too. If the check reports stale metadata, rerun the commands above before retrying the commit. CI runs `pnpm run verify-provider-data` against the checkout and installed lockfile dependencies even when the local hook was not triggered.
+The `pre-commit` hook runs `node_modules/.bin/tsx packages/llm/llm-pi-ai/scripts/gen-provider-data.ts --check --cached` when `nub.lock`, this package's `package.json`, the generator, or the generated file is staged. It compares the staged generated file with expected data computed from the installed dependency and current generator. It does not rewrite files or stage them. Updating only the working file is insufficient; stage the generated file too. If the check reports stale metadata, rerun the commands above before retrying the commit. CI runs `nub run verify-provider-data` against the checkout and installed lockfile dependencies even when the local hook was not triggered.
 
 ### Replay and vocabulary
 

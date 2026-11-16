@@ -109,7 +109,7 @@ export function verifyCuaHelperPayload(root: string, expected: { sourceDigest: s
 }
 
 /**
- * Stage verified native applications for the provider's ordinary pnpm pack command.
+ * Stage verified native applications for the provider's ordinary package-manager pack command.
  * @param root - Extracted helper artifact.
  * @param packageRoot - Provider package to receive native/bin.
  * @param expected - Source identity required by the release.

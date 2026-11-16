@@ -183,14 +183,14 @@ Config 更新严格验证发生变化的 provider。初始加载将已存储的�
 更新 pi-ai 或修改生成器后，先按更新的锁文件安装依赖，再从仓库根目录运行以下命令：
 
 ```sh
-pnpm run gen-provider-data
-pnpm run verify-provider-data
+nub run gen-provider-data
+nub run verify-provider-data
 git add packages/llm/llm-pi-ai/src/provider-data.generated.ts
 ```
 
 检查生成的 diff，并一同暂存依赖或生成器的改动。不要手工编辑生成文件。生成失败时，先解决错误再提交。
 
-暂存 `pnpm-lock.yaml`、本包的 `package.json`、生成器或生成文件时，`pre-commit` 钩子会直接运行 `node_modules/.bin/tsx packages/llm/llm-pi-ai/scripts/gen-provider-data.ts --check --cached`，无需 Git 客户端的 PATH 中有 `pnpm`。它将暂存的生成文件与基于已安装依赖和当前生成器计算的预期数据比较，不改写或暂存文件。只更新工作区文件还不够；生成文件也必须暂存。检查报告元数据过期时，请重新运行上述命令，再尝试提交。即使本地钩子未触发，CI 仍会基于检出文件和按锁文件安装的依赖运行 `pnpm run verify-provider-data`。
+暂存 `nub.lock`、本包的 `package.json`、生成器或生成文件时，`pre-commit` 钩子会直接运行 `node_modules/.bin/tsx packages/llm/llm-pi-ai/scripts/gen-provider-data.ts --check --cached`，无需 Git 客户端的 PATH 中有 `nub`。它将暂存的生成文件与基于已安装依赖和当前生成器计算的预期数据比较，不改写或暂存文件。只更新工作区文件还不够；生成文件也必须暂存。检查报告元数据过期时，请重新运行上述命令，再尝试提交。即使本地钩子未触发，CI 仍会基于检出文件和按锁文件安装的依赖运行 `nub run verify-provider-data`。
 
 ### 回放与词汇
 

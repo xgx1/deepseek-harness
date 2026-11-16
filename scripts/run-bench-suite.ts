@@ -1,6 +1,6 @@
 /** Run the benchmark suite in the two phases its measurements tolerate. */
 import { resolve } from 'node:path'
-import { runPnpmCommand } from './compile-referenced-projects.ts'
+import { runNubCommand } from './compile-referenced-projects.ts'
 
 /**
  * Cases whose wall-clock endpoints cannot absorb a sibling: they drive a
@@ -33,13 +33,13 @@ export function runBenchPhase(root: string, phase: 'first' | 'last'): void {
   process.env.DSH_BENCH_REPORT_PHASE = phase
   try {
     if (phase === 'first') {
-      runPnpmCommand(root, [
+      runNubCommand(root, [
         'exec', 'vitest', 'run', ...CONFIG,
         ...SERIAL_BENCH_FILES.map(file => `--exclude=${file}`),
       ])
       return
     }
-    runPnpmCommand(root, [
+    runNubCommand(root, [
       'exec', 'vitest', 'run', ...CONFIG,
       '--no-file-parallelism', '--maxWorkers=1',
       ...SERIAL_BENCH_FILES,

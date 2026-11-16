@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { execa } from 'execa'
 import { expect, it, onTestFinished } from 'vitest'
-import { pnpmCommand } from '../../../scripts/release/process.ts'
+import { nubCommand } from '../../../scripts/release/process.ts'
 
 const repository = resolve(import.meta.dirname, '../../..')
 const providerName = '@deepseek-ai/dsh-cua-macos'
@@ -23,7 +23,7 @@ it('fetches the platform-declared CUA provider tarballs with an empty cache for 
   const environment = Object.fromEntries(Object.entries(process.env).filter(([key]) =>
     !/KEY|SECRET|TOKEN|PASSWORD/iu.test(key) && !/^(npm|pnpm|corepack)_/iu.test(key)
     && key !== 'NODE_OPTIONS' && key !== 'NODE_PATH'))
-  const [pnpm, ...prefix] = pnpmCommand()
+  const [pnpm, ...prefix] = nubCommand()
   const command = async (args: string[], cwd: string) => {
     const result = await execa(pnpm, [...prefix, `--config.userconfig=${userconfig}`, ...args], {
       cwd, env: { ...environment, CI: 'true', XDG_CACHE_HOME: join(cwd, 'xdg-cache'),

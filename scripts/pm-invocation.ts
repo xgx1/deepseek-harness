@@ -1,18 +1,18 @@
-/** Resolve shell-free child-process invocations for the pnpm process that launched a package script. */
+/** Resolve shell-free child-process invocations for the package manager that launched a package script. */
 
 /**
- * Resolve pnpm's executable and arguments from its lifecycle environment.
- * @param args - Arguments to pass to pnpm.
+ * Resolve the launcher executable and arguments from the lifecycle environment.
+ * @param args - Arguments to pass to the launcher (nub).
  * @param environment - Lifecycle environment containing `npm_execpath`.
  * @returns A command and argument array suitable for `spawn` or `spawnSync` without a shell.
  */
-export function pnpmInvocation(
+export function pmInvocation(
   args: readonly string[],
   environment: NodeJS.ProcessEnv = process.env,
 ): { command: string; args: string[] } {
   const entrypoint = environment.npm_execpath
   if (entrypoint === undefined || entrypoint === '') {
-    throw new Error('pnpm invocation: npm_execpath is unavailable; invoke the script through pnpm run.')
+    return { command: environment.NUB_BIN ?? 'nub', args: [...args] }
   }
   if (/\.[cm]?js$/iu.test(entrypoint)) {
     return { command: process.execPath, args: [entrypoint, ...args] }

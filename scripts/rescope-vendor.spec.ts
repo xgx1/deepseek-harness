@@ -42,6 +42,11 @@ describe('rescope file selection', () => {
     expect(isRescopeExcluded('scripts/dependency-catalog/package-lock.json')).toBe(true)
   })
 
+  it('leaves the TOML bundle compositions outside the pass', () => {
+    // Bundle compositions are TOML now, which is not one of the rewritten extensions.
+    expect(isRescopeExcluded('packages/bundle/web-app/cordis.patch.toml')).toBe(true)
+  })
+
   it.each([
     'scripts/dependency-catalog/package.json',
     'scripts/dependency-catalog/source.ts',
@@ -100,7 +105,6 @@ describe('product identifiers', () => {
     'docs/upgrade-guide/v0.2.2-alpha.2/fs-observation-policy-default-off/guide.zh.md',
     'docs/user/guide/schedule.md',
     'docs/user/guide/schedule.zh.md',
-    'packages/bundle/web-app/cordis.patch.yml',
     'packages/client/ui-agent-preset/src/client/CreatePluginMenuItem.tsx',
     'packages/client/ui-agent-preset/src/client/analytics.ts',
     'packages/client/ui-agent-preset/tests/analytics.client.spec.ts',
@@ -192,12 +196,9 @@ describe('product identifiers', () => {
   it.each(['cordis', "'cordis'", '"cordis/subpath"'])('rewrites the YAML name %s without changing product comments', (name) => {
     const text = `# The 'cordis' preset.\n- name: ${name} # 'cordis' stays product data\n`
     const scoped = `# The 'cordis' preset.\n- name: ${name.replace('cordis', '@deepseek-ai/cordis')} # 'cordis' stays product data\n`
-    for (const [file, wrap] of [
-      ['packages/bundle/web-app/cordis.patch.yml', (value: string) => value],
-      ['docs/subsystems/extensions.md', (value: string) => `The \`cordis\` preset.\n\`\`\`yaml\n${value}\`\`\`\n`],
-    ] as const) {
-      expectRoundTrip(file, wrap(text), wrap(scoped), 1)
-    }
+    // The bundle's YAML composition is cordis.patch.toml now; the docs still carry YAML plugin names in fences.
+    const wrap = (value: string): string => `The \`cordis\` preset.\n\`\`\`yaml\n${value}\`\`\`\n`
+    expectRoundTrip('docs/subsystems/extensions.md', wrap(text), wrap(scoped), 1)
   })
 
   it.each(['scripts/rescope-vendor.spec.ts', 'scripts/gen-third-party-notices.spec.ts'])('keeps both package spellings in the fixture owner %s', (file) => {

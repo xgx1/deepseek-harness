@@ -52,14 +52,11 @@ jobs:
       - uses: actions/checkout@v6
         with:
           persist-credentials: false
-      - uses: pnpm/action-setup@v4
-        with:
-          dest: ${{ runner.temp }}/setup-pnpm-${{ github.run_id }}-${{ github.run_attempt }}
+      - uses: nubjs/setup-nub@v0
       - uses: actions/setup-node@v6
         with:
           node-version: 24
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
+      - run: nub ci
       - uses: actions/download-artifact@v8
         with:
           pattern: ssh-helper-node24-*
@@ -69,7 +66,7 @@ jobs:
         env:
           RELEASE_VERSION: ${{ needs.validate.outputs.version }}
           SOURCE_COMMIT: ${{ needs.validate.outputs.commit }}
-        run: pnpm exec tsx scripts/ssh-helper/release.ts --directory=dist-exe/ssh-helper --version="$RELEASE_VERSION" --commit="$SOURCE_COMMIT"
+        run: nub scripts/ssh-helper/release.ts --directory=dist-exe/ssh-helper --version="$RELEASE_VERSION" --commit="$SOURCE_COMMIT"
       - name: Upload verified release checksums
         uses: actions/upload-artifact@v7
         with:

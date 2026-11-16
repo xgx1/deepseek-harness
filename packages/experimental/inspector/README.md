@@ -31,7 +31,7 @@ The optional [Developer tools bundle](../inspector-profile/README.md) enables bo
 <a id="use-this-package"></a>
 ## Use this package
 
-For trusted local development, `pnpm run demo:inspector` explicitly mounts the source overlay through the normal Web profile. The Host prints a debugging URL; Chrome is required to inspect that target. Fetch capture includes secrets, and the local debugging endpoint permits arbitrary code execution.
+For trusted local development, `nub run demo:inspector` explicitly mounts the source overlay through the normal Web profile. The Host prints a debugging URL; Chrome is required to inspect that target. Fetch capture includes secrets, and the local debugging endpoint permits arbitrary code execution.
 
 The bundle sets `experimental-inspector` to `disabled: false` with `captureFetch: true`. The Host's optional `--inspect` argument hook only opens an external Chrome window; it does not control whether the Inspector runs.
 

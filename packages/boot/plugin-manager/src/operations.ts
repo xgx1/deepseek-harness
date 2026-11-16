@@ -29,9 +29,9 @@ export interface PackageOperationContext {
   home?: string
 }
 
-/** Output and cancellation policy for one pnpm operation. */
+/** Output and cancellation policy for one package-manager operation. */
 export interface PackageOperationOptions {
-  /** The pnpm executable name or path; resolved through `PATH` like the `dsh plugin` command. Defaults to `pnpm`. */
+  /** The nub executable name or path; resolved through `PATH`. Defaults to `nub`. */
   command?: string
   /** Prefix arguments for an application-owned executable. */
   args?: readonly string[]
@@ -62,7 +62,7 @@ export interface PackageOperationOptions {
 }
 
 /** Resolve relative package specs against the caller's directory.
- * @param argument One pnpm argument.
+ * @param argument One package-manager argument.
  * @param cwd Invocation directory, never the profile directory.
  * @returns Anchored argument.
  */
@@ -160,6 +160,9 @@ const INSTALL_COMMANDS = new Set(['add', 'install', 'i'])
 /** Bound on a pre-install registry lookup when the caller names none. */
 const LOOKUP_TIMEOUT_MS = 20_000
 
+/** The lockfile the package manager writes beside a profile manifest. */
+export const LOCKFILE = 'nub.lock'
+
 /** Package specs an install command names explicitly, in order. */
 function namedSpecs(args: readonly string[]): string[] {
   const index = args.findIndex(argument => !argument.startsWith('-'))
@@ -169,13 +172,13 @@ function namedSpecs(args: readonly string[]): string[] {
 }
 
 /** The manifest a named spec would install, read without installing it.
- * A path spec is read from disk. A registry spec asks pnpm's own configuration for the version the
+ * A path spec is read from disk. A registry spec asks `nub view` for the version the
  * range selects and its dsh requirements (`engines` and peerDependencies). A git or tarball spec needs the fetch itself, so the
  * check after installation is what judges it.
  * @param dir Profile directory the lookup runs in.
  * @param spec Anchored install spec.
- * @param options Pnpm executable, prefix arguments, the caller's bound and signal.
- * @param environment Environment of the caller's pnpm invocations.
+ * @param options Package manager, prefix arguments, the caller's bound and signal.
+ * @param environment Environment of the caller's package-manager runs.
  * @param flags Flags of the run itself, so the lookup asks the registry that run will use.
  * @returns The package manifest, or undefined when reading it would need the installation itself.
  */
@@ -189,9 +192,9 @@ async function namedSpecManifest(
     return existsSync(filename) ? JSON.parse(readFileSync(filename, 'utf8')) as object : undefined
   }
   if (parsed.kind !== 'registry') return undefined
-  const viewed = await execa(options.command ?? 'pnpm', [
-    ...options.args ?? [], 'view', parsed.spec, 'name', 'version', 'engines', 'peerDependencies', '--json',
-    ...flags, '--config.fetch-retries=0',
+  // nub answers one version's whole manifest, which carries the fields read here.
+  const viewed = await execa(options.command ?? 'nub', [
+    ...options.args ?? [], 'view', parsed.spec, '--json', ...flags, '--fetch-retries=0',
   ], {
     cwd: dir, env: environment, extendEnv: false, reject: false, stdin: 'ignore',
     ...options.signal === undefined ? {} : { cancelSignal: options.signal },
@@ -210,7 +213,7 @@ function optionalFile(path: string): string | undefined {
   }
 }
 
-/** Where an operation records the pnpm run it started, for a successor when the operation's own process ends first. */
+/** Where an operation records the package-manager run it started, for a successor when the operation's own process ends first. */
 function runRecordPath(dir: string): string {
   return join(dir, '.plugin-manager', 'run.json')
 }
@@ -224,7 +227,7 @@ async function recordRun(dir: string, tree: RunTree): Promise<void> {
 /**
  * Why this operation must not run: a record left by an operation whose process
  * ended mid-run names a run that is still writing the profile. The profile
- * lock is taken over once its holder exits, but its pnpm tree can outlive it.
+ * lock is taken over once its holder exits, but its package-manager tree can outlive it.
  * A recorded run that stopped, within a bounded wait, has its record removed.
  * @param dir Profile directory.
  * @returns The diagnostic, or undefined when no recorded run is active.
@@ -254,7 +257,7 @@ async function activeRecordedRun(dir: string): Promise<string | undefined> {
   return undefined
 }
 
-/** pnpm can install plugins through any direct-dependency field. */
+/** A package manager can install plugins through any direct-dependency field. */
 function directDependencies(manifest: ProfileManifest): Record<string, string> {
   const extra = manifest as ProfileManifest & { devDependencies?: Record<string, string>; optionalDependencies?: Record<string, string> }
   return { ...extra.devDependencies, ...manifest.dependencies, ...extra.optionalDependencies }
@@ -286,14 +289,14 @@ function bundleComponentManifests(manifest: ProfileManifest, dir: string, anchor
   })
 }
 
-/** Execute pnpm inside a profile whose caller already holds the profile write lock.
+/** Execute the package manager inside a profile whose caller already holds the profile write lock.
  * Newly installed or updated direct dependencies are checked even when activation is disabled. With `expected`, each
  * of them must be the expected package, which must be installed at its version with a bundle declaration. Any other
  * untouched dependency never blocks an unrelated operation and stays denied at startup.
- * A denial before pnpm runs changes nothing; one after it restores the profile manifest and lockfile and reinstalls
- * the restored lockfile, while downloaded files stay in the pnpm store.
+ * A denial before the package manager runs changes nothing; one after it restores the profile manifest and lockfile and
+ * reinstalls the restored lockfile, while downloaded files stay in the package manager's store.
  * @param context Launcher-owned profile and resolution locations.
- * @param args Pnpm arguments, before relative path anchoring.
+ * @param args Package-manager arguments, before relative path anchoring.
  * @param options Output, activation and cancellation policy.
  * @returns Exit status, whether the silence bound stopped the run, and the diagnostic path.
  * A compatibility or `expected` denial returns exit code 1 and names what it refused.
@@ -311,7 +314,7 @@ export async function runProfilePnpm(
   const logRoot = join(dir, '.plugin-manager', 'logs')
   await mkdir(logRoot, { recursive: true, mode: 0o700 })
   const logDir = await mkdtemp(join(logRoot, 'operation-'))
-  const logPath = join(logDir, 'pnpm.log')
+  const logPath = join(logDir, 'run.log')
   await using log = await open(logPath, 'wx', 0o600)
   if (active !== undefined) {
     await log.write(active)
@@ -321,7 +324,7 @@ export async function runProfilePnpm(
     return { exitCode: 1, output: bytes.subarray(Math.max(0, bytes.length - options.outputBytes)).toString('utf8'), truncated: bytes.length > options.outputBytes, logPath }
   }
   const before = readProfileManifest('dsh', dir)
-  const savedFiles = ['package.json', 'pnpm-lock.yaml'].map(name => ({ path: join(dir, name), text: optionalFile(join(dir, name)) }))
+  const savedFiles = ['package.json', LOCKFILE].map(name => ({ path: join(dir, name), text: optionalFile(join(dir, name)) }))
   const beforeDependencies = directDependencies(before)
   const installedBefore = new Map(Object.keys(beforeDependencies).map(name => [name, optionalFile(join(dir, 'node_modules', name, 'package.json'))]))
   let output = Buffer.alloc(0)
@@ -359,7 +362,7 @@ export async function runProfilePnpm(
     return { exitCode: 1, output: output.toString('utf8'), truncated, logPath, incompatible }
   }
   // An install command names the packages it adds, so their manifests are read and checked before
-  // pnpm runs: an incompatible version is never installed, and the one already in use keeps working.
+  // the run: an incompatible version is never installed, and the one already in use keeps working.
   const preflight: string[] = []
   const exemptions = readProfileVersionExemptions(dir)
   // The run's own registry flags, so the lookup asks the registry the installation will use.
@@ -380,10 +383,10 @@ export async function runProfilePnpm(
   if (preflight.length > 0) return await rejected(preflight, 'nothing was installed')
   const cancellation = new AbortController()
   // A service run captures output, so execa terminates the tree it leads when the
-  // run is killed: a lifecycle script outlives the pnpm process that started it.
+  // run is killed: a lifecycle script outlives the process that started it.
   // The CLI keeps the caller's process group, so an interrupt still reaches it.
   const grouped = leadsOwnGroup(options.execution)
-  const child = execa(options.command ?? 'pnpm', [...options.args ?? [], ...args.map(arg => anchorPathSpec(arg, context.cwd))], {
+  const child = execa(options.command ?? 'nub', [...options.args ?? [], ...args.map(arg => anchorPathSpec(arg, context.cwd))], {
     cwd: dir, env: environment, extendEnv: false, reject: false,
     stdout: options.execution === 'cli' ? 'inherit' : 'pipe',
     stderr: options.execution === 'cli' ? 'inherit' : 'pipe',
@@ -438,7 +441,7 @@ export async function runProfilePnpm(
   // The drain decides whether a failure surfaces, so each reading is claimed now:
   // an unclaimed rejection would be reported as unhandled while the pipes drain.
   for (const collector of collectors) void collector.catch(() => { /* reported through `failure` and the settled readings */ })
-  // Inherited descriptors hand pnpm the terminal, so there is no captured output
+  // Inherited descriptors hand the run the terminal, so there is no captured output
   // for a silence bound to observe: it would fire on a healthy run.
   if (collectors.length > 0) armIdle()
   let exitCode: number
@@ -466,7 +469,7 @@ export async function runProfilePnpm(
       cut = true
       child.stdout?.destroy()
       child.stderr?.destroy()
-      const notice = 'dsh: pnpm output was cut short after its process exited\n'
+      const notice = 'dsh: package-manager output was cut short after its process exited\n'
       await log.write(notice)
       // A failure from before the cut is the run's own and replaces the notice a
       // caller would otherwise read; a rejection the cut itself causes is its end.
@@ -479,13 +482,13 @@ export async function runProfilePnpm(
     const result = completion.value
     exitCode = result.exitCode ?? (result.code === 'ENOENT' ? 127 : 1)
     if (control.stalled) {
-      const notice = `dsh: pnpm printed nothing for ${String(options.idleTimeoutMs)}ms and was terminated\n`
+      const notice = `dsh: the package manager printed nothing for ${String(options.idleTimeoutMs)}ms and was terminated\n`
       await log.write(notice)
       options.onOutput?.(notice, 'stderr')
       append(Buffer.from(notice))
     }
     if (result.failed && output.length === 0) {
-      const diagnostic = result.shortMessage ?? 'pnpm failed'
+      const diagnostic = result.shortMessage ?? 'the package manager failed'
       await log.write(diagnostic)
       // The run printed nothing, so this diagnostic is the whole of its captured output; stream it as such.
       options.onOutput?.(diagnostic, 'stderr')
@@ -542,23 +545,24 @@ export async function runProfilePnpm(
       }
       if (expected !== undefined && !seen) fail('unexpected-package', `${expected.name}@${expected.version} is not installed`)
       if (warnings.length > 0) {
-        // A bundle component's requirements need installed contents, so this rejection lands after pnpm
-        // replaced the tree: restore the files, then reinstall the restored lockfile so the version
+        // A bundle component's requirements need installed contents, so this rejection lands after the
+        // run replaced the tree: restore the files, then reinstall the restored lockfile so the version
         // that worked before this run keeps loading. A profile that had no lockfile is reinstalled
-        // from its restored manifest without creating one, which removes what this run added.
+        // from its restored manifest, and the lockfile that creates is removed, leaving what this run added out.
         await restore()
-        const hadLockfile = savedFiles.some(file => file.path.endsWith('pnpm-lock.yaml') && file.text !== undefined)
-        const repair = ['install', hadLockfile ? '--frozen-lockfile' : '--config.lockfile=false']
-        const repairing = execa(options.command ?? 'pnpm', [...options.args ?? [], ...repair], {
+        const hadLockfile = savedFiles.some(file => file.path.endsWith(LOCKFILE) && file.text !== undefined)
+        const repair = ['install', ...hadLockfile ? ['--frozen-lockfile'] : []]
+        const repairing = execa(options.command ?? 'nub', [...options.args ?? [], ...repair], {
           cwd: dir, env: environment, extendEnv: false, reject: false, stdin: 'ignore',
           ...options.idleTimeoutMs === undefined ? {} : { timeout: options.idleTimeoutMs },
         })
         await recordRun(dir, { pid: repairing.pid, grouped: false })
         const repaired = await repairing
+        if (repaired.exitCode === 0 && !hadLockfile) await rm(join(dir, LOCKFILE), { force: true })
         exitCode = 1
         const restoration = repaired.exitCode === 0
-          ? 'restored package.json, pnpm-lock.yaml, and node_modules'
-          : "restored package.json and pnpm-lock.yaml, but node_modules could not be reinstalled; run 'dsh plugin install'"
+          ? `restored package.json, ${LOCKFILE}, and node_modules`
+          : `restored package.json and ${LOCKFILE}, but node_modules could not be reinstalled; run 'dsh plugin install'`
         const diagnostic = `\ndsh: installation rejected: ${warnings.join('\n')}\ndsh: ${restoration}.\n`
         await log.write(diagnostic)
         options.onOutput?.(diagnostic, 'stderr')
@@ -590,7 +594,7 @@ export async function runProfilePnpm(
 
 /** Initialize and run the dsh plugin command with the same write lock as the service.
  * @param context Launcher-owned locations.
- * @param args Pnpm arguments.
+ * @param args Package-manager arguments.
  * @param options Output and cancellation policy.
  * @returns Completed package-manager result.
  */
@@ -611,19 +615,19 @@ export async function runPluginCommand(
 
 /** What one registry lookup answered. */
 export interface PackageViewResult {
-  /** pnpm's exit code, null when it ended without one or never started. */
+  /** The package manager's exit code, null when it ended without one or never started. */
   exitCode: number | null
   stdout: string
   stderr: string
   /** The lookup ran past its bound and was killed. */
   timedOut: boolean
-  /** The failure of starting pnpm at all, when that is what happened. */
+  /** The failure of starting the package manager at all, when that is what happened. */
   cause?: unknown
 }
 
 /** Bounds of one registry lookup. */
 export interface PackageViewOptions {
-  /** The pnpm executable name or path. Defaults to `pnpm`. */
+  /** The nub executable name or path. Defaults to `nub`. */
   command?: string
   /** Prefix arguments for an application-owned executable. */
   args?: readonly string[]
@@ -633,33 +637,31 @@ export interface PackageViewOptions {
   signal?: AbortSignal
   /** Bound on the lookup, in milliseconds. */
   timeoutMs: number
-  /** The registry asked; null asks the one pnpm's own configuration names. */
+  /** The registry asked; null asks the one the package manager's own configuration names. */
   registry?: Registry
-  /** The manifest fields printed, as `pnpm view` names them; registry-only fields such as `versions`, `time`, and `dist-tags` included. */
-  fields: readonly string[]
 }
 
 /**
- * Read the registry pnpm's own configuration names in the profile: its `.npmrc` chain and workspace settings,
- * as `pnpm config get registry` resolves them.
+ * Read the registry the package manager's own configuration names in the profile: its `.npmrc` chain and workspace settings,
+ * as `nub config get registry` resolves them.
  * @param dir Profile directory.
- * @param options The pnpm executable and the time bound.
- * @returns The registry URL as pnpm printed it, or null when pnpm did not answer with one.
+ * @param options The package manager invocation and the time bound.
+ * @returns The registry URL as it was printed, or null when the package manager did not answer with one.
  */
 export async function readProfileRegistry(
   dir: string, options: { command?: string; args?: readonly string[]; env?: Readonly<Record<string, string>>; timeoutMs: number },
 ): Promise<string | null> {
-  const result = await execa(options.command ?? 'pnpm', [...options.args ?? [], 'config', 'get', 'registry'], {
+  const result = await execa(options.command ?? 'nub', [...options.args ?? [], 'config', 'get', 'registry'], {
     cwd: dir, env: { ...scrubbedParentEnv(), ...options.env }, extendEnv: false, reject: false, stdin: 'ignore', timeout: options.timeoutMs,
   })
-  // The registry is the last line: pnpm may print a notice before it.
+  // The registry is the last line: the package manager may print a notice before it.
   const answer = result.exitCode === 0 ? result.stdout.trim().replace(/^[\s\S]*\n/, '').trim() : ''
   return /^https?:\/\/\S+$/.test(answer) ? answer : null
 }
 
 /**
- * The argument that sends one pnpm command to a registry.
- * @param registry - the registry, or null for the one pnpm's own configuration names.
+ * The argument that sends one package-manager command to a registry.
+ * @param registry - the registry, or null for the one the package manager's own configuration names.
  * @returns `--registry=<url>` for a URL; nothing for null.
  */
 export function registryArguments(registry: Registry): string[] {
@@ -667,20 +669,21 @@ export function registryArguments(registry: Registry): string[] {
 }
 
 /**
- * Ask the registry what a spec names through `pnpm view`, run in the profile
+ * Ask the registry what a spec names through `nub view`, run in the profile
  * directory so the registry, proxy, and authentication settings of an install
- * apply. The lookup makes one request without pnpm's own retries: a registry
- * that does not answer is reported within `timeoutMs`, and the registries
- * configured after it are the retry.
+ * apply. The lookup makes one request without retries: a registry that does not
+ * answer is reported within `timeoutMs`, and the registries configured after it
+ * are the retry. nub prints one version's whole manifest, which carries the fields
+ * its callers read; it has no answer carrying every published version.
  * @param dir Profile directory.
  * @param spec One registry spec: a package name with an optional range.
- * @param options The fields printed, the registry, cancellation, and the time bound.
- * @returns pnpm's exit, output, and how the lookup ended.
+ * @param options The registry, cancellation, and the time bound.
+ * @returns The package manager's exit, output, and how the lookup ended.
  */
 export async function viewProfilePackage(dir: string, spec: string, options: PackageViewOptions): Promise<PackageViewResult> {
-  const result = await execa(options.command ?? 'pnpm', [
-    ...options.args ?? [], 'view', spec, ...options.fields, '--json',
-    ...registryArguments(options.registry ?? null), '--config.fetch-retries=0',
+  const result = await execa(options.command ?? 'nub', [
+    ...options.args ?? [], 'view', spec, '--json',
+    ...registryArguments(options.registry ?? null), '--fetch-retries=0',
   ], {
     cwd: dir, env: { ...scrubbedParentEnv(), ...options.env }, extendEnv: false, reject: false, stdin: 'ignore',
     timeout: options.timeoutMs, ...options.signal === undefined ? {} : { cancelSignal: options.signal },

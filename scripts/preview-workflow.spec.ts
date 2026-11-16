@@ -42,21 +42,18 @@ describe('PR preview workflow', () => {
     expect(report?.run).toContain('::warning::')
   })
 
-  it('keeps the immutable complete artifact build and restore-only dependency cache', () => {
+  it('keeps the immutable complete artifact build with a locked install', () => {
     expect(workflow.env.PRIMARY_NODE_VERSION).toBe('24')
     expect(workflow.env.DSH_TELEMETRY_DISABLED).toBe('1')
     const commands = preview.steps.map(step => step.run)
-    expect(commands).toContain('pnpm install --frozen-lockfile')
-    expect(commands).toContain('pnpm run build')
-    expect(commands).toContain('pnpm --filter @deepseek-ai/dsh-web-frontend run build:preview')
-    expect(commands.indexOf('pnpm run build')).toBeLessThan(commands.indexOf('pnpm --filter @deepseek-ai/dsh-web-frontend run build:preview'))
+    expect(commands).toContain('nub ci')
+    expect(commands).toContain('nub run build')
+    expect(commands).toContain('nub run -F @deepseek-ai/dsh-web-frontend build:preview')
+    expect(commands.indexOf('nub run build')).toBeLessThan(commands.indexOf('nub run -F @deepseek-ai/dsh-web-frontend build:preview'))
     // The complete build also runs the aggregate type checks the required
     // consumers dropped.
-    expect(commands).not.toContain('pnpm run build:check')
-    expect(preview.steps.filter(step => step.uses?.startsWith('actions/cache'))).toHaveLength(1)
-    expect(preview.steps.find(step => step.uses === 'actions/cache/restore@v6.1.0')?.with).toMatchObject({
-      key: "${{ runner.os }}-node-${{ env.PRIMARY_NODE_VERSION }}-pnpm-${{ hashFiles('pnpm-lock.yaml') }}",
-    })
+    expect(commands).not.toContain('nub run build:check')
+    // nub keeps its own store cache; this lane declares none.
   })
 
   it('retains per-PR deployment, protected image verification, and idempotent URL comments', () => {
@@ -90,7 +87,7 @@ describe('PR preview workflow', () => {
   it('renders the snapshot diff page into the upload against the base branch tip', () => {
     const steps = preview.steps.map(step => step.name)
     const page = preview.steps.find(step => step.name === 'Render the snapshot diff page')!
-    expect(page.run).toBe('pnpm exec tsx scripts/snapshot-diff-page.ts --base HEAD^1 --head HEAD'
+    expect(page.run).toBe('nub scripts/snapshot-diff-page.ts --base HEAD^1 --head HEAD'
       + ' --out apps/web/dist/snapshot-diff --preview-manifest apps/web/dist/preview/fixtures.json')
     expect(steps.indexOf('Render the snapshot diff page')).toBeGreaterThan(steps.indexOf('Shape the upload'))
     expect(steps.indexOf('Render the snapshot diff page')).toBeLessThan(steps.indexOf('Upload to Cloudflare Pages'))

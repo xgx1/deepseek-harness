@@ -30,7 +30,7 @@ kind: "package-library"
 这个私有工作区生成发行压缩包，不是配置插件或 npm CLI。在已安装依赖的源码目录中构建当前原生平台：
 
 ```sh
-pnpm exec tsx scripts/build-exe-for-ssh-helper.ts
+nub scripts/build-exe-for-ssh-helper.ts
 ```
 
 构建器需要 Node 24、C/C++ 编译器和该 Node 安装附带的开发头文件。Linux 还需要 `musl-gcc`，其 node-pty 扩展必须满足 glibc 基线。[原生构建工作流](../../../.github/workflows/build-exe-for-ssh-helper.yml) 在打包前准备兼容扩展。`--target` 选择一个原生目标，`--skip-build` 复用已准备的 JS／原生输出，`--dry-run` 校验目标与依赖声明而不构建。

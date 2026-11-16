@@ -23,7 +23,7 @@ it('rejects debugging packages before dependency setup and pins the checked atte
   const steps = workflow.jobs.route!.steps
   const preflight = steps.findIndex(step => step.id === 'preflight')
   expect(preflight).toBeGreaterThan(0)
-  expect(preflight).toBeLessThan(steps.findIndex(step => step.uses?.startsWith('pnpm/')))
+  expect(preflight).toBeLessThan(steps.findIndex(step => step.run === 'nub ci'))
   expect(steps[preflight]?.run).toBe('node apps/desktop-publisher/src/preflight-desktop-publish.mjs')
   expect(steps.find(step => step.id === 'route')?.env?.DESKTOP_PACKAGE_ATTEMPT).toBe('${{ steps.preflight.outputs.attempt }}')
 })
@@ -94,7 +94,7 @@ it('defaults to production website upload and separates cache-only recovery', ()
     expect(job.environment).toBe('desktop-production')
     const preflight = job.steps.findIndex(step => step.run === 'node apps/desktop-publisher/src/preflight-desktop-publish-local.mjs')
     expect(preflight).toBeGreaterThan(-1)
-    expect(preflight).toBeLessThan(job.steps.findIndex(step => step.run === 'pnpm install --frozen-lockfile'))
+    expect(preflight).toBeLessThan(job.steps.findIndex(step => step.run === 'nub ci'))
     expect(job.env?.DESKTOP_WEBSITE_APPROVAL).toBe('${{ needs.prepare.outputs.website-approval }}')
   }
   expect(upload.steps.find(step => step.id === 'website')?.run).toBe('node --import tsx apps/desktop-publisher/src/publish-website-ci.ts upload')

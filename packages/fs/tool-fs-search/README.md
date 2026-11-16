@@ -113,7 +113,7 @@ Each call resolves and starts the packaged binary through the shared [ripgrep li
 
 ### Native-mode benchmark
 
-After `pnpm run build`, compile the package-local diagnostic with external runtime dependencies, then run it under plain Node:
+After `nub run build`, compile the package-local diagnostic with external runtime dependencies, then run it under plain Node:
 
 ```sh
 cd packages/fs/tool-fs-search

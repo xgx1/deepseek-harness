@@ -10,7 +10,7 @@ Verify that `DSH_INSTALL_DIR/package.json` names `@deepseek-ai/dsh`; its `versio
 
 ## Source checkout
 
-A source launch normally points `DSH_INSTALL_DIR` at `<root>/apps/cli`. Verify `<root>/pnpm-workspace.yaml`, `<root>/package.json` with name `@deepseek-ai/dsh-root`, and `<root>/apps/cli/package.json` with name `@deepseek-ai/dsh`. The loaded skill may instead locate the candidate root: its real directory is `<root>/packages/preset/agent-preset/skills/dsh-doc`, five parents below the root. Verify the same markers; a matching working-directory name is not evidence of the running installation.
+A source launch normally points `DSH_INSTALL_DIR` at `<root>/apps/cli`. Verify `<root>/package.json#workspaces`, `<root>/package.json` with name `@deepseek-ai/dsh-root`, and `<root>/apps/cli/package.json` with name `@deepseek-ai/dsh`. The loaded skill may instead locate the candidate root: its real directory is `<root>/packages/preset/agent-preset/skills/dsh-doc`, five parents below the root. Verify the same markers; a matching working-directory name is not evidence of the running installation.
 
 Read `<root>/docs/user/index.md` for user documentation and `<root>/docs/upgrade-guide/` for migration guides. The checkout's `apps/cli/docs` need not exist. Use `<root>/packages/README.md` to find the owning group, then `<root>/packages/<group>/<directory>/package.json` to verify the package name. Read that package's `README.md` and the owning file under `src/`; do not assume every package resolves from `apps/cli/node_modules`. Use the verified CLI manifest's version and identify the checkout used.
 

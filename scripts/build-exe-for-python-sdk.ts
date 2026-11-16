@@ -9,7 +9,7 @@
 import { createHash } from 'node:crypto'
 import { build as bundle } from 'tsdown'
 import { spawn } from 'node:child_process'
-import { pnpmInvocation, verifyStagedDependencies } from './executable-packaging.ts'
+import { pnpmCommand, verifyStagedDependencies } from './executable-packaging.ts'
 import { existsSync, statSync } from 'node:fs'
 import { chmod, copyFile, cp, glob, mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises'
 import { basename, dirname, join, resolve, sep } from 'node:path'
@@ -269,17 +269,17 @@ class BuildCli {
 
   private static usage(): string {
     return [
-      'Usage: pnpm exec tsx scripts/build-exe-for-python-sdk.ts [flags]',
+      'Usage: nub scripts/build-exe-for-python-sdk.ts [flags]',
       '',
       '  --targets=<t1,t2,...>  pkg targets, e.g. node24-linux-x64,node24-linux-arm64,node24-macos-arm64,node24-macos-x64,node24-win-x64.',
       '                         Default: the host platform only (on node24).',
-      '  --skip-build           skip `pnpm run build` (lib/ artifacts must already exist).',
-      '  --build-artifacts      run `pnpm run build:artifacts` instead, omitting the aggregate test and script typechecks.',
+      '  --skip-build           skip `nub run build` (lib/ artifacts must already exist).',
+      '  --build-artifacts      run `nub run build:artifacts` instead, omitting the aggregate test and script typechecks.',
       '  --compress=<type>      pkg archive compression: None | GZip | Brotli | Zstd. Default: Brotli (smallest, slowest).',
       '  --dry-run              print every command and config patch without executing.',
       '  --help                 print this help.',
       '',
-      'Build route: @yao-pkg/pkg --sea with the selected --compress type (root devDependency, pnpm-patched); see .agents/notes/implemented/architecture/2026-07-10-single-file-executable-sdk-runtime-distribution.md.',
+      'Build route: @yao-pkg/pkg --sea with the selected --compress type (root devDependency, patched); see .agents/notes/implemented/architecture/2026-07-10-single-file-executable-sdk-runtime-distribution.md.',
       `Stages the node carrier in ${PYTHON_RUNTIME_DIR}/${PYTHON_NODE_SUBDIR} and writes executables to ${OUT_DIR}/.`,
     ].join('\n')
   }
@@ -632,9 +632,9 @@ class SingleExeBuild {
     })
   }
 
-  /** Run pnpm through its JavaScript entrypoint when the caller supplies one. */
+  /** Run the pinned pnpm through its JavaScript entrypoint. */
   private async runPnpm(label: string, args: string[]): Promise<void> {
-    const [command, invocationArgs] = pnpmInvocation(args)
+    const [command, ...invocationArgs] = pnpmCommand(args)
     await this.run(label, command, invocationArgs)
   }
 }

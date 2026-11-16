@@ -4,7 +4,7 @@
 
 本参考定义 profile 启动、插件管理和配置 dump 等命令模式。argv 由 [`src/args.ts`](../src/args.ts) 统一解析一次，[`src/bin.ts`](../src/bin.ts) 只会动态导入选中的运行器。
 
-[生成的命令帮助](../../../docs/cli-help.zh.md)包含启动器、插件管理和随附 profile 的完整帮助。运行 `pnpm run gen-cli-help` 刷新，运行 `pnpm run verify-cli-help` 检查它是否与当前 CLI 一致。
+[生成的命令帮助](../../../docs/cli-help.zh.md)包含启动器、插件管理和随附 profile 的完整帮助。运行 `nub run gen-cli-help` 刷新，运行 `nub run verify-cli-help` 检查它是否与当前 CLI 一致。
 
 <a id="profile-boot"></a>
 
@@ -104,11 +104,11 @@ dsh plugin --profile tui remove turtle-ui
 dsh --profile tui
 ```
 
-随源码发布的 Git 托管插件会在安装期间通过 `prepare` 脚本构建，而 pnpm ≥10 默认会阻止该脚本，直到使用方明确允许。首次运行 `add` 会失败，并显示 pnpm 的 `allowBuilds` 提示；dsh 还会提示应修改该 profile 的 `pnpm-workspace.yaml`。将输出的键复制到该文件后，重新运行命令即可。安装已经构建好的 tarball 或本地 checkout 时，无需加入 `allowBuilds`。
+随源码发布的 Git 托管插件会在安装期间通过 `prepare` 脚本构建，而 nub 默认会阻止该脚本，直到使用方明确批准。首次运行 `add` 会失败，并显示 nub 的构建授权提示；dsh 还会提示应修改该 profile 的 `package.json#allowScripts`。将输出的键复制到该文件后，重新运行命令即可。安装已经构建好的 tarball 或本地 checkout 时，无需加入 `allowScripts`。
 
 ## Web Profile
 
-`dsh web` 使用 profile 简写。启动器先解析自身的 flag，其余 flag 属于 web 应用，由组合包中的普通提供方解析。`--host` 与 `--port` 覆盖组合的监听器取值，`--tls-cert`/`--tls-key` 则设置监听器的 `tls` 证书对。host 必须指名一个具体的本机地址，不能是通配地址（`--host 0.0.0.0` 会以用法错误退出）；`hostname -i` 可能列出多个，请只传一个。可重复的 `--trusted-host` 值会收集到 `ctx.webStartup.trustedHosts`；部署表达式可以添加自己的 authority。`--no-open` 只对本次调用关闭默认浏览器交接。客户端插件 HMR（热模块替换）接收器始终挂载，在 `pnpm run dev:web` 重建客户端 bundle 之前保持空闲；该命令先构建一次，再启动这同一个启动器并持续重建客户端 bundle，加 `--no-serve` 则只运行 watcher、配合别处启动的 `dsh web`。
+`dsh web` 使用 profile 简写。启动器先解析自身的 flag，其余 flag 属于 web 应用，由组合包中的普通提供方解析。`--host` 与 `--port` 覆盖组合的监听器取值，`--tls-cert`/`--tls-key` 则设置监听器的 `tls` 证书对。host 必须指名一个具体的本机地址，不能是通配地址（`--host 0.0.0.0` 会以用法错误退出）；`hostname -i` 可能列出多个，请只传一个。可重复的 `--trusted-host` 值会收集到 `ctx.webStartup.trustedHosts`；部署表达式可以添加自己的 authority。`--no-open` 只对本次调用关闭默认浏览器交接。客户端插件 HMR（热模块替换）接收器始终挂载，在 `nub run dev:web` 重建客户端 bundle 之前保持空闲；该命令先构建一次，再启动这同一个启动器并持续重建客户端 bundle，加 `--no-serve` 则只运行 watcher、配合别处启动的 `dsh web`。
 
 `--public-url <url>` 公告唯一的 HTTP(S) 应用根——可带转发前缀——替代监听器的绑定地址 URL（回环绑定时为回环地址）。它不授予信任，因此浏览器可见的 authority 仍需用 `--trusted-host` 点名；[在反向代理之后发布 Web UI](../../../docs/user/guide/public-deployments.zh.md)列出了前置代理必须提供的内容。
 
@@ -124,7 +124,7 @@ dsh web --dump-config
 dsh web --help
 ```
 
-生产 Web 运行器需要已构建的包和前端产物（`pnpm run build`）。配置了 `--public-url` 时打印公告地址，否则打印采用监听器协议的绑定地址 URL（默认为 `http://127.0.0.1:3080`，配置 TLS 时为 `https://`）。Host/Origin 栅栏直接接受绑定 IP；代理或 DNS authority 仍需 `--trusted-host`。启动日志与默认浏览器交接都会等待完整 Loader 配置树结算。继承的 `SSH_CONNECTION` 或 `SSH_TTY` 非空时会抑制浏览器打开，但仍打印启动 URL。浏览器交接前会打印 `dsh web: opening the default browser; pass --no-open to disable`；若操作系统交接失败，stderr 会说明原因并指向启动 URL，服务器仍继续运行。
+生产 Web 运行器需要已构建的包和前端产物（`nub run build`）。配置了 `--public-url` 时打印公告地址，否则打印采用监听器协议的绑定地址 URL（默认为 `http://127.0.0.1:3080`，配置 TLS 时为 `https://`）。Host/Origin 栅栏直接接受绑定 IP；代理或 DNS authority 仍需 `--trusted-host`。启动日志与默认浏览器交接都会等待完整 Loader 配置树结算。继承的 `SSH_CONNECTION` 或 `SSH_TTY` 非空时会抑制浏览器打开，但仍打印启动 URL。浏览器交接前会打印 `dsh web: opening the default browser; pass --no-open to disable`；若操作系统交接失败，stderr 会说明原因并指向启动 URL，服务器仍继续运行。
 
 进程关闭时，插件树最多有 5 秒完成 dispose。首次收到 `SIGINT` 或 `SIGTERM` 时会开始优雅排空：`SIGTERM` 是监督进程发出的常规停止请求，在所有运行模式下都以 0 退出；`SIGINT` 则报告 130。第二次收到信号时会立即强制退出。如果一次性运行在正常结束时已经卡在 dispose 阶段，第一次按下 `Ctrl+C` 就会直接升级为强制退出，而不会被忽略。
 
@@ -145,4 +145,4 @@ Web、headless 与 SDK 继承 base bundle 的原生工具执行；使用 [PTC ov
 <a id="source-execution"></a>
 ## 源码执行
 
-请在仓库根目录中，于全新 checkout 之后及产物需要更新时单独运行 `pnpm run build`，然后使用 `pnpm dsh <args...>`。`package.json` 中的脚本不会构建，而是通过 `node --import tsx/esm` 启动 `apps/cli/src/bin.ts`，并转发所有参数。Typert Host 产物缺失时，profile 启动会因不含构建指引的模块解析错误而失败。这些 Host 产物存在后，如果前端或 Client plugin 组合包缺失，启动会失败并提示运行 `pnpm run build`。启动器不会检查产物是否为最新，因此已有的陈旧组合包可能继续运行旧版浏览器代码，直至重新构建。该进程会继承启动环境，且 `runProfile` 会在任何 entry 挂载之前从该快照解析出站代理，因此 `HTTP_PROXY`／`HTTPS_PROXY`（以及写在 `.env` 层中的代理）无需任何额外开关即可生效。源码入口显式选择链接式 profile 解析，使 tsx workspace 导入与 profile 插件共享模块身份。在 Windows 上，安装版命令在加载 profile 依赖前展开 8.3 短路径。安装形式会使用 runtime profile 解析直接启动构建后的 `apps/cli/lib/bin.js`，不会重新构建仓库。
+请在仓库根目录中，于全新 checkout 之后及产物需要更新时单独运行 `nub run build`，然后使用 `nubx dsh <args...>`。`package.json` 中的脚本不会构建，而是通过 `node --import tsx/esm` 启动 `apps/cli/src/bin.ts`，并转发所有参数。Typert Host 产物缺失时，profile 启动会因不含构建指引的模块解析错误而失败。这些 Host 产物存在后，如果前端或 Client plugin 组合包缺失，启动会失败并提示运行 `nub run build`。启动器不会检查产物是否为最新，因此已有的陈旧组合包可能继续运行旧版浏览器代码，直至重新构建。该进程会继承启动环境，且 `runProfile` 会在任何 entry 挂载之前从该快照解析出站代理，因此 `HTTP_PROXY`／`HTTPS_PROXY`（以及写在 `.env` 层中的代理）无需任何额外开关即可生效。源码入口显式选择链接式 profile 解析，使 tsx workspace 导入与 profile 插件共享模块身份。在 Windows 上，安装版命令在加载 profile 依赖前展开 8.3 短路径。安装形式会使用 runtime profile 解析直接启动构建后的 `apps/cli/lib/bin.js`，不会重新构建仓库。

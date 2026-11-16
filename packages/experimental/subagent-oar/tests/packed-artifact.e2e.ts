@@ -7,7 +7,7 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { execa } from 'execa'
 import { expect, it } from 'vitest'
-import { pnpmInvocation } from '../../../../scripts/pnpm-invocation.ts'
+import { pmInvocation } from '../../../../scripts/pm-invocation.ts'
 
 const packageDirectory = fileURLToPath(new URL('..', import.meta.url))
 const built = existsSync(join(packageDirectory, 'lib/index.js'))
@@ -31,7 +31,7 @@ it.skipIf(!built || process.platform === 'win32')(
       expect(result.exitCode, result.stderr).toBe(0)
       return result.stdout
     }
-    const invocation = pnpmInvocation(['pack', '--pack-destination', root])
+    const invocation = pmInvocation(['pack', '--pack-destination', root])
     await run(invocation.command, invocation.args, packageDirectory)
     const archive = (await readdir(root)).find(name => name.endsWith('.tgz'))
     expect(archive).toBeDefined()

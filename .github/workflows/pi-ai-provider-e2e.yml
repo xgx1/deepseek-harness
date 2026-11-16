@@ -32,15 +32,13 @@ jobs:
     steps:
       - uses: actions/checkout@v7.0.1
 
-      - uses: pnpm/action-setup@v5.0.0
-
+      - uses: nubjs/setup-nub@v0
       - uses: actions/setup-node@v7.0.0
         with:
           node-version: 24
-          cache: pnpm
 
       - name: Install (immutable)
-        run: pnpm install --frozen-lockfile
+        run: nub ci
 
       # The tests self-skip locally when a credential is absent. A manually
       # dispatched CI run must fail instead of reporting an all-skipped green.
@@ -68,5 +66,5 @@ jobs:
           DSH_PI_AI_ANTHROPIC_MODEL: ${{ inputs.anthropic_model }}
           DSH_E2E_MAX_WORKERS: 2
         run: >-
-          pnpm exec vitest run --config vitest.e2e.config.ts
+          nubx vitest run --config vitest.e2e.config.ts
           packages/llm/llm-pi-ai/tests/provider-apis.e2e.ts

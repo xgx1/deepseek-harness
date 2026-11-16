@@ -226,14 +226,15 @@ it('composes current files from profile data and retains launch overlay and tele
 })
 
 describe('initProfile', () => {
-  it('creates manifest, user patch layer, and pnpm workspace once, never overwriting', () => {
+  it('creates manifest, user patch layer, and nub settings once, never overwriting', () => {
     const home = tmp()
     const dir = resolveProfileDir('tui', home)
     initProfile(dir, ['@deepseek-ai/dsh-base'])
     const manifest = readProfileManifest('t', dir)
     expect(manifest.dsh?.profile?.bundles).toEqual(['@deepseek-ai/dsh-base'])
     expect(readFileSync(join(dir, PROFILE_PATCH_FILENAME), 'utf8')).toContain('[]')
-    expect(readFileSync(join(dir, 'pnpm-workspace.yaml'), 'utf8')).toContain('nodeLinker: hoisted')
+    expect(readFileSync(join(dir, '.npmrc'), 'utf8')).toBe('node-linker=hoisted\nauto-install-peers=false\n')
+    expect(existsSync(join(dir, 'pnpm-workspace.yaml'))).toBe(false)
     // Re-init keeps user edits.
     writeFileSync(join(dir, PROFILE_PATCH_FILENAME), '- id: x\n  config: {}\n')
     initProfile(dir, ['other'])

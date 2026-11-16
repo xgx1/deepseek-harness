@@ -66,7 +66,7 @@ it('routes manual packaging to the dedicated runner with explicit preset and sig
   expect(workflow.jobs.package).not.toHaveProperty('name')
   expect(job['runs-on']).toBe('dsh-win-package-trial')
   expect(JSON.stringify(job.env)).not.toContain('runner.')
-  expect(job.steps.find(step => step.name === 'Configure persistent pnpm store')?.env?.DSH_DESKTOP_PACKAGE_CACHE_DIR)
+  expect(job.steps.find(step => step.name === 'Configure persistent nub run store')?.env?.DSH_DESKTOP_PACKAGE_CACHE_DIR)
     .toBe('${{ runner.tool_cache }}/dsh-desktop-package-cache')
   expect(workflow.concurrency).toEqual({ group: 'windows-desktop-package', 'cancel-in-progress': false })
   expect(workflow.permissions).toEqual({ contents: 'read' })
@@ -86,8 +86,8 @@ it('routes manual packaging to the dedicated runner with explicit preset and sig
   expect(job.env.DSH_PACKAGING_PRESET).toBe('${{ inputs.preset }}')
   expect(job.env.PACKAGE_SIGNING).toBe('${{ inputs.signing }}')
   expect(job.steps.find(step => step.id === 'checkout')!.with).toMatchObject({ clean: true, 'persist-credentials': false, ref: '${{ inputs.source_ref }}' })
-  expect(job.steps.find(step => step.uses?.startsWith('pnpm/action-setup@'))?.with?.dest)
-    .toBe('${{ runner.temp }}/setup-pnpm-${{ github.run_id }}-${{ github.run_attempt }}')
+  // nub's setup action takes no install directory, so the lane provisions the package manager exactly once and nowhere else.
+  expect(job.steps.filter(step => step.uses === 'nubjs/setup-nub@v0')).toHaveLength(1)
 })
 
 it('validates before building and passes the same mode and version to checks and packaging', () => {
@@ -130,13 +130,13 @@ it('normalizes priority in the dependency and packaging shells before launching 
   }
 })
 
-it.skipIf(process.platform !== 'win32')('keeps the dependency store stable across run-specific pnpm homes', () => {
+it.skipIf(process.platform !== 'win32')('keeps the dependency store stable across run-specific home directories', () => {
   const directory = mkdtempSync(resolve(tmpdir(), 'windows-package-store-'))
   try {
     const workspace = resolve(directory, 'runner', 'repo')
     const packageCache = resolve(directory, 'tool-cache', 'desktop')
-    const store = resolve(parse(directory).root, '.pnpm-store')
-    const step = job.steps.find(entry => entry.name === 'Configure persistent pnpm store')!
+    const store = resolve(parse(directory).root, '.nub-store')
+    const step = job.steps.find(entry => entry.name === 'Configure persistent nub run store')!
     expect(job.steps.indexOf(step)).toBeLessThan(job.steps.findIndex(entry => entry.name === 'Install locked dependencies'))
     const script = resolve(directory, 'store.ps1')
     writeFileSync(script, "$ErrorActionPreference = 'Stop'\n" + step.run!)
@@ -145,13 +145,13 @@ it.skipIf(process.platform !== 'win32')('keeps the dependency store stable acros
       execFileSync('pwsh', ['-NoProfile', '-File', script], {
         env: { ...process.env, GITHUB_WORKSPACE: workspace,
           PACKAGE_CACHE_NAMESPACE: '', DSH_DESKTOP_PACKAGE_CACHE_DIR: packageCache,
-          PNPM_HOME: resolve(directory, run, 'pnpm'), GITHUB_ENV: environmentFile },
+          USERPROFILE: resolve(directory, run, 'home'), GITHUB_ENV: environmentFile },
         stdio: 'pipe',
       })
       return readFileSync(environmentFile, 'utf8').trim()
     })
     expect(outputs.map(output => output.split(/\r?\n/u))).toEqual(Array.from({ length: 2 }, () => [
-      `DSH_DESKTOP_PACKAGE_CACHE_DIR=${packageCache}`, `PNPM_CONFIG_STORE_DIR=${store}`,
+      `DSH_DESKTOP_PACKAGE_CACHE_DIR=${packageCache}`, `npm_config_store_dir=${store}`,
     ]))
     const runNamespace = (namespace: string) => {
       const output = resolve(directory, 'namespace.env')
@@ -164,7 +164,7 @@ it.skipIf(process.platform !== 'win32')('keeps the dependency store stable acros
       return readFileSync(output, 'utf8').trim().split(/\r?\n/u)
     }
     expect(runNamespace('perf-1')).toEqual([
-      `DSH_DESKTOP_PACKAGE_CACHE_DIR=${resolve(packageCache, 'perf-1')}`, `PNPM_CONFIG_STORE_DIR=${resolve(store, 'perf-1')}`,
+      `DSH_DESKTOP_PACKAGE_CACHE_DIR=${resolve(packageCache, 'perf-1')}`, `npm_config_store_dir=${resolve(store, 'perf-1')}`,
     ])
     for (const invalid of ['../escape', 'Upper', 'has space', 'con', 'perf\n', 'a'.repeat(65)]) {
       expect(() => runNamespace(invalid)).toThrow()
@@ -218,6 +218,6 @@ it.skipIf(process.platform !== 'win32')('stages helpers that remain usable when 
 it('archives with native PowerShell and the persistent packaging store', () => {
   const archival = workflow.jobs['upload-artifact']!
   expect(archival.defaults?.run.shell).toBe('pwsh')
-  expect(archival.steps.find(step => step.name === 'Configure persistent pnpm store')?.run)
-    .toBe(job.steps.find(step => step.name === 'Configure persistent pnpm store')?.run)
+  expect(archival.steps.find(step => step.name === 'Configure persistent nub run store')?.run)
+    .toBe(job.steps.find(step => step.name === 'Configure persistent nub run store')?.run)
 })

@@ -49,7 +49,7 @@ import {
   clientBuildProcessEnvironment,
   repositoryClientBuildEnvironment,
 } from './client-build-environment.ts'
-import { pnpmInvocation } from './pnpm-invocation.ts'
+import { pmInvocation } from './pm-invocation.ts'
 
 const repoRoot = fileURLToPath(new URL('..', import.meta.url))
 
@@ -329,7 +329,7 @@ function spawnStage(
  * @returns the build's exit code, or null when a signal ended it.
  */
 async function runBuild(): Promise<number | null> {
-  const invocation = pnpmInvocation(['run', 'build:artifacts'])
+  const invocation = pmInvocation(['run', 'build:artifacts'])
   const result = await execa(invocation.command, invocation.args, { cwd: repoRoot, stdio: 'inherit', reject: false })
   return result.exitCode ?? null
 }

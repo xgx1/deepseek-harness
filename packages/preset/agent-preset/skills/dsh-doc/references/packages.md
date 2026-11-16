@@ -1,6 +1,6 @@
 # Loadable Harness plugin packages
 
-This file is GENERATED from workspace manifests (`scripts/gen-plugin-packages.ts`) and verified fresh by `pnpm run verify-plugin-packages` (part of `doc-sync`); do not edit it by hand.
+This file is GENERATED from workspace manifests (`scripts/gen-plugin-packages.ts`) and verified fresh by `nub run verify-plugin-packages` (part of `doc-sync`); do not edit it by hand.
 
 Every package below exports a Cordis plugin that a bundle patch can name in a Loader row. `Config` marks packages whose row accepts a `config` mapping; read the mounted schema from `Config.listConfigs` through `cordis_inspect_query` (filter by `name`, then query the `entry` id) when available, otherwise from the package README. Packages under `experimental` are pre-stable.
 

@@ -18,7 +18,7 @@ vi.mock('node:fs/promises', async (importOriginal) => {
     ...actual,
     open: async (...args: Parameters<typeof actual.open>) => {
       const handle = await actual.open(...args)
-      if (typeof args[0] === 'string' && args[0].endsWith('pnpm.log')) {
+      if (typeof args[0] === 'string' && args[0].endsWith('run.log')) {
         observed.logs.push({ handle, fd: handle.fd })
       }
       return handle
@@ -26,7 +26,7 @@ vi.mock('node:fs/promises', async (importOriginal) => {
   }
 })
 
-it('closes the pnpm log when the profile manifest cannot be parsed', async () => {
+it('closes the run log when the profile manifest cannot be parsed', async () => {
   const home = mkdtempSync(join(tmpdir(), 'manager-log-lifetime-'))
   onTestFinished(async () => {
     for (const { handle } of observed.logs.splice(0)) await handle.close()

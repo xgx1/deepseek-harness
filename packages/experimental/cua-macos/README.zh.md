@@ -33,12 +33,12 @@ provider 按当前界面语言生成引导和恢复文案，不支持的语言�
 <a id="use-this-package"></a>
 ## 使用本包
 
-本包是仅限 macOS 的可选依赖。本地开发时运行 `pnpm --dir packages/experimental/cua-macos run build:native`，在 `native/bin` 下生成临时签名应用及 `current.json`。正式打包需要指定 `--identity "Developer ID Application: <name> (<team>)"` 并完成公证，参见[原生构建与服务](native/README.zh.md#build-and-service)。安装版保留分发时的签名。位于 Electron `app.asar` 归档内的包从同级的 `app.asar.unpacked` 目录读取应用，该目录由 Desktop 安装包提供；已安装包缺少应用时，准备阶段报错并给出预期目录。源码准备需要 Apple Command Line Tools 提供的 Swift 和 Python 3。
+本包是仅限 macOS 的可选依赖。本地开发时运行 `nub run --cwd packages/experimental/cua-macos build:native`，在 `native/bin` 下生成临时签名应用及 `current.json`。正式打包需要指定 `--identity "Developer ID Application: <name> (<team>)"` 并完成公证，参见[原生构建与服务](native/README.zh.md#build-and-service)。安装版保留分发时的签名。位于 Electron `app.asar` 归档内的包从同级的 `app.asar.unpacked` 目录读取应用，该目录由 Desktop 安装包提供；已安装包缺少应用时，准备阶段报错并给出预期目录。源码准备需要 Apple Command Line Tools 提供的 Swift 和 Python 3。
 
 从仓库运行 Web 时，在插件页开启 [Computer Use](../cua-bundle/README.zh.md)。首次启用会在 macOS 14 及以上准备本机组件。现有 Web profile 保持选中时，后续构建继续检查更新。未开启的 profile 不准备原生组件。也可以显式加载源码覆盖层：
 
 ```sh
-pnpm dsh headless --patch packages/experimental/cua-macos/examples/macos.cordis.yml --dump-config
+nubx dsh headless --patch packages/experimental/cua-macos/examples/macos.cordis.yml --dump-config
 ```
 
 配置输出命令不发起模型请求。执行真实任务时，将 `--dump-config` 替换为任务提示，并配置该 profile 的模型凭据。配置挂载 computer-use 注册表和本 provider；使用前需移除已有的竞争 provider。helper 需要辅助功能权限来读取 AX 和输入，需要屏幕录制权限来截图；通过 Computer Use 权限页打开系统设置并添加 helper。源码构建的应用包名为 `DSH Computer Use Dev.app`，Info.plist 声明名称 `DSH Computer Use Dev`；授权时选择开发版条目。`getCapabilities` 返回提供方声明的平台能力，以及实际查询的权限和锁屏状态。桌面会话锁定或不可用时，界面观察与输入会在分派前拒绝，需由用户解锁 macOS 后继续。`listApps` 和 `cua.getState` 列出运行中的应用。`findApps(query)` 按名称、bundle ID 或绝对路径搜索 macOS 标准应用目录。`getApp` 按唯一名称、bundle ID、路径或运行中的 PID 选择应用，取得应用许可后，在需要时后台启动尚未运行的应用。授权前从磁盘读取应用的 Bundle ID 和可执行路径，在启动前后重新读取并核对；没有 Bundle ID 的应用使用规范化的可执行路径复用授权。找到指定的安装包后，`getApp` 用可执行文件路径查找已有进程，进程显示名可以是其他语言。需要启动时，macOS 打开指定的安装副本，也可以复用授权期间启动的进程。helper 等待应用完成启动后返回运行状态。启动后验证失败会使待启动句柄失效，但进程可能仍在运行；应先查看运行中的应用，再取得新句柄。返回对象时不读取 AX，也不激活应用。启动被取消时，应用可能已经运行。模型指引要求先在后台观察和输入，不在初始化或每次动作前激活应用。窗口隐藏或最小化时，先尝试 `app.show()` 或 `window.show()`，再重新观察。它请求取消隐藏和恢复最小化，不主动激活、抬起窗口或切换桌面空间；应用级恢复选择焦点窗口、主窗口或唯一 AX 窗口。结果通过 `windowId` 指明选中的窗口，未选中时为 null；`foregroundChanged` 比较操作前后的前台应用和最上层窗口，无法取得完整观察时为 null，返回后仍可能发生焦点变化。恢复失败或窗口仍不可用时，说明需要前台的步骤，再调用 `app.activate()` 或窗口声明的 `AXRaise` 动作并重新观察。必须使用前台时，以完成任务为先。应用收到输入后仍可能改变焦点，后台投递不保证用户操作始终不受干扰。
@@ -152,7 +152,7 @@ AppKit 的 sheet 可以出现在文档窗口的树里，并有独立的窗口 ID
 
 对象接口将应用和窗口方法转换为 JSON 操作。在单个 API 实例内，它按应用句柄保存一份当前辅助功能快照；原生 helper 在该门面之后保留自己的应用快照和可选窗口快照。适配模块通过标准工具链保留授权、嵌套日志和图片接入。同一用户的相同 helper 构建由多个 Agent 和 Host 共享。每条连接独立保存句柄、快照、配置和取消状态，桌面操作通过全局队列执行。受管启动器将服务生命期交给这些连接，最后一条连接清理完成后服务退出。进程锁覆盖构建身份及真实可执行路径，防止重复启动或覆盖运行版本后产生路径冲突。原生句柄绑定进程身份及内核启动时间，快照中的 AX 引用只保存在辅助进程内。
 
-[Zod 操作定义](../cua/src/protocol.ts)负责模型参数，并单独声明 Host 资源字段和内部续接操作。公共数据类型从这些定义推导。`pnpm exec tsx packages/experimental/cua-macos/native/generate-protocol.ts` 生成原生 JSON Schema 和 Swift 字段、枚举校验表；包测试检查产物是否同步，并验证模型不能提交 Host 专属字段。原生目标验证、资源上限和操作行为仍在执行处检查。
+[Zod 操作定义](../cua/src/protocol.ts)负责模型参数，并单独声明 Host 资源字段和内部续接操作。公共数据类型从这些定义推导。`nub packages/experimental/cua-macos/native/generate-protocol.ts` 生成原生 JSON Schema 和 Swift 字段、枚举校验表；包测试检查产物是否同步，并验证模型不能提交 Host 专属字段。原生目标验证、资源上限和操作行为仍在执行处检查。
 
 [AX 文本格式化](native/Sources/CuaNative/AXTextFormatter.swift)只接收已读取的节点数据。AX 遍历器独自分配不透明元素 ID 并保存原生引用，格式化不维护另一套快照或目标注册表。
 

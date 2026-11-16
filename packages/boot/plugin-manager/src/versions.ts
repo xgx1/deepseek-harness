@@ -1,11 +1,5 @@
-/** Read `pnpm view` answers about a package's published versions. */
+/** Read `nub view` answers about a package's published versions. */
 import semver from 'semver'
-
-/** The fields a version listing prints for the package: every version, its publication times, and its dist-tags. */
-export const VERSION_LIST_FIELDS = ['versions', 'time', 'dist-tags'] as const
-
-/** The fields read for one version: what decides whether it can replace an installed bundle. */
-export const VERSION_FIELDS = ['name', 'version', 'engines', 'peerDependencies', 'deprecated', 'dsh'] as const
 
 /** One published version newer than the installed one, before its own manifest is read. */
 export interface PublishedVersion {
@@ -30,16 +24,17 @@ function recordOf(value: unknown): Record<string, unknown> | undefined {
 
 /**
  * The published versions newer than the installed one, newest first.
- * @param answer - parsed `pnpm view <name> versions time dist-tags --json` output.
+ * @param answer - an answer listing every version with its publication times and dist-tags, which nub's `view`
+ * prints for no version: it answers one version's manifest.
  * @param installed - the installed version.
  * @returns the newer versions with their publication times and dist-tags.
  * @throws when the answer names no versions.
  */
 export function newerVersions(answer: unknown, installed: string): PublishedVersion[] {
   const fields = recordOf(answer)
-  // pnpm prints a package with one version as a string rather than a one-element array.
+  // A launcher may print a package with one version as a string rather than a one-element array.
   const listed: unknown = typeof fields?.versions === 'string' ? [fields.versions] : fields?.versions
-  if (!Array.isArray(listed)) throw new Error('pnpm view answered no versions')
+  if (!Array.isArray(listed)) throw new Error('nub view answered no versions')
   const time = recordOf(fields?.time) ?? {}
   const tags = Object.entries(recordOf(fields?.['dist-tags']) ?? {})
   return listed
@@ -57,7 +52,7 @@ export function newerVersions(answer: unknown, installed: string): PublishedVers
 }
 
 /**
- * What one exact version's manifest says, from `pnpm view <name>@<version> name version engines peerDependencies deprecated dsh --json`.
+ * What one exact version's manifest says, from the manifest `nub view <name>@<version> --json` prints.
  * @param answer - the parsed output.
  * @param name - the package name, used when the answer omits it.
  * @param version - the version asked for, used when the answer omits it.

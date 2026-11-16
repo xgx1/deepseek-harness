@@ -50,36 +50,18 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - uses: pnpm/action-setup@v5.0.0
-        with:
-          dest: ${{ runner.temp }}/setup-pnpm
-
+      - uses: nubjs/setup-nub@v0
       - uses: actions/setup-node@v7.0.0
         with:
           node-version: ${{ env.PRIMARY_NODE_VERSION }}
 
-      - name: Configure pnpm store path
-        id: pnpm-store
-        run: |
-          store_root="$HOME/.local/share/pnpm/store"
-          echo "PNPM_CONFIG_STORE_DIR=$store_root" >> "$GITHUB_ENV"
-          store_path=$(PNPM_CONFIG_STORE_DIR="$store_root" pnpm store path --silent)
-          echo "path=$store_path" >> "$GITHUB_OUTPUT"
-
-      - uses: actions/cache/restore@v6.1.0
-        with:
-          path: ${{ steps.pnpm-store.outputs.path }}
-          key: ${{ runner.os }}-node-${{ env.PRIMARY_NODE_VERSION }}-pnpm-${{ hashFiles('pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-node-${{ env.PRIMARY_NODE_VERSION }}-pnpm-
-
       - name: Install (immutable)
-        run: pnpm install --frozen-lockfile
+        run: nub ci
 
       - name: Verify release version
         env:
           RELEASE_PUBLISH: 'true'
-        run: pnpm run release:verify --family dsh ${{ inputs.skip-tag-check && '--skip-tag-check' || '' }}
+        run: nub run release:verify --family dsh ${{ inputs.skip-tag-check && '--skip-tag-check' || '' }}
 
       - name: Download selected macOS CUA helper
         uses: actions/download-artifact@v8.0.1
@@ -90,7 +72,7 @@ jobs:
           path: dist/cua-helper
 
       - name: Build
-        run: pnpm run build:official --serial
+        run: nub run build:official --serial
 
       - name: Stage verified macOS helper applications
         env:
@@ -98,7 +80,7 @@ jobs:
         run: |
           mkdir dist/cua-helper/extracted
           tar -xzf dist/cua-helper/cua-helper.tgz -C dist/cua-helper/extracted
-          pnpm exec tsx scripts/cua-helper/stage.ts --from dist/cua-helper/extracted
+          nub scripts/cua-helper/stage.ts --from dist/cua-helper/extracted
 
       - name: Record macOS CUA source and publication retry instructions
         env:
@@ -112,7 +94,7 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Pack release tarballs
-        run: pnpm run release:pack --family dsh --out dist/npm
+        run: nub run release:pack --family dsh --out dist/npm
 
       # The harness packages declare the vendored framework as a peer, and this
       # verification must not depend on the registry already carrying matching
@@ -120,18 +102,18 @@ jobs:
       # publishes — so it installs that family's pack output too. Only dist/npm
       # is published.
       - name: Pack the vendored framework for verification
-        run: pnpm run release:pack --family vendor --out dist/npm-vendor
+        run: nub run release:pack --family vendor --out dist/npm-vendor
 
       # dsh-sandbox-local declares the Landlock entry as a runtime dependency, so
       # the verification needs its tarball. Its platform packages stay out: they
       # are optional, and building them needs a musl toolchain per architecture.
       - name: Pack the Landlock entry for verification
         run: |
-          pnpm --dir native/system run build:ts
-          pnpm --dir native/system/packages/entry pack --pack-destination "$PWD/dist/npm-landlock"
+          nub run --cwd native/system build:ts
+          (cd native/system/packages/entry && nub pack --pack-destination "$GITHUB_WORKSPACE/dist/npm-landlock")
 
       - name: Verify packed install
-        run: pnpm run release:verify-packed-install --family dsh --from dist/npm --from dist/npm-vendor --from dist/npm-landlock
+        run: nub run release:verify-packed-install --family dsh --from dist/npm --from dist/npm-vendor --from dist/npm-landlock
 
       - uses: actions/upload-artifact@v7.0.1
         with:
@@ -159,17 +141,14 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: pnpm/action-setup@v5.0.0
-        with:
-          dest: ${{ runner.temp }}/setup-pnpm
-
+      - uses: nubjs/setup-nub@v0
       - uses: actions/setup-node@v7.0.0
         with:
           node-version: ${{ env.PRIMARY_NODE_VERSION }}
           registry-url: https://registry.npmjs.org
 
       - name: Install (immutable, no package scripts)
-        run: pnpm install --frozen-lockfile --ignore-scripts
+        run: nub ci --ignore-scripts
 
       - uses: actions/download-artifact@v8.0.1
         with:
@@ -179,4 +158,4 @@ jobs:
       - name: Publish tarballs
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: pnpm run release:publish --family dsh --from dist/npm
+        run: nub run release:publish --family dsh --from dist/npm

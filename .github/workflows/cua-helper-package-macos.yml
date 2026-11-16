@@ -78,13 +78,11 @@ jobs:
           CUA_MACOS_RUN_ID: ${{ inputs.cua_macos_run_id }}
           CUA_BUILD_KEY: ${{ steps.build-inputs.outputs.build-key }}
         run: node scripts/cua-helper/select-artifact.ts
-      - uses: pnpm/action-setup@v5.0.0
+      - uses: nubjs/setup-nub@v0
         if: steps.retained.outputs.artifact-id == ''
-        with:
-          dest: ${{ runner.temp }}/setup-pnpm-cua-${{ github.run_id }}-${{ github.run_attempt }}
       - name: Install locked dependencies
         if: steps.retained.outputs.artifact-id == ''
-        run: pnpm install --frozen-lockfile --ignore-scripts --ignore-pnpmfile
+        run: nub ci --ignore-scripts
       - name: Build and verify notarized applications
         if: steps.retained.outputs.artifact-id == ''
         env:

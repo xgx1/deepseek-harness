@@ -1,4 +1,4 @@
-/** The Git transport an installation of a self-hosted repository uses, chosen by probing access before pnpm starts. */
+/** The Git transport an installation of a self-hosted repository uses, chosen by probing access before nub starts. */
 import { execa } from 'execa'
 import hostedGitInfo from 'hosted-git-info'
 import { scrubbedParentEnv } from '@deepseek-ai/dsh-subprocess'
@@ -12,13 +12,13 @@ export interface GitTransportOptions {
   env?: Readonly<Record<string, string>>
 }
 
-/** An HTTP(S) Git URL with an optional `git+` prefix, which pnpm clones over that transport as written. */
+/** An HTTP(S) Git URL with an optional `git+` prefix, which nub clones over that transport as written. */
 const HTTP_GIT_URL = /^(?:git\+)?https?:\/\//i
 
 /**
- * The SSH form of an HTTP(S) Git spec on a host pnpm has no transport fallback for. pnpm tries HTTPS and SSH itself
- * for the hosts `hosted-git-info` knows, such as GitHub and GitLab.com, and clones any other URL over the transport
- * it names.
+ * The SSH form of an HTTP(S) Git spec on a host `hosted-git-info` does not know. A known host, such as GitHub or
+ * GitLab.com, keeps the spec as written: its transport fallbacks belonged to the launcher this profile used to run,
+ * and nub clones every URL over HTTPS, so a repository those hosts offer only over SSH needs its SSH form as the spec.
  * @param spec The parsed installation address.
  * @returns `git+ssh://git@<host>/<path>` on SSH's default port with the spec's fragment, or `undefined` for a spec that
  * is not an HTTP(S) Git URL on such a host, or whose URL carries credentials or a query.
@@ -55,7 +55,7 @@ async function readable(repository: string, dir: string, options: GitTransportOp
 }
 
 /**
- * Choose how pnpm clones an HTTP(S) Git repository that {@link sshGitSpec} has an SSH form for: probe the spec's URL,
+ * Choose how nub clones an HTTP(S) Git repository that {@link sshGitSpec} has an SSH form for: probe the spec's URL,
  * and when HTTP(S) cannot read it, probe the SSH form.
  * @param spec The parsed installation address.
  * @param dir The profile directory where installation runs.

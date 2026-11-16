@@ -1,5 +1,5 @@
 import { spawnSync } from 'node:child_process'
-import { readFileSync } from 'node:fs'
+import { readdirSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { runInNewContext } from 'node:vm'
 import * as yaml from 'js-yaml'
@@ -11,8 +11,6 @@ function evaluateRunsOn(selector: unknown, context: Record<string, unknown>): un
 }
 
 const root = resolve(import.meta.dirname, '..')
-const runnerPrivatePnpmDestination = /^\$\{\{ runner\.temp \}\}\/setup-pnpm-\$\{\{ github\.run_id \}\}-\$\{\{ github\.run_attempt \}\}$/
-const nativeWindowsPnpmDestination = '${{ runner.temp }}/setup-pnpm-js-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.job }}'
 
 describe('CI workflow', () => {
   it('keeps at most eleven worker jobs active across PR workflows while Python runtime targets follow the SDK suite', () => {
@@ -134,33 +132,52 @@ describe('CI workflow', () => {
     ])
   })
 
+  it('installs the toolchain with nub and never through pnpm', () => {
+    const dir = '.github/workflows'
+    for (const name of readdirSync(resolve(root, dir)).filter(file => file.endsWith('.yml'))) {
+      const source = readFileSync(resolve(root, dir, name), 'utf8')
+      expect(source, `${name} must not reference the retired package manager`).not.toMatch(/pnpm|PNPM_|corepack/)
+      const workflow: unknown = yaml.load(source)
+      if (!isRecord(workflow) || !isRecord(workflow.jobs)) throw new TypeError(`${name} must define jobs`)
+      for (const [jobName, job] of Object.entries(workflow.jobs)) {
+        if (!isRecord(job) || !Array.isArray(job.steps)) continue
+        const steps = job.steps.filter(isRecord)
+        const firstNub = steps.findIndex(step => typeof step.run === 'string' && /^\s*nubx?\s/m.test(step.run))
+        if (firstNub === -1) continue
+        const setup = steps.findIndex(step => step.uses === 'nubjs/setup-nub@v0')
+        expect(setup, `${name}: ${jobName} must install nub before running it`).toBeGreaterThanOrEqual(0)
+        expect(setup, `${name}: ${jobName} must install nub before running it`).toBeLessThan(firstNub)
+      }
+    }
+  })
+
   it('retains aggregate diagnostics in required builds and protected publication', () => {
     for (const [file, name, command] of [
-      ['ci.yml', 'node-24-consumers', 'pnpm run check:ci:consumers'],
-      ['ci-windows.yml', 'windows-build', 'pnpm run check:ci:windows-blocking'],
+      ['ci.yml', 'node-24-consumers', 'nub run check:ci:consumers'],
+      ['ci-windows.yml', 'windows-build', 'nub run check:ci:windows-blocking'],
     ] as const) {
       const job = workflowJob(loadWorkflow('.github/workflows/' + file), name)
       expect(job.steps).toContainEqual(expect.objectContaining({ run: command }))
     }
     for (const [file, command] of [
-      ['release-publish.yml', 'pnpm run build:official --serial'],
-      ['release-vendor-publish.yml', 'pnpm run build:lib:host'],
+      ['release-publish.yml', 'nub run build:official --serial'],
+      ['release-vendor-publish.yml', 'nub run build:lib:host'],
     ] as const) {
       expect(workflowJob(loadWorkflow('.github/workflows/' + file), 'pack').steps)
         .toContainEqual(expect.objectContaining({ name: 'Build', run: command }))
     }
     const scripts = JSON.parse(readFileSync(resolve(root, 'package.json'), 'utf8')) as { scripts: Record<string, string> }
     const hostSteps = scripts.scripts['build:lib:host']!.split(' && ')
-    expect(hostSteps[0]).toBe('tsx scripts/compile-referenced-projects.ts host-libraries')
+    expect(hostSteps[0]).toBe('nub scripts/compile-referenced-projects.ts host-libraries')
     expect(hostSteps).toContain('node --max-old-space-size=8192 ./node_modules/typescript/bin/tsc -p tsconfig.host.json')
-    expect(hostSteps.at(-1)).toBe('pnpm --filter @deepseek-ai/dsh-desktop run bundle')
+    expect(hostSteps.at(-1)).toBe('nub run -F @deepseek-ai/dsh-desktop bundle')
     expect(scripts.scripts['build:lib:client']).toContain('tsc -b tsconfig.client.json')
-    expect(scripts.scripts.typecheck).toBe('tsx scripts/build.ts --scope typecheck')
+    expect(scripts.scripts.typecheck).toBe('nub scripts/build.ts --scope typecheck')
   })
 
   it('selects artifact builds only for PR release and API rehearsals', () => {
-    const official = "${{ github.event_name == 'pull_request' && 'pnpm run build:artifacts --profile official' || 'pnpm run build:official' }}"
-    const vendor = "${{ github.event_name == 'pull_request' && 'pnpm exec tsx scripts/compile-referenced-projects.ts host-libraries' || 'pnpm run build:lib:host' }}"
+    const official = "${{ github.event_name == 'pull_request' && 'nub run build:artifacts --profile official' || 'nub run build:official' }}"
+    const vendor = "${{ github.event_name == 'pull_request' && 'nub scripts/compile-referenced-projects.ts host-libraries' || 'nub run build:lib:host' }}"
     for (const [file, jobName, expected] of [
       ['release.yml', 'pack', official],
       ['release-vendor.yml', 'pack', vendor],
@@ -176,9 +193,9 @@ describe('CI workflow', () => {
         const selected: unknown = runInNewContext(expression, { github: { event_name: event } }, { timeout: 1000 })
         expect(selected).toBe(event === 'pull_request'
           ? file === 'release-vendor.yml'
-            ? 'pnpm exec tsx scripts/compile-referenced-projects.ts host-libraries'
-            : 'pnpm run build:artifacts --profile official'
-          : file === 'release-vendor.yml' ? 'pnpm run build:lib:host' : 'pnpm run build:official')
+            ? 'nub scripts/compile-referenced-projects.ts host-libraries'
+            : 'nub run build:artifacts --profile official'
+          : file === 'release-vendor.yml' ? 'nub run build:lib:host' : 'nub run build:official')
       }
     }
   })
@@ -188,7 +205,7 @@ describe('CI workflow', () => {
     if (!Array.isArray(job.steps)) throw new TypeError('Python runtime builder must define steps')
     const steps = job.steps.filter(isRecord)
     const execute = steps.find(step => step.name === 'Build single-exe')
-    expect(steps.some(step => step.run === 'pnpm run build:artifacts')).toBe(false)
+    expect(steps.some(step => step.run === 'nub run build:artifacts')).toBe(false)
     expect(execute).toMatchObject({
       env: { DSH_BUILD_CLIENT_PROFILE: 'official' },
     })
@@ -211,7 +228,7 @@ describe('CI workflow', () => {
     if (!Array.isArray(job.steps)) throw new TypeError('Node compatibility job must define steps')
     const steps = job.steps.filter(isRecord)
     const preparation = steps.findIndex(step => step.run === 'bash scripts/prepare-ci-bubblewrap.sh')
-    const smoke = steps.findIndex(step => step.run === 'pnpm run check:node-compat')
+    const smoke = steps.findIndex(step => step.run === 'nub run check:node-compat')
     expect(preparation).toBeGreaterThanOrEqual(0)
     expect(smoke).toBeGreaterThan(preparation)
     expect(steps[preparation]).not.toHaveProperty('continue-on-error', true)
@@ -255,8 +272,8 @@ describe('CI workflow', () => {
   })
 
   it.each([
-    ['node-24-coverage', 'ci.yml', 'Linux', 'LINUX', 'pnpm run check:ci:coverage'],
-    ['windows-coverage', 'ci-windows.yml', 'Windows', 'WINDOWS', 'pnpm run check:ci:coverage'],
+    ['node-24-coverage', 'ci.yml', 'Linux', 'LINUX', 'nub run check:ci:coverage'],
+    ['windows-coverage', 'ci-windows.yml', 'Windows', 'WINDOWS', 'nub run check:ci:coverage'],
   ])('reuses %s coverage timings only within its platform and runner pool', (jobName, file, platform, variable, command) => {
     const job = workflowJob(loadWorkflow('.github/workflows/' + file), jobName)
     if (!Array.isArray(job.steps)) throw new TypeError(`${jobName} must define steps`)
@@ -282,33 +299,6 @@ describe('CI workflow', () => {
     })
   })
 
-  it('isolates every pnpm action setup destination per runner', () => {
-    const files = ['.github/workflows/ci.yml', '.github/workflows/ci-windows.yml', '.github/workflows/ci-master.yml']
-    const setups: Array<{ jobName: string; step: unknown }> = []
-    for (const file of files) {
-      const workflow: unknown = yaml.load(readFileSync(resolve(root, file), 'utf8'))
-      if (!isRecord(workflow) || !isRecord(workflow.jobs)) throw new TypeError(`${file} must define jobs`)
-      for (const [jobName, job] of Object.entries(workflow.jobs)) {
-        if (!isRecord(job) || !Array.isArray(job.steps)) continue
-        for (const step of job.steps) {
-          if (!isRecord(step) || typeof step.uses !== 'string' || !step.uses.startsWith('pnpm/action-setup@')) continue
-          setups.push({ jobName, step })
-        }
-      }
-    }
-
-    expect(setups.length).toBeGreaterThan(0)
-    for (const { jobName, step } of setups) {
-      const stepDest = (step as { with?: { dest?: unknown } }).with?.dest
-      if (jobName.startsWith('windows-')) {
-        expect(stepDest, `${jobName} must use the native Windows pnpm destination`).toBe(nativeWindowsPnpmDestination)
-        expect(step).not.toMatchObject({ with: { standalone: true } })
-      } else {
-        expect(typeof stepDest, `${jobName} must use a runner-and-run-private pnpm destination`).toBe('string')
-        expect(stepDest as string).toMatch(runnerPrivatePnpmDestination)
-      }
-    }
-  })
 
   it.each(['node-24', 'node-24-coverage', 'node-24-consumers'])(
     '%s keeps tool and fixture temporary files under runner cleanup',
@@ -330,16 +320,6 @@ describe('CI workflow', () => {
           && step.with.path === '${{ env.PLAYWRIGHT_BROWSERS_PATH }}')
         expect(browserCache).toMatchObject({ uses: 'actions/cache/restore@v6.1.0' })
       }
-      const store: unknown = job.steps.find(step => isRecord(step) && step.name === 'Configure pnpm store path')
-      expect(store).toMatchObject({
-        run: [
-          'store_root="$HOME/.local/share/pnpm/store"',
-          'echo "PNPM_CONFIG_STORE_DIR=$store_root" >> "$GITHUB_ENV"',
-          'store_path=$(PNPM_CONFIG_STORE_DIR="$store_root" pnpm store path --silent)',
-          'echo "path=$store_path" >> "$GITHUB_OUTPUT"',
-          '',
-        ].join('\n'),
-      })
       for (const step of job.steps) {
         if (isRecord(step) && isRecord(step.env)) {
           expect(step.env.TMPDIR).toBeUndefined()
@@ -349,24 +329,6 @@ describe('CI workflow', () => {
     },
   )
 
-  it('isolates the python SDK exe pnpm setup destination per job', () => {
-    const workflow: unknown = yaml.load(readFileSync(resolve(root, '.github/workflows/build-exe-for-python-sdk.yml'), 'utf8'))
-    if (!isRecord(workflow) || !isRecord(workflow.jobs)) throw new TypeError('build-exe-for-python-sdk.yml must define jobs')
-    const setups: Array<{ step: unknown }> = []
-    for (const job of Object.values(workflow.jobs)) {
-      if (!isRecord(job) || !Array.isArray(job.steps)) continue
-      for (const step of job.steps) {
-        if (!isRecord(step) || typeof step.uses !== 'string' || !step.uses.startsWith('pnpm/action-setup@')) continue
-        setups.push({ step })
-      }
-    }
-    expect(setups.length).toBeGreaterThan(0)
-    for (const { step } of setups) {
-      expect(step).toMatchObject({
-        with: { dest: nativeWindowsPnpmDestination },
-      })
-    }
-  })
 
   it('keeps split native Windows PR jobs with failover in their own workflow, plus a master-only standby', () => {
     const workflow = loadWorkflow('.github/workflows/ci.yml')
@@ -425,35 +387,17 @@ describe('CI workflow', () => {
     const buildCommands = buildSteps.filter((step): step is Record<string, unknown> & { run: string } => (
       isRecord(step) && typeof step.run === 'string'
     ))
-    expect(buildCommands.map(step => step.run)).toContain('pnpm run check:ci:windows-blocking')
+    expect(buildCommands.map(step => step.run)).toContain('nub run check:ci:windows-blocking')
 
-    // Native Windows installs branch on the workspace filesystem:
-    // clone (ReFS block clone) only on ReFS, plain install elsewhere. This
-    // keeps the TS6231 store-path leak (see the Windows ReFS store note) out
-    // of the self-hosted pool without forcing clone onto hosted NTFS, which
-    // rejects copy-on-write. The branch must stay, or a hosted fallback would
-    // fail installs with ERR_PNPM_LINKING_FAILED.
+    // nub has no package-import-method switch, so the ReFS block-clone branch
+    // retired with the toolchain: every Windows lane runs the plain install.
     for (const [jobName, job] of [['windows-build', windowsBuild], ['windows-coverage', windowsCoverage], ['windows-native-tests', windowsNativeTests]] as const) {
       const steps = job.steps as unknown[]
       const install = steps.find((step): step is Record<string, unknown> & { run: string } => (
         isRecord(step) && step.name === 'Install (immutable)' && typeof step.run === 'string'
       ))
-      expect(install, `${jobName} must define the filesystem-branched install`).toBeDefined()
-      expect(install!.run).toContain("$fs -eq 'ReFS'")
-      expect(install!.run).toContain('--package-import-method=clone')
-      expect(install!.run).toContain('corepack pnpm install')
-      // The else branch must keep the plain hosted install as a distinct line
-      // (not the corepack clone line, which contains the same substring);
-      // dropping it or making both branches clone would force clone onto
-      // NTFS, which rejects copy-on-write (ERR_PNPM_LINKING_FAILED). The
-      // YAML folded block keeps the first statement on line 1 and folds the
-      // rest with leading two-space indents.
-      const installLines = install!.run.split('\n').map(line => line.trim())
-      expect(installLines).toContain('} else {')
-      expect(installLines.some(line => line === 'pnpm install --frozen-lockfile'), `${jobName} else branch must keep the plain hosted install`).toBe(true)
-      // The ReFS branch must not use the interpolated empty-flag form, which
-      // passes a stray "" positional argument to pnpm.
-      expect(install!.run).not.toContain('$cloneFlag')
+      expect(install, `${jobName} must define the immutable install`).toBeDefined()
+      expect(install!.run.trim()).toBe('nub ci')
     }
 
     expect(windowsCoverage.name).toBe('windows node 24 / coverage')
@@ -462,15 +406,15 @@ describe('CI workflow', () => {
     const coverageCommands = coverageSteps.filter((step): step is Record<string, unknown> & { run: string } => (
       isRecord(step) && typeof step.run === 'string'
     ))
-    expect(coverageCommands.map(step => step.run)).toContain('pnpm run check:ci:coverage')
+    expect(coverageCommands.map(step => step.run)).toContain('nub run check:ci:coverage')
     // Windows coverage runs zero-build like the Linux lane: workspace imports
     // resolve to src through the tsconfig paths map, and the lib-consuming
     // suites (webworker-packer image-loadable, webworker-runtime
     // transform-corpus, client ui-trajectory client-bundle) self-skip on
     // unbuilt checkouts. The regex catches a regression spelled as
-    // 'corepack pnpm run build' or folded into a multi-line run block, which
+    // 'nub run build' or folded into a multi-line run block, which
     // an exact string match would miss.
-    expect(coverageCommands.every(step => !/\bpnpm\s+run\s+build(?:\s|$)/.test(step.run))).toBe(true)
+    expect(coverageCommands.every(step => !/\bnub\s+run\s+build(?:\s|$)/.test(step.run))).toBe(true)
 
     // windows-native-tests runs the Windows-specific specs.
     expect(windowsNativeTests.name).toBe('windows node 24 / native tests')
@@ -491,10 +435,10 @@ describe('CI workflow', () => {
     expect(channelCheck?.['continue-on-error']).not.toBe(true)
     expect(channelCheck?.run).toContain('node apps/desktop/tests/updates/electron-updater/check-versions.mjs')
     expect(buildCommands.indexOf(channelCheck!))
-      .toBeGreaterThan(buildCommands.findIndex(step => step.run === 'pnpm run check:ci:windows-blocking'))
+      .toBeGreaterThan(buildCommands.findIndex(step => step.run === 'nub run check:ci:windows-blocking'))
     const observational = buildCommands.find(step => step.id === 'observational')
     expect(observational).toMatchObject({
-      run: 'pnpm run check:ci:windows-observational-ready',
+      run: 'nub run check:ci:windows-observational-ready',
       shell: 'pwsh',
       'continue-on-error': true,
       'timeout-minutes': 15,
@@ -505,7 +449,7 @@ describe('CI workflow', () => {
     })
     expect(observational?.if).toBeUndefined()
     expect(buildCommands.findIndex(step => step.id === 'observational'))
-      .toBeGreaterThan(buildCommands.findIndex(step => step.run === 'pnpm run check:ci:windows-blocking'))
+      .toBeGreaterThan(buildCommands.findIndex(step => step.run === 'nub run check:ci:windows-blocking'))
     const report = buildCommands.find(step => step.name === 'Report Windows observational failures')
     expect(report).toMatchObject({
       'continue-on-error': true,
@@ -519,27 +463,13 @@ describe('CI workflow', () => {
     expect(serialWindows.if).toBe("github.event_name == 'push' && github.ref == 'refs/heads/master'")
     expect(serialWindows['runs-on']).toEqual(['self-hosted', 'dsh-win-ci', 'windows'])
     expect(serialWindows.name).toBe('serial / windows (self-hosted standby)')
-    // Its store must share the ReFS workspace volume for clone; the install
-    // must carry the same filesystem branch as the PR jobs.
+    // The install is the plain immutable one: nub has no store or clone knob.
     const serialSteps = serialWindows.steps as unknown[]
-    const serialStore = serialSteps.find((step): step is Record<string, unknown> & { run: string } => (
-      isRecord(step) && step.name === 'Configure persistent pnpm store' && typeof step.run === 'string'
-    ))
-    expect(serialStore).toBeDefined()
-    expect(serialStore!.run).toContain('[IO.Path]::GetPathRoot($env:GITHUB_WORKSPACE)')
-    expect(serialStore!.run).toContain("'.pnpm-store'")
     const serialInstall = serialSteps.find((step): step is Record<string, unknown> & { run: string } => (
       isRecord(step) && step.name === 'Install (immutable)' && typeof step.run === 'string'
     ))
     expect(serialInstall).toBeDefined()
-    expect(serialInstall!.run).toContain("$fs -eq 'ReFS'")
-    expect(serialInstall!.run).toContain('--package-import-method=clone')
-    expect(serialInstall!.run).toContain('corepack pnpm install')
-    // Distinct else-branch line, as for the PR jobs: the corepack clone line
-    // contains the plain-install substring too.
-    expect(serialInstall!.run.split('\n').map(line => line.trim())).toContain('} else {')
-    expect(serialInstall!.run.split('\n').map(line => line.trim())).toContain('pnpm install --frozen-lockfile')
-    expect(serialInstall!.run).not.toContain('$cloneFlag')
+    expect(serialInstall!.run.trim()).toBe('nub ci')
     // The unsharded reference runs the whole coverage inventory at the same
     // per-test budget the PR coverage lane grants; the default 5000ms times
     // out load-sensitive store scans (e.g. gen-third-party-notices).
@@ -563,13 +493,13 @@ describe('CI workflow', () => {
     expect(node24Bench.env).toBeUndefined()
     expect(node24Bench.steps).toContainEqual({
       name: 'Install benchmark browser and hosted dependencies',
-      run: 'pnpm --filter @deepseek-ai/dsh-benchmarks exec playwright install --with-deps chromium',
+      run: 'nub exec -F @deepseek-ai/dsh-benchmarks playwright install --with-deps chromium',
     })
     expect(JSON.stringify(node24Bench.steps)).not.toContain('DSH_CI_FAILOVER_LINUX')
     expect(node24Bench.steps).toContainEqual({
       name: 'Run performance benchmarks',
       env: { DSH_GATE_VERBOSE: '1' },
-      run: 'pnpm run check:ci:bench',
+      run: 'nub run check:ci:bench',
     })
     expect(windowsAggregate.needs).not.toContain('serial-windows')
 
@@ -649,10 +579,10 @@ describe('CI workflow', () => {
     const unit = unitDarwin.steps.filter(isRecord).find(step => step.name === 'Unit tests (darwin parity)')
     // The whole unit inventory on a shared macos-latest runner pays the same
     // scheduling delay the coverage lanes absorb; the ci-unit aggregate is the
-    // `pnpm run test` path that consumes the variable, and the value is the
+    // `nub run test` path that consumes the variable, and the value is the
     // coverage lane's so the two budget classes cannot drift apart.
     expect(unit).toMatchObject({
-      run: 'pnpm run check:ci:unit',
+      run: 'nub run check:ci:unit',
       env: { DSH_COVERAGE_TEST_TIMEOUT_MS: coverage.env.DSH_COVERAGE_TEST_TIMEOUT_MS },
     })
   })
@@ -706,20 +636,6 @@ describe('CI workflow', () => {
     expect(aggregate.needs).toContain('node-24-bench')
   })
 
-  it('always restores the hosted benchmark pnpm cache', () => {
-    const benchmark = workflowJob(loadWorkflow('.github/workflows/ci.yml'), 'node-24-bench')
-    if (!Array.isArray(benchmark.steps)) throw new TypeError('benchmark job must define steps')
-    const caches = benchmark.steps.filter(step => isRecord(step) && step.uses === 'actions/cache/restore@v6.1.0')
-
-    expect(caches).toHaveLength(1)
-    expect(caches[0]).not.toHaveProperty('if')
-    expect(caches[0]).toMatchObject({
-      with: {
-        path: '${{ steps.pnpm-store.outputs.path }}',
-        key: "${{ runner.os }}-node-${{ env.PRIMARY_NODE_VERSION }}-pnpm-${{ hashFiles('pnpm-lock.yaml') }}",
-      },
-    })
-  })
 
   it('bounds the complete benchmark job to twenty minutes', () => {
     const benchmark = workflowJob(loadWorkflow('.github/workflows/ci.yml'), 'node-24-bench')
@@ -728,7 +644,7 @@ describe('CI workflow', () => {
     expect(benchmark.steps).toContainEqual({
       name: 'Run performance benchmarks',
       env: { DSH_GATE_VERBOSE: '1' },
-      run: 'pnpm run check:ci:bench',
+      run: 'nub run check:ci:bench',
     })
   })
 
@@ -883,7 +799,7 @@ describe('CI workflow', () => {
     }
   })
 
-  it('redirects the Node compile cache to the data-volume runner temp before the first pnpm call', () => {
+  it('redirects the Node compile cache to the data-volume runner temp before the first nub call', () => {
     const prWorkflow = loadWorkflow('.github/workflows/ci.yml')
     const masterWorkflow = loadWorkflow('.github/workflows/ci-master.yml')
     const redirectLanes = [
@@ -900,16 +816,16 @@ describe('CI workflow', () => {
           && step.run.includes('NODE_COMPILE_CACHE=${{ runner.temp }}/node-compile-cache')
           && step.run.includes('"$GITHUB_ENV"')
       ))
-      // Removing this injection would send every pnpm call in the lane (setup,
+      // Removing this injection would send every nub call in the lane (setup,
       // store-path probe, install, and the gate) back to the root partition's
       // /tmp; rationale in
       // .github/workflows/ci.yml.
       expect(redirectStepIndex, `${jobKey} must inject NODE_COMPILE_CACHE into GITHUB_ENV`).toBeGreaterThan(-1)
-      const pnpmSetupIndex = job.steps.findIndex((step): step is Record<string, unknown> & { uses: string } => (
-        isRecord(step) && typeof step.uses === 'string' && step.uses.includes('pnpm/action-setup')
+      const nubSetupIndex = job.steps.findIndex((step): step is Record<string, unknown> & { uses: string } => (
+        isRecord(step) && step.uses === 'nubjs/setup-nub@v0'
       ))
-      expect(pnpmSetupIndex, `${jobKey} must run pnpm/action-setup`).toBeGreaterThan(-1)
-      expect(redirectStepIndex, `${jobKey} must redirect before pnpm/action-setup runs pnpm`).toBeLessThan(pnpmSetupIndex)
+      expect(nubSetupIndex, `${jobKey} must install nub`).toBeGreaterThan(-1)
+      expect(redirectStepIndex, `${jobKey} must redirect before nub runs`).toBeLessThan(nubSetupIndex)
     }
   })
 
@@ -1355,9 +1271,9 @@ describe('Python release workflows', () => {
     expect(manylinuxAddon).toMatchObject({ if: "runner.os == 'Linux'" })
     expect(JSON.stringify(manylinuxAddon)).toContain('manylinux_2_28_x86_64')
     expect(JSON.stringify(manylinuxAddon)).toContain('manylinux_2_28_aarch64')
-    expect(JSON.stringify(manylinuxAddon)).toContain('npm_config_build_from_source=true pnpm --config.verifyDepsBeforeRun=false run install')
-    expect(JSON.stringify(manylinuxAddon)).toContain('pnpm_setup_root')
-    expect(JSON.stringify(manylinuxAddon)).toContain('$pnpm_setup_root:$pnpm_setup_root:ro')
+    expect(JSON.stringify(manylinuxAddon)).toContain('npm_config_build_from_source=true nub run install')
+    expect(JSON.stringify(manylinuxAddon)).toContain('nub_home_dir')
+    expect(JSON.stringify(manylinuxAddon)).toContain('$nub_home_dir:$nub_home_dir:ro')
     expect(JSON.stringify(manylinuxAddon)).toContain('node-pty-glibc-versions.txt')
     expect(JSON.stringify(manylinuxAddon)).toContain('le 2.28')
     expect(macosCheck).toMatchObject({ if: "runner.os == 'macOS'" })
@@ -1692,7 +1608,7 @@ describe('npm release workflows', () => {
         'if [[ -n "$RELEASE_DIST_TAG" ]]; then',
         '  args+=(--dist-tag "$RELEASE_DIST_TAG")',
         'fi',
-        'pnpm run release:publish --family vendor --from dist/npm-vendor "${args[@]}"',
+        'nub run release:publish --family vendor --from dist/npm-vendor "${args[@]}"',
         '',
       ].join('\n'),
     })
@@ -1733,8 +1649,8 @@ describe('npm release workflows', () => {
     const combined = commands.find(command => command.includes('verify-package-dependencies'))
     expect(combined).toContain('verify-npm-install-layout')
     expect(combined).toContain('wait "$dependencies_pid"')
-    expect(commands).not.toContain('pnpm run verify-package-dependencies')
-    expect(commands).not.toContain('pnpm run verify-npm-install-layout')
+    expect(commands).not.toContain('nub run verify-package-dependencies')
+    expect(commands).not.toContain('nub run verify-npm-install-layout')
     expect(String(dependencies['runs-on'])).toContain('blacksmith-4vcpu-ubuntu-2404')
   })
 })
@@ -1762,7 +1678,7 @@ describe('Documentation site publication', () => {
     )
     expect(verify).toMatchObject({
       env: { RELEASE_PUBLISH: 'true' },
-      run: 'pnpm run release:verify --family dsh',
+      run: 'nub run release:verify --family dsh',
     })
     // Complete history: the release scripts read tags.
     expect(checkout).toMatchObject({ with: { 'fetch-depth': 0 } })

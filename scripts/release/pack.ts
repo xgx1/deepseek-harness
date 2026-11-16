@@ -11,7 +11,7 @@
 import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { parseArgs } from 'node:util'
-import { pnpmInvocation } from '../pnpm-invocation.ts'
+import { pmInvocation } from '../pm-invocation.ts'
 import { releaseFamily, tarballName, type ReleaseFamily, type ReleaseMember } from './families.ts'
 import { isEntry, runConcurrent } from './process.ts'
 import { PUBLISH_ORDER_FILE, packedManifest, tarballFiles } from './tarball.ts'
@@ -46,24 +46,15 @@ function validatePackedMember(family: ReleaseFamily, member: ReleaseMember, dest
 async function packMembers(
   family: ReleaseFamily, members: readonly ReleaseMember[], destination: string, concurrency: number,
 ): Promise<string[]> {
-  if (concurrency === 1) {
-    const order: string[] = []
-    for (const member of members) {
-      const invocation = pnpmInvocation(['--dir', member.directory, 'pack', '--pack-destination', destination])
-      await runConcurrent(invocation.command, invocation.args)
-      order.push(validatePackedMember(family, member, destination))
-    }
-    return order
-  }
   if (members.length === 0) return []
-  const invocation = pnpmInvocation([
-    'pack',
-    '--recursive',
-    `--workspace-concurrency=${String(concurrency)}`,
-    ...members.map(member => `--filter=${member.name}`),
-    '--pack-destination', destination,
-  ])
-  await runConcurrent(invocation.command, invocation.args)
+  const queue = [...members]
+  const workers = Array.from({ length: Math.min(concurrency, members.length) }, async () => {
+    for (let member = queue.shift(); member !== undefined; member = queue.shift()) {
+      const invocation = pmInvocation(['pack', '--pack-destination', destination])
+      await runConcurrent(invocation.command, invocation.args, { cwd: member.directory })
+    }
+  })
+  await Promise.all(workers)
   return members.map(member => validatePackedMember(family, member, destination))
 }
 

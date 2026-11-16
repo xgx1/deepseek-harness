@@ -63,7 +63,7 @@ if (import.meta.main) {
   const files = cordisConfigFiles(root)
 
   for (const file of files) {
-    const document = loadCordisYaml(readFileSync(resolve(root, file), 'utf8'))
+    const document = loadCordisYaml(readFileSync(resolve(root, file), 'utf8'), file)
     if (!isUnknownArray(document)) {
       errors.push(`${file}: root must be a Loader entry array`)
       continue
@@ -141,7 +141,7 @@ function validatePresetPlaneSeparation(): string[] {
   const problems: string[] = []
   // The shipped Web surface is two bundle layers over an empty root; the web
   // layer is its host patch followed by one patch file per shipped preset.
-  const hostFile = 'packages/bundle/base/cordis.patch.yml'
+  const hostFile = 'packages/bundle/base/cordis.patch.toml'
   const overlayDir = 'packages/bundle/web-app'
   const overlayManifest = JSON.parse(readFileSync(resolve(root, overlayDir, 'package.json'), 'utf8')) as { dsh: { bundle: DshBundleManifest } }
   const overlayFiles = bundlePatchFiles(overlayManifest.dsh.bundle).map(file => `${overlayDir}/${file.replace(/^\.\//, '')}`)
@@ -168,7 +168,7 @@ function validatePresetPlaneSeparation(): string[] {
 
 /** Every entry of one config file, or an empty list when it is not an entry array. */
 function loadEntries(file: string): unknown[] {
-  const document = loadCordisYaml(readFileSync(resolve(root, file), 'utf8'))
+  const document = loadCordisYaml(readFileSync(resolve(root, file), 'utf8'), file)
   return isUnknownArray(document) ? document : []
 }
 

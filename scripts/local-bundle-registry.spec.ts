@@ -13,7 +13,7 @@ import { generateOfficialBundleCatalog } from './gen-official-bundle-catalog.ts'
 import {
   createRegistryManifest,
   hostPlatform,
-  pnpmInvocationFor,
+  pmInvocationFor,
   readPackedArtifacts,
   readReleaseMembers,
   readWorkspacePackages,
@@ -436,26 +436,28 @@ describe('run record', () => {
 })
 
 /**
- * Run one pnpm command in a profile-shaped directory, terminating and awaiting it with the test.
+ * Run one package-manager command in a profile-shaped directory, terminating and awaiting it with the test.
  * @param options - consumer directory, environment, the store and cache directories an installing
  *   command shares, and the arguments to append.
  * @returns The settled child result.
  */
-async function pnpmIn(options: {
+async function pmIn(options: {
   readonly consumer: string
   readonly environment: NodeJS.ProcessEnv
   readonly store?: string
   readonly cache?: string
   readonly args: readonly string[]
 }): Promise<{ exitCode?: number | null; stdout: string; stderr: string; timedOut: boolean }> {
-  const invocation = pnpmInvocationFor([
-    ...options.args,
-    ...options.store === undefined ? [] : ['--store-dir', options.store],
-    ...options.cache === undefined ? [] : ['--cache-dir', options.cache],
-    '--config.fetch-retries=0',
-  ])
+  const invocation = pmInvocationFor(options.args)
+  // nub takes its store-wide settings from the npm_config_* environment rather than package-manager flags.
+  const environment: NodeJS.ProcessEnv = {
+    ...options.environment,
+    ...options.store === undefined ? {} : { npm_config_store_dir: options.store },
+    ...options.cache === undefined ? {} : { npm_config_cache_dir: options.cache },
+    npm_config_fetch_retries: '0',
+  }
   const child = execa(invocation.command, invocation.args, {
-    cwd: options.consumer, env: options.environment, extendEnv: false, reject: false, timeout: 240_000,
+    cwd: options.consumer, env: environment, extendEnv: false, reject: false, timeout: 240_000,
   })
   onTestFinished(async () => {
     child.kill('SIGKILL')
@@ -480,7 +482,7 @@ function installedPayload(consumer: string): string {
 }
 
 describe('package cache freshness', () => {
-  it('installs a rebuilt archive at the same version through a retained pnpm store', { timeout: 300_000 }, async () => {
+  it('installs a rebuilt archive at the same version through a retained nub store', { timeout: 300_000 }, async () => {
     const temporary = temporaryDirectory('dsh-local-registry-cache-')
     const store = join(temporary, 'store')
     const cache = join(temporary, 'cache')
@@ -489,7 +491,7 @@ describe('package cache freshness', () => {
     // A retained store, metadata cache, and npm configuration, so the second installation cannot pass by starting empty.
     const environment = { ...process.env, npm_config_userconfig: userConfig }
 
-    const install = async (run: string, source: string): Promise<{ payload: string; settings: string }> => {
+    const install = async (run: string, source: string): Promise<string> => {
       const destination = join(temporary, run, 'artifacts')
       mkdirSync(destination, { recursive: true })
       const { artifact } = fabricate({ destination, name: '@dsh-local/fixture', version: '1.0.0', source })
@@ -498,25 +500,25 @@ describe('package cache freshness', () => {
       })
       onTestFinished(() => registry.close())
       const consumer = consumerDirectory(temporary, `consumer-${run}`)
-      const result = await pnpmIn({
+      const result = await pmIn({
         consumer, environment, store, cache,
-        args: ['add', '@dsh-local/fixture@1.0.0', `--registry=${registry.url}`],
+        // The fixture is the consumer's own root package and a brand-new name on a local registry,
+        // so the add allows the root update and the download and name policy checks that only a
+        // public registry can answer. Its publication time is this run's packing time, which nub's
+        // strict minimumReleaseAge rejects until this one package is exempted: nothing is persisted,
+        // and the artifact keeps the time it was packed at.
+        args: ['add', '@dsh-local/fixture@1.0.0', '--ignore-workspace-root-check', '--allow-low-downloads',
+          '--minimum-release-age-exclude=@dsh-local/fixture', `--registry=${registry.url}`],
       })
       expect(result.timedOut, `${result.stdout}\n${result.stderr}`).toBe(false)
       expect(result.exitCode, `${result.stdout}\n${result.stderr}`).toBe(0)
       await registry.close()
-      return { payload: installedPayload(consumer), settings: readFileSync(join(consumer, 'pnpm-workspace.yaml'), 'utf8') }
+      return installedPayload(consumer)
     }
 
-    const first = await install('first', 'export default "first build"\n')
-    expect(first.payload).toContain('first build')
-    // pnpm 11's default minimumReleaseAge is 24 hours, and its non-strict mode records the exemption it granted
-    // instead of faking an older publication time for a locally packed artifact.
-    expect(first.settings).toContain('minimumReleaseAgeExclude')
-    expect(first.settings).toContain('@dsh-local/fixture@1.0.0')
-
-    const second = await install('second', 'export default "second build"\n')
-    expect(second.payload).toContain('second build')
+    expect(await install('first', 'export default "first build"\n')).toContain('first build')
+    // The retained store and metadata cache must serve the second run's rebuilt bytes, not the first build.
+    expect(await install('second', 'export default "second build"\n')).toContain('second build')
   })
 })
 
@@ -534,24 +536,27 @@ describe('same-version iteration', () => {
       const { artifact } = fabricate({ destination, name: '@dsh-local/fixture', version: '1.0.0', source: `export default ${payload}\n` })
       return startBundleRegistry({ directory: destination, artifacts: [artifact], workspaceNames: ['@dsh-local/fixture'] })
     }
-    const add = (url: string) => pnpmIn({ consumer, environment, store, args: ['add', '@dsh-local/fixture@1.0.0', `--registry=${url}`] })
+    const add = (url: string) => pmIn({ consumer, environment, store, args: ['add', '@dsh-local/fixture@1.0.0',
+      '--ignore-workspace-root-check', '--allow-low-downloads', '--minimum-release-age-exclude=@dsh-local/fixture',
+      `--registry=${url}`] })
 
     const first = await serve('run-a', '"A"')
     expect((await add(first.url)).exitCode).toBe(0)
     expect(installedPayload(consumer)).toContain('"A"')
     await first.close()
 
-    // A new run answers at a new URL, so the recorded tarball no longer verifies against it.
+    // A new run answers at a new URL with rebuilt bytes at the same version. nub keeps the version
+    // its lockfile already resolves and reports success instead of refusing the stale tarball URL,
+    // so the earlier build survives the change of run.
     const second = await serve('run-b', '"B"')
     onTestFinished(() => second.close())
-    const refused = await add(second.url)
-    expect(refused.exitCode).not.toBe(0)
-    expect(`${refused.stdout}${refused.stderr}`).toContain('ERR_PNPM_TARBALL_URL_MISMATCH')
+    const stale = await add(second.url)
+    expect(stale.exitCode, `${stale.stdout}\n${stale.stderr}`).toBe(0)
     expect(installedPayload(consumer)).toContain('"A"')
 
-    // pnpm's own remedy for that error: drop the stale resolution, then resolve again from the new run.
-    const cleaned = await pnpmIn({ consumer, environment, args: ['clean', '--lockfile'] })
-    expect(cleaned.exitCode, `${cleaned.stdout}\n${cleaned.stderr}`).toBe(0)
+    // nub's re-resolution input is the lockfile, so dropping it is this toolchain's equivalent of
+    // `pnpm clean --lockfile`: the next add resolves against the run its URL names.
+    rmSync(join(consumer, 'pnpm-lock.yaml'))
     const reinstalled = await add(second.url)
     expect(reinstalled.exitCode, `${reinstalled.stdout}\n${reinstalled.stderr}`).toBe(0)
     expect(installedPayload(consumer)).toContain('"B"')

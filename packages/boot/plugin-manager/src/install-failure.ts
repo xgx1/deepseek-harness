@@ -1,7 +1,7 @@
 /**
- * What a failed pnpm run was, read off how it ended and what it printed:
- * pnpm names its failures with stable `ERR_PNPM_*` codes and Node's errno
- * names, which the run's captured tail carries whatever the locale.
+ * What a failed package-manager run was, read off how it ended and what it printed:
+ * a run names its failures with stable `ERR_NUB_*` codes, Node's errno names, and
+ * a few fixed sentences, which its captured tail carries whatever the locale.
  * @module @deepseek-ai/dsh-plugin-manager/install-failure
  */
 
@@ -17,16 +17,19 @@ export interface InstallFailureFacts {
   readonly timedOut?: boolean
 }
 
-/** Patterns in the order they decide: a specific code before the generic network family. */
+/**
+ * Patterns in the order they decide: a specific code before the generic network family.
+ * `ERR_PNPM_` codes are matched too, because a deployment may configure pnpm as its launcher.
+ */
 const LOG_KINDS: readonly [PluginInstallFailureKind, RegExp][] = [
-  ['build-blocked', /ERR_PNPM_IGNORED_BUILDS|Ignored build scripts|ERR_PNPM_GIT_DEP_PREPARE_NOT_ALLOWED/],
-  ['not-found', /ERR_PNPM_FETCH_404|\bE404\b|404 Not Found|Not Found - GET/],
-  ['no-matching-version', /ERR_PNPM_NO_MATCHING_VERSION|\bETARGET\b|No matching version/],
+  ['build-blocked', /ERR_(?:PNPM|NUB)_IGNORED_BUILDS|Ignored build scripts|ERR_(?:PNPM|NUB)_GIT_DEP_PREPARE_NOT_ALLOWED/],
+  ['not-found', /ERR_(?:PNPM|NUB)_FETCH_404|\bE404\b|404 Not Found|Not Found - GET|package not found/],
+  ['no-matching-version', /ERR_(?:PNPM|NUB)_NO_MATCHING_VERSION|\bETARGET\b|[Nn]o matching version/],
   ['disk-full', /\bENOSPC\b|no space left on device/i],
   ['permission', /\bEACCES\b|\bEPERM\b|permission denied/i],
   ['integrity', /ERR_PNPM_TARBALL_INTEGRITY|ERR_PNPM_BAD_TARBALL_SIZE|\bEINTEGRITY\b/],
   ['unknown', /The requested URL returned error: 40[134]\b/],
-  ['network', /\bENOTFOUND\b|\bECONNRESET\b|\bETIMEDOUT\b|\bECONNREFUSED\b|\bEAI_AGAIN\b|ERR_PNPM_META_FETCH_FAIL|ERR_PNPM_FETCH_5\d\d|ERR_PNPM_FETCH_TIMEOUT|\bFETCH_ERROR\b|socket hang up|Could not resolve host|unable to access/],
+  ['network', /\bENOTFOUND\b|\bECONNRESET\b|\bETIMEDOUT\b|\bECONNREFUSED\b|\bEAI_AGAIN\b|ERR_(?:PNPM|NUB)_(?:META_)?FETCH_(?:FAIL|5\d\d|TIMEOUT)|\bFETCH_ERROR\b|socket hang up|Could not resolve host|unable to access|Connection refused|failed to fetch/],
 ]
 
 /**
@@ -36,6 +39,7 @@ const LOG_KINDS: readonly [PluginInstallFailureKind, RegExp][] = [
  */
 export function classifyInstallFailure(facts: InstallFailureFacts): PluginInstallFailureKind {
   if (facts.timedOut === true) return 'timeout'
+  // The kind keeps its published name; it now reports the package manager the profile configures.
   if ((facts.cause as NodeJS.ErrnoException | undefined)?.code === 'ENOENT') return 'pnpm-missing'
   for (const [kind, pattern] of LOG_KINDS) {
     if (pattern.test(facts.log)) return kind

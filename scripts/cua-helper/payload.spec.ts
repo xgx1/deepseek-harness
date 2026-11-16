@@ -1,12 +1,12 @@
 /** Final application bytes and source identity survive packaging; invalid inputs never reach publication. */
 import { execFileSync } from 'node:child_process'
 import { chmodSync, cpSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, symlinkSync, utimesSync, writeFileSync } from 'node:fs'
-import { createRequire } from 'node:module'
 import { tmpdir } from 'node:os'
-import { dirname, join, resolve } from 'node:path'
+import { join, resolve } from 'node:path'
 import { execa } from 'execa'
 import { create } from 'tar'
 import { expect, it, onTestFinished } from 'vitest'
+import { pmInvocation } from '../pm-invocation.ts'
 import { CUA_APPLICATION, CUA_ARCHITECTURES, CUA_MANIFEST, cuaApplicationDigest, readCuaApplication, sealCuaApplication, stageCuaHelperPayload, verifyCuaHelperPayload } from './payload.ts'
 import { verifyCuaHelperTarball } from './verify-tarball.ts'
 
@@ -63,8 +63,6 @@ it.skipIf(process.platform === 'win32')('verifies staged and repacked provider b
 
 it.skipIf(process.platform === 'win32')('keeps npm tarball bytes when reusing a helper and changes them after re-signing', async ({ signal }) => {
   const f = fixture()
-  const require = createRequire(import.meta.url)
-  const pnpm = join(dirname(require.resolve('pnpm')), 'bin/pnpm.cjs')
   const pack = async (label: string, mtime: Date): Promise<Buffer> => {
     const packageRoot = join(f.root, label, 'provider')
     const output = join(f.root, label, 'packed')
@@ -79,8 +77,9 @@ it.skipIf(process.platform === 'win32')('keeps npm tarball bytes when reusing a 
     for (const entry of readdirSync(packageRoot, { recursive: true, withFileTypes: true })) {
       if (entry.isFile()) utimesSync(join(entry.parentPath, entry.name), mtime, mtime)
     }
-    const result = await execa(process.execPath, [pnpm, '--dir', packageRoot, 'pack', '--pack-destination', output], {
-      cwd: packageRoot, env: { CI: 'true' }, cancelSignal: signal, killDescendants: true, reject: false,
+    const invocation = pmInvocation(['pack', '--pack-destination', output])
+    const result = await execa(invocation.command, invocation.args, {
+      cwd: packageRoot, env: { ...process.env, CI: 'true' }, cancelSignal: signal, killDescendants: true, reject: false,
     })
     expect(result.isCanceled).toBe(false)
     expect(result.signal).toBeUndefined()

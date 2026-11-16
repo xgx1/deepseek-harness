@@ -30,7 +30,7 @@ Run the SSH helper on a remote machine without installing Node or npm packages. 
 This private workspace produces release archives; it is not a profile plugin or an npm CLI. From a checkout with dependencies installed, build the current native platform:
 
 ```sh
-pnpm exec tsx scripts/build-exe-for-ssh-helper.ts
+nub scripts/build-exe-for-ssh-helper.ts
 ```
 
 The builder requires Node 24, a C/C++ compiler and the development headers from that Node installation. Linux additionally needs `musl-gcc`; its node-pty addon must meet the glibc baseline. The [native workflow](../../../.github/workflows/build-exe-for-ssh-helper.yml) prepares the compatible addon before packaging. `--target` selects one native target, `--skip-build` reuses prepared JS/native outputs, and `--dry-run` validates the target and dependency declarations without building.

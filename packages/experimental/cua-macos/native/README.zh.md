@@ -23,7 +23,7 @@ kind: "package-reference"
 <a id="build-and-service"></a>
 ## 构建与服务
 
-运行 `pnpm --dir packages/experimental/cua-macos run build:native`，在 `native/bin/darwin-<arch>` 下生成带签名的 `DSH Computer Use.app`，`current.json` 选择完整的内容摘要目录。默认使用临时签名；正式打包可传入 `--identity` 指定 Developer ID，并由发布流程完成公证。Host 运行应用内的 `--ensure-shared` 入口，经 LaunchServices 后台启动服务。最后一条连接完成清理后，服务退出。 helper 嵌套在另一个 `.app` 内时，启动器先把完整的已签名应用复制到 `~/Library/Application Support/DeepSeek Harness/Computer Use/<runtime-key>/`，再启动它。每个不可变目录都校验可执行文件哈希和应用签名，旧目录保留给仍在运行的安装版本使用，使两项 macOS 权限都归属于 helper。校验失败会中止启动；删除报错中指定的缓存目录后再重试。
+运行 `nub run --cwd packages/experimental/cua-macos build:native`，在 `native/bin/darwin-<arch>` 下生成带签名的 `DSH Computer Use.app`，`current.json` 选择完整的内容摘要目录。默认使用临时签名；正式打包可传入 `--identity` 指定 Developer ID，并由发布流程完成公证。Host 运行应用内的 `--ensure-shared` 入口，经 LaunchServices 后台启动服务。最后一条连接完成清理后，服务退出。 helper 嵌套在另一个 `.app` 内时，启动器先把完整的已签名应用复制到 `~/Library/Application Support/DeepSeek Harness/Computer Use/<runtime-key>/`，再启动它。每个不可变目录都校验可执行文件哈希和应用签名，旧目录保留给仍在运行的安装版本使用，使两项 macOS 权限都归属于 helper。校验失败会中止启动；删除报错中指定的缓存目录后再重试。
 
 源码检出以 `--variant dev` 构建，应用包为 `DSH Computer Use Dev.app`，Bundle ID 为 `com.deepseek.harness.computer-use.dev`。开发版和正式版默认临时签名。临时签名的指定要求包含代码哈希，二进制变化后可能需要重新授权。
 
@@ -41,15 +41,15 @@ kind: "package-reference"
 
 工作流保留 `cua-helper.tgz` 和 `cua-helper.json`。清单记录原始构建的产品版本、commit、Team ID、两份应用摘要、源码摘要和构建摘要。[Release publish](../../../../.github/workflows/release-publish.yml)始终调用该工作流，再按返回的 run ID 和 artifact ID 下载所选产物，生成 provider 的 npm 包。准备步骤校验当前 helper 的源码摘要、选定的构建摘要、两种架构、应用目录、文件字节和执行权限。npm 发布在写入注册表前重新检查实际 provider tarball。无关 commit 或产品版本变化时，复用保留原始清单和已签名字节。普通 PR 发布检查不使用签名凭据。
 
-**Release publish (dsh)** 接受可选的 `cua_macos_run_id`：填写构建运行页面 URL 中 `/actions/runs/` 后的数字，不填 job ID。发布工作流开启 `reuse`，并通过 helper 的 `workflow_call` 参数传入这个选择；这两个复用参数均不出现在 helper 的手动表单中。`cua_macos_run_id` 留空时自动查找，查询这两个工作流最近 14 天创建且已结束的运行，选择未过期的匹配产物。只有旧格式产物 `cua-helper-<run>-<attempt>-<key>` 的运行无法复用。发起新版本发布时，将该字段留空即可查找匹配的 `cua-helper-macos-<run>-<attempt>-<key>` 产物，找不到时会重新构建。选择在 Mac 上执行，早于 pnpm 准备和依赖安装。命中时跳过安装、编译、签名和公证，自动查找未命中时重新构建。手动指定 run ID 时先固定最新 attempt，再选取该 run 历史中最后一次实际执行的 helper job。仅重跑 pack/publish 时仍可使用原 helper 产物；若更新的 helper 执行失败，则不复用更早的成功产物。产物缺失或过期、输入不匹配时直接失败，不改选其他运行。后续 npm 失败不影响成功的 helper job。GitHub API 读取失败会停止选择。运行摘要链接实际构建者；只复用产物的运行不重新上传副本，手动选择时填写摘要所链接的构建 run ID。产物保留 14 天。选择后过期或被删除会使下载失败，不自动改选或构建不同字节；按下方重试说明处理。
+**Release publish (dsh)** 接受可选的 `cua_macos_run_id`：填写构建运行页面 URL 中 `/actions/runs/` 后的数字，不填 job ID。发布工作流开启 `reuse`，并通过 helper 的 `workflow_call` 参数传入这个选择；这两个复用参数均不出现在 helper 的手动表单中。`cua_macos_run_id` 留空时自动查找，查询这两个工作流最近 14 天创建且已结束的运行，选择未过期的匹配产物。只有旧格式产物 `cua-helper-<run>-<attempt>-<key>` 的运行无法复用。发起新版本发布时，将该字段留空即可查找匹配的 `cua-helper-macos-<run>-<attempt>-<key>` 产物，找不到时会重新构建。选择在 Mac 上执行，早于 nub 准备和依赖安装。命中时跳过安装、编译、签名和公证，自动查找未命中时重新构建。手动指定 run ID 时先固定最新 attempt，再选取该 run 历史中最后一次实际执行的 helper job。仅重跑 pack/publish 时仍可使用原 helper 产物；若更新的 helper 执行失败，则不复用更早的成功产物。产物缺失或过期、输入不匹配时直接失败，不改选其他运行。后续 npm 失败不影响成功的 helper job。GitHub API 读取失败会停止选择。运行摘要链接实际构建者；只复用产物的运行不重新上传副本，手动选择时填写摘要所链接的构建 run ID。产物保留 14 天。选择后过期或被删除会使下载失败，不自动改选或构建不同字节；按下方重试说明处理。
 
-[源码摘要](../../../../scripts/cua-helper/build-inputs.ts)覆盖受跟踪的 helper 源码、资源、CUA/Desktop 打包脚本、两份工作流、包与编译器配置、锁定依赖、pnpm 配置和补丁；受跟踪的 `node_modules` 文件也参与比较。包清单只排除版本字段，其余字段保留。构建摘要还包含 preset、Node/Swift/Clang/Python 版本、macOS SDK build、签名身份、Team ID 和证书容器摘要，不包含密码。选择时使用生产运行的 GitHub `head_sha`，独立比较对应 Git 树与包清单 blob 和当前 checkout 的路径、字节及执行权限，不能仅凭产物自报摘要认定源码一致。helper 依赖安装禁用生命周期脚本和 pnpmfile hooks。输入缺失或 GitHub 证据无法读取时失败。没有匹配记录的旧产物需要重新构建。选择仍需等待 Mac runner 并检出代码，消费产物的 pack job 再校验下载的应用字节。
+[源码摘要](../../../../scripts/cua-helper/build-inputs.ts)覆盖受跟踪的 helper 源码、资源、CUA/Desktop 打包脚本、两份工作流、包与编译器配置、锁定依赖、包管理器配置和补丁；受跟踪的 `node_modules` 文件也参与比较。包清单只排除版本字段，其余字段保留。构建摘要还包含 preset、Node/Swift/Clang/Python 版本、macOS SDK build、签名身份、Team ID 和证书容器摘要，不包含密码。选择时使用生产运行的 GitHub `head_sha`，独立比较对应 Git 树与包清单 blob 和当前 checkout 的路径、字节及执行权限，不能仅凭产物自报摘要认定源码一致。helper 依赖安装禁用生命周期脚本和 pnpmfile hooks。输入缺失或 GitHub 证据无法读取时失败。没有匹配记录的旧产物需要重新构建。选择仍需等待 Mac runner 并检出代码，消费产物的 pack job 再校验下载的应用字节。
 
 npm 发布在上传部分包后失败时，只重跑 **Publish to npm**，复用保留期内的 `dsh-npm-tarballs`（7 天）。该 job 上传原 tarball，跳过已发布且字节相同的包。此次重试不要重跑全部 job。若必须新建运行，以同一 commit 和版本重新打包，填写 pack 摘要中的原始构建 `cua_macos_run_id`。原产物不可用或任何重新打包的内容不同时，应停止发布；不能用不同内容替换已有 npm 版本。
 
 启动错误通过当前用户专用、每次启动独立的错误文件和 launcher 的 JSON 错误帧保留错误码与消息。等待启动锁和就绪状态共用一个期限，系统启动应用的耗时计入该预算。就绪记录必须指向本次启动的 PID。新实例启动失败后，launcher 强制终止并等待其退出，再报告失败；清理另有与启动超时等长的期限。连接已有服务失败时不会终止该服务。
 
-应用图标通过 `pnpm --dir packages/experimental/cua-macos run build:icon` 从 [Computer Use 图形](../../cua-bundle/icon.svg)生成。原生图标在图形下添加不透明的白色圆角底板，外侧四角保持透明。系统授权提示和 DSH 权限页使用这个应用图标。
+应用图标通过 `nub run --cwd packages/experimental/cua-macos build:icon` 从 [Computer Use 图形](../../cua-bundle/icon.svg)生成。原生图标在图形下添加不透明的白色圆角底板，外侧四角保持透明。系统授权提示和 DSH 权限页使用这个应用图标。
 
 共享服务在 `/tmp/dsh-cua-<uid>` 下使用仅所有者可访问的 Unix socket，以可执行文件的 SHA-256 区分实例。版本锁选出一个进程，另一个真实可执行路径锁排除同一路径的不同构建。首帧为协议版本 1 的 `hello`，包含运行时标识以及该连接的字节、AX、操作、截图、事件间隔和清理限制。`ready` 返回已核实的运行时标识、PID 和实例 ID。每条连接拥有独立的 AXWorker。stdin/stdout 入口是该服务的诊断代理。
 
@@ -87,7 +87,7 @@ AppKit 在主事件循环上运行。阻塞式 socket 接收与握手使用后�
 
 应用选择向 Host 返回授权记录：区分大小写的 Bundle ID 加上 `macos:bundle-id:` 前缀后计算的 SHA-256 摘要、显示名称、可选的可执行路径和可持久化标记。相同标识的所有安装副本共用授权，包括未签名和临时签名的应用。缺少非空 Bundle ID 时，运行中和未启动应用都对 `macos:executable-path:` 与解析符号链接后的可执行路径计算 SHA-256，仍可保存长期授权。进程路径查询失败时，运行中的有效 Bundle ID 仍可用于授权，记录省略 executablePath；路径可取得时仍须与所选目标一致。两种身份均不可用时，在执行目标操作前返回 APP_PATH_UNAVAILABLE，保留路径查询原因和 errno。PROCESS_INSPECTION_FAILED 表示无法验证进程实例，只有进程检查返回 ESRCH 时才报告进程不存在；两种失败都不触发自动重试。进程号和启动时间只校验存活句柄，不进入已保存身份。Host 从模型结果中移除此记录，并在启动、观察和输入前取得用户许可。此管道协议用于可信 Host 传输，无法隔离另一个已获授权的 shell 进程。
 
-协议声明从[共享协议](../../cua/src/protocol.ts)生成。在仓库根目录运行 `pnpm exec tsx packages/experimental/cua-macos/native/generate-protocol.ts`，包测试检查生成的 JSON 和 Swift 字段/枚举表。模型参数不包含 Host 资源上限和私有启动续接操作。
+协议声明从[共享协议](../../cua/src/protocol.ts)生成。在仓库根目录运行 `nub packages/experimental/cua-macos/native/generate-protocol.ts`，包测试检查生成的 JSON 和 Swift 字段/枚举表。模型参数不包含 Host 资源上限和私有启动续接操作。
 
 
 -----

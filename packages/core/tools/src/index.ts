@@ -341,6 +341,12 @@ export class ToolsService extends Service {
     return this.view(scope).knownNames
   }
 
+  /**
+   * Tool schemas visible to a scope, in name order.
+   * @param scope - the viewing scope, or undefined for the global view.
+   * @param toolSet - the resolved tool set whose caller filters apply, when the caller has one.
+   * @returns the projected schemas the model may call.
+   */
   schemas(scope?: ScopeKey, toolSet?: ResolvedToolSet): ToolSchema[] {
     return this.definitions(scope, toolSet).map(definition => projectToolSchema(definition, true))
   }

@@ -1,11 +1,9 @@
-/** Real-pnpm regression coverage for release packing, selection, hooks, and payload checks. */
+/** Real-package-manager regression coverage for release packing, selection, hooks, and payload checks. */
 
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
 import { createServer, type ServerResponse } from 'node:http'
-import { createRequire } from 'node:module'
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
-import { pathToFileURL } from 'node:url'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { officialClientBuildEnvironment, writeClientBuildRecord } from '../client-build-environment.ts'
 import { runGate, type Gate } from '../run-gates.ts'
@@ -13,10 +11,8 @@ import { removeFixtureSafely } from '../test-fixture-cleanup.ts'
 import { releaseFamily, tarballName } from './families.ts'
 import { packedIdentity, PUBLISH_ORDER_FILE, readPublishOrder } from './tarball.ts'
 
-const require = createRequire(import.meta.url)
 const packScript = resolve(import.meta.dirname, 'pack.ts')
-const tsxHook = pathToFileURL(require.resolve('tsx/esm')).href
-const pnpmEntry = join(dirname(require.resolve('pnpm')), 'bin/pnpm.cjs')
+const nubEntry = process.env.NUB_BIN ?? process.env.npm_execpath ?? 'nub'
 const roots: string[] = []
 const commit = 'abcdef0'
 
@@ -29,7 +25,6 @@ function fixture(): string {
   const root = mkdtempSync(join(tmpdir(), 'dsh-release-pack-'))
   roots.push(root)
   write(join(root, 'package.json'), JSON.stringify({ name: '@deepseek-ai/pack-root', private: true, version: '1.2.3' }))
-  write(join(root, 'pnpm-workspace.yaml'), 'packages:\n  - vendor/*\n  - native/*\n  - packages/*/*\n  - apps/*\n')
   return root
 }
 
@@ -57,10 +52,10 @@ function packGate(root: string, args: string[] = []): Gate {
   return {
     id: 'release-pack-fixture',
     label: 'release pack fixture',
-    displayCommand: 'pnpm exec node release pack fixture',
-    command: process.execPath,
-    args: [pnpmEntry, '--dir', root, 'exec', process.execPath, '--import', tsxHook, packScript, '--family', 'vendor', '--out', 'packed', ...args],
-    env: { npm_execpath: pnpmEntry, DSH_PACK_FIXTURE: root, DSH_CLIENT_COMMIT_HASH: commit },
+    displayCommand: 'node release pack fixture',
+    command: nubEntry,
+    args: ['--cwd', root, packScript, '--family', 'vendor', '--out', 'packed', ...args],
+    env: { npm_execpath: nubEntry, DSH_PACK_FIXTURE: root, DSH_CLIENT_COMMIT_HASH: commit },
   }
 }
 
@@ -116,9 +111,9 @@ afterEach(() => {
 describe('release pack CLI', () => {
   it.each([undefined, '1', '2'])('packs only public family members and records their publish order (concurrency=%s)', async (concurrency) => {
     const root = fixture()
-    // Publication places zebra before alpha; pnpm's workspace dev edge points in the opposite direction.
+    // Publication places zebra before alpha; alpha's peer edge points in the opposite direction.
     packageFixture(root, 'vendor/alpha', '@deepseek-ai/alpha', { peerDependencies: { '@deepseek-ai/zebra': '*' } })
-    packageFixture(root, 'vendor/zebra', '@deepseek-ai/zebra', { devDependencies: { '@deepseek-ai/alpha': 'workspace:*' } })
+    packageFixture(root, 'vendor/zebra', '@deepseek-ai/zebra', { devDependencies: { '@deepseek-ai/alpha': '^1.2.3' } })
     write(join(root, 'vendor/zebra/node_modules/@deepseek-ai/alpha/package.json'), JSON.stringify({ name: '@deepseek-ai/alpha', version: '1.2.3' }))
     packageFixture(root, 'vendor/private', '@deepseek-ai/private', { private: true })
     packageFixture(root, 'native/unselected', '@deepseek-ai/unselected')

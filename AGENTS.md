@@ -81,9 +81,7 @@ Package groups: [packages/README.md](packages/README.md). [Experimental status](
 
 ## Toolchain
 
-`nub` is the declared package manager (`package.json#devEngines.packageManager`) and runs TypeScript files directly, so `tsx` is left to config subprocesses and the source launcher. Workspace members, `overrides`, `patchedDependencies`, and `allowScripts` live in `package.json`; the lockfile is `nub.lock` (pnpm v9 format, so existing lockfile tooling still reads it). `nub ci` is the strict install CI uses; `nub install` writes the lockfile.
-
-`allowScripts` is deny-by-default: a dependency shipping an install script stays out of the install unless listed there, and gets `true` only when the script is genuinely required (esbuild's native binary, lefthook's git hooks, node-pty's PTY backend). `nub pm use pnpm` reverses the switch.
+`nub` is the declared package manager (`package.json#devEngines.packageManager`) and runs TypeScript directly; workspaces, `overrides`, `patchedDependencies`, and the deny-by-default `allowScripts` live in `package.json`, and `nub ci` is CI's strict install ([why](.agents/notes/implemented/architecture/2026-11-16-nub-toolchain.md)).
 
 ## Commands
 

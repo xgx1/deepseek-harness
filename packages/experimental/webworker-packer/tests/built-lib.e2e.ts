@@ -6,7 +6,7 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { execa } from 'execa'
 import { expect, it } from 'vitest'
-import { pnpmInvocation } from '../../../../scripts/pnpm-invocation.ts'
+import { pmInvocation } from '../../../../scripts/pm-invocation.ts'
 
 const experimentalDirectory = fileURLToPath(new URL('../..', import.meta.url))
 const packages = ['webworker-runtime', 'webworker-packer']
@@ -49,7 +49,7 @@ it('loads both tarballs through plain Node and mounts their base image and overl
     const packRoot = join(root, name)
     await mkdir(packRoot, { recursive: true })
     await mkdir(directory, { recursive: true })
-    const invocation = pnpmInvocation(['pack', '--pack-destination', packRoot])
+    const invocation = pmInvocation(['pack', '--pack-destination', packRoot])
     await run(invocation.command, invocation.args, source)
     const archives = (await readdir(packRoot)).filter(file => file.endsWith('.tgz'))
     expect(archives).toHaveLength(1)

@@ -3,7 +3,7 @@
 import { globSync } from 'node:fs'
 
 /**
- * Return repository-relative Cordis Loader YAML paths under `root`.
+ * Return repository-relative Cordis Loader YAML and TOML paths under `root`.
  *
  * Translation consistency records are YAML sidecars, never Loader inputs.
  *
@@ -11,7 +11,7 @@ import { globSync } from 'node:fs'
  * @returns Sorted repository-relative Loader configuration paths.
  */
 export function cordisConfigFiles(root: string): string[] {
-  return globSync(['**/*cordis*.yml', '**/*cordis*.yaml'], {
+  return globSync(['**/*cordis*.yml', '**/*cordis*.yaml', '**/*cordis*.toml'], {
     cwd: root,
     exclude: ['.claude/**', 'node_modules/**', 'vendor/**', '**/*.i18n.yaml'],
   }).sort()

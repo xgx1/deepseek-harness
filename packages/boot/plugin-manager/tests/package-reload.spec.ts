@@ -172,7 +172,7 @@ function mockPnpm(dir: string, trace: string[], run: (args: readonly string[]) =
     trace.push(`pnpm:${String(args[0])}`)
     run(args)
     return {
-      exitCode, output: exitCode === 0 ? 'completed' : 'fixture install failed', truncated: false, logPath: join(dir, 'pnpm.log'),
+      exitCode, output: exitCode === 0 ? 'completed' : 'fixture install failed', truncated: false, logPath: join(dir, 'run.log'),
     }
   })
   onTestFinished(() => { pnpm.mockRestore() })
@@ -601,7 +601,7 @@ it('publishes nothing after installation is cancelled', async () => {
     signal.addEventListener('abort', abort, { once: true })
     started.resolve(undefined)
     try { await stopped.promise } finally { signal.removeEventListener('abort', abort) }
-    return { exitCode: 1, output: 'cancelled', truncated: false, logPath: join(dir, 'pnpm.log') }
+    return { exitCode: 1, output: 'cancelled', truncated: false, logPath: join(dir, 'run.log') }
   })
   const requestId = '9feec888-53de-4c23-8486-965e5a0367b3' as PluginInstallRequestId
   const installing = manager.installBundle('addon', { enabled: true, requestId })
