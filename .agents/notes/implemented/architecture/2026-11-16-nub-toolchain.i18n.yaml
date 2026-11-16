@@ -1,0 +1,19 @@
+# Bilingual-pair consistency record for 2026-11-16-nub-toolchain.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-11-16-nub-toolchain.md
+/agent-note-the-workspace-toolchain-runs-on-nub:
+  en: 8ef79a513f2d6b6f
+  zh: ec6ebd10ada1b905
+/agent-note-the-workspace-toolchain-runs-on-nub/problem:
+  en: 4c577378ede15d8b
+  zh: af03d856b6d1d0b3
+/agent-note-the-workspace-toolchain-runs-on-nub/decision:
+  en: 943297ff7b399c8f
+  zh: b98bb164914441c0
+/agent-note-the-workspace-toolchain-runs-on-nub/alternatives-considered:
+  en: e01cfc3ca05c1090
+  zh: e20aa8be7c774cdc
+/agent-note-the-workspace-toolchain-runs-on-nub/consequences:
+  en: b51edc08ef09633d
+  zh: 59facdd9648c534b
