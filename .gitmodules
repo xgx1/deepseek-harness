@@ -1,0 +1,4 @@
+[submodule "extensions/dsh-super-agent"]
+	path = extensions/dsh-super-agent
+	url = https://github.com/xgx1/dsh-super-agent.git
+	branch = main
