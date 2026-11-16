@@ -26,5 +26,5 @@ shell 消息现在以 `invalid arguments: ` 开头，升权消息同时点名两
 ## 迁移
 
 1. 读取 `tool/result` `error` 的统计或重试规则中，把 v0.2.2-rc.2 的 `JOB_BACKGROUND_DISABLED` 结果视为 `INVALID_ARGS`，把 `IMAGE_UNSUPPORTED_MODEL` 视为 `MODEL_DOES_NOT_SUPPORT_IMAGES`。仅凭 `error` 无法从 `SANDBOX_ESCALATION_UNAVAILABLE` 中分出 shell 情形：只有 v0.2.2-rc.2 的 `bash` 或 `pwsh` 结果的消息含 `no sandboxing executor to escalate` 时，才视为 `INVALID_ARGS`；其余 `SANDBOX_ESCALATION_UNAVAILABLE` 结果保持原义。Session 日志保留写入时的值。
-2. 替换 TypeScript 中对 `'JOB_BACKGROUND_DISABLED'` 或 `'IMAGE_UNSUPPORTED_MODEL'` 的引用；`pnpm run typecheck` 会报出剩余的引用。
+2. 替换 TypeScript 中对 `'JOB_BACKGROUND_DISABLED'` 或 `'IMAGE_UNSUPPORTED_MODEL'` 的引用；`nub run typecheck` 会报出剩余的引用。
 3. 更新那些期望旧 shell 消息的文本匹配：旧消息没有 `invalid arguments: ` 前缀，且只点名 `sandbox_permissions`。

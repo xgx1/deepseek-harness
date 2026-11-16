@@ -9,41 +9,41 @@
   en: 5207d17725c07a27
   zh: 258884c4300ac63a
 /development-guide/setup-tutorial/prerequisites:
-  en: 89e7008a741a290a
-  zh: 78012740025203b0
+  en: 4a1d2ff3ff82a57a
+  zh: c4b815bdada83707
 /development-guide/setup-tutorial/windows-and-wsl-2:
   en: e86be579be6f1813
   zh: 14f6a220337d0861
 /development-guide/setup-tutorial/first-time-setup:
-  en: bb2bab0ef17bfc32
-  zh: 8b7cf7e9e703e6af
+  en: b643d59e7019c21b
+  zh: 307cc60a0e37a538
 /development-guide/contributor-reference:
   en: 3221d1076554001f
   zh: 29f166be6a5c04d9
 /development-guide/contributor-reference/typescript-project-layout:
-  en: 6ffc2bddb59d47a9
-  zh: 2f33cd2a697a1a13
+  en: c7c5f8b6d6d5029b
+  zh: b3144261eb599636
 /development-guide/contributor-reference/environment-variables:
-  en: 9a0b2f1a520cfc68
-  zh: 62c9ec565909f605
+  en: 310a0b2f2b07fb8d
+  zh: 14ffd7875d948ee0
 /development-guide/contributor-reference/git-integrations:
-  en: 075658ecfc10da20
-  zh: 69e664417bbde87e
+  en: 98e5599cdf2e1335
+  zh: 4c25b30a25a76c34
 /development-guide/contributor-reference/ci-gates:
-  en: dfa3a24d9070478f
-  zh: fa889b3536ab58e2
+  en: 3e987d8637da23a0
+  zh: 0795bf338f03cd93
 /development-guide/contributor-reference/daily-commands:
-  en: 08aa6ec1cdabfeb7
-  zh: dcce5ae9d3c829d0
+  en: 732598587d1c5d1b
+  zh: e95f9ee0b1ef12a3
 /development-guide/contributor-reference/profile-runs:
   en: 7ce6264a6a06dc4a
   zh: e12b684f2bef942b
 /development-guide/contributor-reference/application-commands:
-  en: 98828fc2b972bf39
-  zh: 1dc889a3d766bf35
+  en: 8c5f960ae2a6364c
+  zh: 3f536a2d89ad6123
 /development-guide/contributor-reference/todo-markers:
   en: 85b38f78d87fc88f
   zh: 00d5eb625e7dfb61
 /development-guide/contributor-reference/documenting-types-verbatim-ts-type-equiv:
-  en: 6b9b948e0b80cf76
-  zh: 2642f4127ed9b719
+  en: 5dd6ed17a9640a4c
+  zh: 6ed24fc4ced0fc63

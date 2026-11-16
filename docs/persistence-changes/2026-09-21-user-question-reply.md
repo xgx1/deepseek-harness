@@ -52,7 +52,7 @@ Existing logs contain no such source and remain valid. The new source is qualifi
 <a id="verification"></a>
 ## Verification
 
-pnpm exec vitest run packages/interaction/user-questions/tests packages/interaction/tool-ask-user/tests: 81 tests passed. The focused projection, reply, view, and process-group suite passed 70 tests. pnpm run typecheck passed. pnpm run doc-sync passed all 42 gates, including persistence history and translation pairing.
+nubx vitest run packages/interaction/user-questions/tests packages/interaction/tool-ask-user/tests: 81 tests passed. The focused projection, reply, view, and process-group suite passed 70 tests. nub run typecheck passed. nub run doc-sync passed all 42 gates, including persistence history and translation pairing.
 
 <a id="dev-note"></a>
 ## Dev Note

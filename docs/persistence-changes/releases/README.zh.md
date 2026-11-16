@@ -84,11 +84,11 @@ description: "浏览全部已捕获 DSH alpha/RC tag 之间的 Session 持久化
 全部 26 个快照已通过规范图、根摘要和可达类型摘要校验。发行归档检查只读取本树中的清单、记录和快照，不访问 Git、网络或旧版本 checkout；它校验清单覆盖、前驱、before/after、快照类型完整性和双语机器声明。
 
 ```sh
-pnpm run verify-persistence-releases
-pnpm run doc-sync
+nub run verify-persistence-releases
+nub run doc-sync
 ```
 
-标记区间内的索引、清单单元格和结构变化事实由快照生成。默认校验会拒绝陈旧事实。运行 `pnpm run verify-persistence-releases --write` 可在全部机器数据校验通过后刷新这些区间和配对记录；人工概述、源码证据、机器声明和 schema 文件保持不变。
+标记区间内的索引、清单单元格和结构变化事实由快照生成。默认校验会拒绝陈旧事实。运行 `nub run verify-persistence-releases --write` 可在全部机器数据校验通过后刷新这些区间和配对记录；人工概述、源码证据、机器声明和 schema 文件保持不变。
 
 tag 的完整性以清单的捕获范围为准；离线检查不会自动发现后续新 tag。配对记录及 Markdown 链接由常规文档检查校验。[格式模板](../../../.agents/skills/dsh-doc-writing/templates/persistence-release.md)规定单条记录的字段。
 

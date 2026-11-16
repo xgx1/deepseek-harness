@@ -53,8 +53,8 @@ These references describe selected schemas, not historical application replay or
 Before advancing the writer, verify the current catalog and archive the outgoing format. For a V3-to-V4 change, run these commands while the writer and current schema still describe V3:
 
 ```sh
-pnpm run verify-persistence-catalog
-pnpm run verify-persistence-formats --archive 3
+nub run verify-persistence-catalog
+nub run verify-persistence-formats --archive 3
 ```
 
 Replace `3` with the outgoing writer version for other transitions. `--archive N` creates `vN.schema.json` from the current inventory, retains exactly the types reachable from its roots, and removes source line numbers. It refuses an existing destination, a version other than the current writer, invalid or incomplete schemas, and combination with `--write`. Add the snapshot’s bilingual record and source evidence using the [template](../../../.agents/skills/dsh-doc-writing/templates/persistence-format.md). Retain all earlier records. The successor uses the current catalog; copying a new current catalog cannot satisfy the archived predecessor requirement. Follow the [format-version cookbook](../../cookbook/adding-a-session-format-version.md) for runtime changes.
@@ -62,9 +62,9 @@ Replace `3` with the outgoing writer version for other transitions. `--archive N
 The schema definitions and index inside comment markers are generated. After advancing the writer and completing the machine data and authored evidence, refresh their tables and pairing records, then verify:
 
 ```sh
-pnpm run verify-persistence-formats --write
-pnpm run verify-persistence-formats
-pnpm run doc-sync
+nub run verify-persistence-formats --write
+nub run verify-persistence-formats
+nub run doc-sync
 ```
 
 `--write` validates the machine data before updating generated Markdown and pairing records. It preserves authored explanations, machine declarations, and schemas. Default verification also rejects stale pairing records; the standard documentation checks validate translations and local links. Current catalog freshness remains owned by `verify-persistence-catalog`.

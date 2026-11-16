@@ -118,7 +118,7 @@ python3 -c "import json,glob,collections; c=collections.Counter(); [c.update(jso
 
 依赖声明与版本一致性由依赖扫描机械保证；本页既不复述 `devDependencies` 与 `peerDependencies` 的字段规则，也不另立包准入清单。扫描失败时，在本地复现并修正它指名的清单，因为规则的正家是扫描与其策略文件。为了让改动落地而修改扫描或放宽策略不属于常规改动，须经对应领域专家确认。
 
-- 入口：[verify-package-dependencies.ts](../../scripts/verify-package-dependencies.ts)，以 `pnpm run verify-package-dependencies` 运行，被 `scripts/run-gates.ts` 作为 `package-dependencies` 门禁调用，`.github/workflows/release.yml` 也直接运行它。
+- 入口：[verify-package-dependencies.ts](../../scripts/verify-package-dependencies.ts)，以 `nub run verify-package-dependencies` 运行，被 `scripts/run-gates.ts` 作为 `package-dependencies` 门禁调用，`.github/workflows/release.yml` 也直接运行它。
 - 策略正家：[package-dependency-policy.ts](../../scripts/package-dependency-policy.ts) 导出 `PACKAGE_DEPENDENCY_POLICY`；声明面、版本形态与豁免都在该文件定义，包级背景见 [packages/README.zh.md](../../packages/README.zh.md)。
 - 边界：本页不列包清单、字段规则或阈值，只指向正家文件。
 - 查接线：`grep -rn "verify-package-dependencies" package.json .github/workflows scripts/run-gates.ts`。
@@ -128,7 +128,7 @@ python3 -c "import json,glob,collections; c=collections.Counter(); [c.update(jso
 
 ```sh
 # 1. Reproduce what CI reports
-pnpm run verify-package-dependencies
+nub run verify-package-dependencies
 
 # 2. The diagnostic names the manifest, the section, the dependency, and the expected range
 #    packages/example/package.json: dependencies.@deepseek-ai/dsh-base must use workspace:*, found workspace:~
@@ -137,7 +137,7 @@ pnpm run verify-package-dependencies
 #    "dependencies": { "@deepseek-ai/dsh-base": "workspace:*" }
 
 # 4. Re-run the scan until every package matches the published policy
-pnpm run verify-package-dependencies
+nub run verify-package-dependencies
 ```
 
 失去机械保证的两种做法：改检查而不改清单，或者把规则复述到本页、从此与正家漂移。
@@ -229,5 +229,5 @@ hooks.resolve = (specifier, context, next) =>
 
 包源码模块的异步工作在它调用的函数里启动（例如自己处理 rejection 的显式 `main()`），模块顶层不使用 `await`、`for await` 或 `await using`：模块顶层的等待会让每个导入方的求值跟着等待，把 rejection 变成模块求值失败，而且无法降级成浏览器 Worker 镜像使用的同步 CommonJS 包装。
 
-- 判定依据：[verify-no-top-level-await.ts](../../scripts/verify-no-top-level-await.ts)，以 `pnpm run verify-no-top-level-await` 运行，也由 `scripts/run-gates.ts` 作为 `no-top-level-await` 门禁运行；它解析每个 `packages/*/*/src/**/*.{ts,tsx}` 文件，只按声明排除可执行入口：以 `#!` 开头的源码，或包的 `bin` 字段指向的 `lib/` 产物所对应的源码。
+- 判定依据：[verify-no-top-level-await.ts](../../scripts/verify-no-top-level-await.ts)，以 `nub run verify-no-top-level-await` 运行，也由 `scripts/run-gates.ts` 作为 `no-top-level-await` 门禁运行；它解析每个 `packages/*/*/src/**/*.{ts,tsx}` 文件，只按声明排除可执行入口：以 `#!` 开头的源码，或包的 `bin` 字段指向的 `lib/` 产物所对应的源码。
 - 例外：无。

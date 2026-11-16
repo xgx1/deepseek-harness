@@ -52,7 +52,7 @@ The share-viewer variant is written only for a prompt that a LiveShare share rea
 <a id="verification"></a>
 ## Verification
 
-pnpm exec vitest run packages/experimental/liveshare/tests/relay-target-admission.host.spec.ts packages/experimental/liveshare/tests/relay-pre-step-admission.host.spec.ts packages/experimental/liveshare/tests/share-host-listeners.spec.ts packages/experimental/liveshare packages/experimental/liveshare-protocol: a share reader's prompt persists source.principal in agent/inbox/spliced, recovered reader input is refused at the `agent/pre-step` admission check, an admitted one enters the model, and a principal this package does not drive is left alone; the optional displayName is persisted for attribution, accepted only as a non-empty string, and missing or malformed values fall back to the subject id; 35 tests passed plus the two-package LiveShare and protocol suites.
+nubx vitest run packages/experimental/liveshare/tests/relay-target-admission.host.spec.ts packages/experimental/liveshare/tests/relay-pre-step-admission.host.spec.ts packages/experimental/liveshare/tests/share-host-listeners.spec.ts packages/experimental/liveshare packages/experimental/liveshare-protocol: a share reader's prompt persists source.principal in agent/inbox/spliced, recovered reader input is refused at the `agent/pre-step` admission check, an admitted one enters the model, and a principal this package does not drive is left alone; the optional displayName is persisted for attribution, accepted only as a non-empty string, and missing or malformed values fall back to the subject id; 35 tests passed plus the two-package LiveShare and protocol suites.
 
 <a id="dev-note"></a>
 ## Dev Note

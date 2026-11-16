@@ -3,8 +3,8 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/experimental-persistence-catalog.md
 /:
-  en: a11f106978c9dce7
-  zh: a11f106978c9dce7
+  en: fee1911e3d01c924
+  zh: fee1911e3d01c924
 /experimental-plugin-record-catalog:
-  en: 70a326c106662bf9
-  zh: 876f8036b96985d2
+  en: 0ca247e56f1400be
+  zh: dd636d30c048ce24

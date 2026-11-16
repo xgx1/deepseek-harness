@@ -40,7 +40,7 @@ Version 0, 1, and 2 payloads keep their schemas and meaning; current readers res
 <a id="verification"></a>
 ## Verification
 
-pnpm exec vitest run packages/subagent/subagent/tests: 495 tests passed, including named catalog restoration, invalid version-3 facts, sibling-unique reservation, cold resume path recovery, and external parent-delivered names. pnpm exec vitest run packages/session/session-format-v3-to-v4/tests: 397 tests passed, including native version-3 admission and rejection.
+nubx vitest run packages/subagent/subagent/tests: 495 tests passed, including named catalog restoration, invalid version-3 facts, sibling-unique reservation, cold resume path recovery, and external parent-delivered names. nubx vitest run packages/session/session-format-v3-to-v4/tests: 397 tests passed, including native version-3 admission and rejection.
 
 <a id="dev-note"></a>
 ## Dev Note

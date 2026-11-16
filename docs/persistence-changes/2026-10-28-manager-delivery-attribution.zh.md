@@ -52,7 +52,7 @@ changes:
 <a id="verification"></a>
 ## 验证
 
-pnpm exec vitest run packages/session/session-manager/tests：4 个文件、36 个测试通过。pnpm run gen-persistence-catalog 与 pnpm run verify-persistence-catalog：无差异。pnpm run build:lib:host：退出码 0。
+nubx vitest run packages/session/session-manager/tests：4 个文件、36 个测试通过。nub run gen-persistence-catalog 与 nub run verify-persistence-catalog：无差异。nub run build:lib:host：退出码 0。
 
 <a id="dev-note"></a>
 ## 开发备注

@@ -15,8 +15,8 @@
   en: 37d7728d42231610
   zh: ba27dd3935f50572
 /package-surface-rules/dependency-declarations-and-version-consistency-are-enforced-by-the-dependency-scan:
-  en: e68bfcde70f845b4
-  zh: 73e5c4fb067c4fa1
+  en: ff666c3713851392
+  zh: 8d671ada2c4271ad
 /package-surface-rules/internal-dependency-syntax-follows-the-package-family:
   en: 0b3c0da2bfcea15c
   zh: 133b381f64c42d1f
@@ -24,5 +24,5 @@
   en: b420ae3e228432d5
   zh: 0c49c4a9c3a5262c
 /package-surface-rules/package-modules-do-not-await-at-module-scope:
-  en: 29a58b3f804be042
-  zh: 8a83a21366dac897
+  en: 39eb77417fa43df6
+  zh: 3e0a46e82e921a39

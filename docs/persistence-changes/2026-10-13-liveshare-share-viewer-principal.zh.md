@@ -52,7 +52,7 @@ changes:
 <a id="verification"></a>
 ## 验证
 
-pnpm exec vitest run packages/experimental/liveshare/tests/relay-target-admission.host.spec.ts packages/experimental/liveshare/tests/relay-pre-step-admission.host.spec.ts packages/experimental/liveshare/tests/share-host-listeners.spec.ts packages/experimental/liveshare packages/experimental/liveshare-protocol：分享读者的提示词在 agent/inbox/spliced 中持久化 source.principal，恢复的读者输入在 `agent/pre-step` 准入校验中被拒绝，已准入的输入进入模型，本包不驱动的 principal 种类不受影响；可选 displayName 仅用于展示，只接受非空字符串，缺失或非法值回退 subject id；35 个测试通过，另有 LiveShare 与协议两个包的全量测试。
+nubx vitest run packages/experimental/liveshare/tests/relay-target-admission.host.spec.ts packages/experimental/liveshare/tests/relay-pre-step-admission.host.spec.ts packages/experimental/liveshare/tests/share-host-listeners.spec.ts packages/experimental/liveshare packages/experimental/liveshare-protocol：分享读者的提示词在 agent/inbox/spliced 中持久化 source.principal，恢复的读者输入在 `agent/pre-step` 准入校验中被拒绝，已准入的输入进入模型，本包不驱动的 principal 种类不受影响；可选 displayName 仅用于展示，只接受非空字符串，缺失或非法值回退 subject id；35 个测试通过，另有 LiveShare 与协议两个包的全量测试。
 
 <a id="dev-note"></a>
 ## 开发备注

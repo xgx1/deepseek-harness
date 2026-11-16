@@ -26,5 +26,5 @@ The shell messages now start with `invalid arguments: `, and the escalation mess
 ## Migration
 
 1. In analytics or retry rules that read `tool/result` `error`, treat v0.2.2-rc.2 `JOB_BACKGROUND_DISABLED` results as `INVALID_ARGS` and `IMAGE_UNSUPPORTED_MODEL` as `MODEL_DOES_NOT_SUPPORT_IMAGES`. For `SANDBOX_ESCALATION_UNAVAILABLE`, `error` alone does not identify the shell case: treat a v0.2.2-rc.2 `bash` or `pwsh` result as `INVALID_ARGS` only when its message contains `no sandboxing executor to escalate`, and keep every other `SANDBOX_ESCALATION_UNAVAILABLE` result unchanged. Session logs keep the values they were written with.
-2. Replace TypeScript references to `'JOB_BACKGROUND_DISABLED'` or `'IMAGE_UNSUPPORTED_MODEL'`; `pnpm run typecheck` reports any that remain.
+2. Replace TypeScript references to `'JOB_BACKGROUND_DISABLED'` or `'IMAGE_UNSUPPORTED_MODEL'`; `nub run typecheck` reports any that remain.
 3. Update text matchers that expect the earlier shell messages, which had no `invalid arguments: ` prefix and named only `sandbox_permissions`.

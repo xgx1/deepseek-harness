@@ -44,7 +44,7 @@ changes:
 <a id="verification"></a>
 ## 验证
 
-pnpm exec vitest run scripts/persistence-changes.spec.ts scripts/persistence-schema.spec.ts 通过 64 个测试。权限、Auto review、工具执行、agent loop（智能体循环）、subagent 继承和 TypeScript SDK 的定向测试共 10 个文件、390 个测试通过，覆盖原生与 PTC 拒绝元数据。uv run --python 3.10 --group test --project python/sdk pytest python/sdk/tests/test_client.py -k preserves_auto_review_errors 通过 1 个测试。持久化预览仅识别出这两项可选字段新增，均无需提升版本。
+nubx vitest run scripts/persistence-changes.spec.ts scripts/persistence-schema.spec.ts 通过 64 个测试。权限、Auto review、工具执行、agent loop（智能体循环）、subagent 继承和 TypeScript SDK 的定向测试共 10 个文件、390 个测试通过，覆盖原生与 PTC 拒绝元数据。uv run --python 3.10 --group test --project python/sdk pytest python/sdk/tests/test_client.py -k preserves_auto_review_errors 通过 1 个测试。持久化预览仅识别出这两项可选字段新增，均无需提升版本。
 
 <a id="dev-note"></a>
 ## 开发备注

@@ -31,7 +31,7 @@ pnpm --silent run verify-persistence-changes --json
 
 消费 JSON 时使用 `--silent`：否则 pnpm 会把生命周期失败文本追加到标准输出。失败命令仍以退出码 1 结束。
 
-阅读报告中的根、路径、变更种类和兼容性评审要求。被引用类型可能影响多个事件摘要；检查每个受影响的根。在历史覆盖新 schema 之前，验证会失败。陈旧生成清单也会导致验证失败；记录命令会刷新它。若重排字段或联合类型分支后 `changes` 为空，运行 `pnpm run gen-persistence-catalog` 并重新检查。即使复制的声明或源码位置产生目录 diff，未变的摘要也无需新增确认记录。
+阅读报告中的根、路径、变更种类和兼容性评审要求。被引用类型可能影响多个事件摘要；检查每个受影响的根。在历史覆盖新 schema 之前，验证会失败。陈旧生成清单也会导致验证失败；记录命令会刷新它。若重排字段或联合类型分支后 `changes` 为空，运行 `nub run gen-persistence-catalog` 并重新检查。即使复制的声明或源码位置产生目录 diff，未变的摘要也无需新增确认记录。
 
 要独立于确认历史评审 PR，先将 base 和 head 的目录保存为本地 JSON 文件，再运行：
 
@@ -59,12 +59,12 @@ pnpm --silent run persistence-review --before .artifacts/base.schema.json --afte
   "en": {
     "summary": "Makes the persisted hook audit decision optional.",
     "compatibility": "Existing records remain valid. Hook execution consumes HookOutput instead of replaying this audit field. Producers still write decisions, and absence does not imply pass.",
-    "verification": "pnpm exec vitest run packages/experimental/hook-protocol/tests/events.spec.ts: 10 tests passed."
+    "verification": "nubx vitest run packages/experimental/hook-protocol/tests/events.spec.ts: 10 tests passed."
   },
   "zh": {
     "summary": "将持久化的钩子审计决策改为可选。",
     "compatibility": "已有记录仍然有效。钩子执行消费 HookOutput，不回放此审计字段。写入方仍然记录决策，缺失不代表 pass。",
-    "verification": "pnpm exec vitest run packages/experimental/hook-protocol/tests/events.spec.ts：10 个测试通过。"
+    "verification": "nubx vitest run packages/experimental/hook-protocol/tests/events.spec.ts：10 个测试通过。"
   }
 }
 ```
@@ -85,7 +85,7 @@ pnpm --silent run persistence-changes --record 2026-09-11-poc-optional --prose .
 根据[测试政策](../testing.zh.md)选择变更所属模块的行为检查，再运行文档检查：
 
 ```sh
-pnpm run doc-sync
+nub run doc-sync
 ```
 
 `doc-sync` 检查持久化清单和目录新鲜度、完整历史及双语配对。记录命令的 `ok: true` 不能替代这些检查，也不能替代所属模块的行为与迁移测试。JSON 失败响应保留 `ok: false`、诊断 `code` 和退出码 1。结构化变更包含稳定种类和逐根的变更前后摘要，自动化无需解析描述文本。

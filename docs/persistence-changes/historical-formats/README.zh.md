@@ -53,8 +53,8 @@ V0 与 V2 使用[已收录预发布归档](../releases/README.zh.md)中最后一
 推进写入器之前，验证当前目录并归档原格式。对于 V3 到 V4 的变更，在写入器与当前 schema 仍描述 V3 时运行以下命令：
 
 ```sh
-pnpm run verify-persistence-catalog
-pnpm run verify-persistence-formats --archive 3
+nub run verify-persistence-catalog
+nub run verify-persistence-formats --archive 3
 ```
 
 对于其他转换，将 `3` 替换为原写入器版本。`--archive N` 从当前目录创建 `vN.schema.json`，只保留从根类型可达的类型，并移除源码行号。它拒绝已存在的目标、与当前写入器不同的版本、无效或不完整的 schema，以及与 `--write` 的组合。使用[模板](../../../.agents/skills/dsh-doc-writing/templates/persistence-format.md)添加该快照的双语记录与来源证据。保留所有更早的记录。后继格式使用当前目录；复制新的当前目录不能满足归档前驱的要求。运行时变更遵循[格式版本实操手册](../../cookbook/adding-a-session-format-version.zh.md)。
@@ -62,9 +62,9 @@ pnpm run verify-persistence-formats --archive 3
 注释标记内的 schema 定义与索引由工具生成。推进写入器并完成机器数据与人工证据后，刷新其表格和配对记录，再执行验证：
 
 ```sh
-pnpm run verify-persistence-formats --write
-pnpm run verify-persistence-formats
-pnpm run doc-sync
+nub run verify-persistence-formats --write
+nub run verify-persistence-formats
+nub run doc-sync
 ```
 
 `--write` 先验证机器数据，再更新生成的 Markdown 与配对记录。它保留人工说明、机器声明和 schema。默认验证也会拒绝过期的配对记录；标准文档检查验证翻译与本地链接。当前目录的新鲜度仍由 `verify-persistence-catalog` 负责。

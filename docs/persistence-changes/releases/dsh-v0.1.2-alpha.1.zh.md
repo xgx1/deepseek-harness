@@ -286,7 +286,7 @@ changes:
 提取结果已通过规范图、根摘要和全部可达类型摘要校验；仅对历史 surface 事件允许源码原有的可选 `surfaceOp`。仓库内检查从前驱重建每个 tag，核对 before/after、快照覆盖和双语机器声明。
 
 ```sh
-pnpm run verify-persistence-releases
+nub run verify-persistence-releases
 ```
 
 <a id="dev-note"></a>

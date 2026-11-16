@@ -25,4 +25,4 @@ CUA、browser-use、Cua Driver、worktree、Ralph、终端、OAR 子 agent、Liv
 2. 把对 `SessionResources.dispose()` 拒绝值的 `instanceof AggregateError` 检查改为 `instanceof BrowserSessionError`，并从 `error.cause.errors` 读取各个失败。
 3. 把读取 `OarFailure.stage` 或 `category` 的代码改为读取 `error.code`。
 4. 如果代码在 `NativeError`、`OarFailure` 或 `StagehandDrainError` 之前捕获 `HarnessError`，在处理方式不同的地方把具体类的检查移到前面。
-5. 用 `pnpm run typecheck` 和自己的失败路径测试确认迁移完成。
+5. 用 `nub run typecheck` 和自己的失败路径测试确认迁移完成。

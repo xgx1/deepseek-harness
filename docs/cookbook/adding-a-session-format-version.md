@@ -42,7 +42,7 @@ Declare `dsh.sessionFormatMigration` with numeric `from: N` and `to: N+1`, an ex
 Set `SESSION_FORMAT_VERSION` in [core Session types](../../packages/core/session/src/types.ts) to N+1 alongside the new edge declarations, then generate the catalog. The command below generates only the declared chain; it does not implement a new version:
 
 ```sh
-pnpm run gen-session-format-catalog
+nub run gen-session-format-catalog
 ```
 
 The [generator](../../scripts/gen-session-format-catalog.ts) requires exactly one adjacent package for every step from zero to the writer version, matching directory/package names, matching adjacent codec exports, and declared dependencies. It rejects gaps, duplicate or extra edges, unknown metadata members, and a catalog that does not share Session through peer plus development dependencies. Fix the declarations rather than hand-editing `generated.ts`. The catalog is build-static; plugin mounting must not determine historical readability.
@@ -87,8 +87,8 @@ Read [snapshot ownership](../../snapshots/AGENTS.md) and the [snapshot library](
 For unchanged replay input, use keyless refresh on the owner, then replay without write-back. These SDK commands use `text-turn` and the checkout's writer version. Implement and wire N+1 before using them to generate that version, and select the actual affected owner for a feature:
 
 ```sh
-pnpm run test:snapshot:refresh snapshots/sdk/sdk.snapshot.ts -t text-turn
-pnpm run test:snapshot snapshots/sdk/sdk.snapshot.ts -t text-turn
+nub run test:snapshot:refresh snapshots/sdk/sdk.snapshot.ts -t text-turn
+nub run test:snapshot snapshots/sdk/sdk.snapshot.ts -t text-turn
 ```
 
 Review the new generation, request sidecars, and protocol output together. Verify every predecessor remains byte-identical and that parent/child roles remain contiguous. Selection uses the numerically highest generation, so update shared references to the owner's selected parent. Do not use the packed-layout migrator as a version upgrader. If the model transcript must change, the scenario owner uses live recording under the [testing policy](../testing.md), with its required provider key.
@@ -101,9 +101,9 @@ Keep cases older than the retained baseline explicit through `snapshot.yml`'s `s
 Run from the repository root. These commands check catalog declarations, Stage composition, the released V2→V3 edge, and generation selection. They are a baseline; add focused coverage for the new edge:
 
 ```sh
-pnpm run verify-session-format-catalog
-pnpm exec vitest run scripts/gen-session-format-catalog.spec.ts packages/session/session-format/tests packages/session/session-format-v2-to-v3/tests packages/session/session-format-catalog/tests
-pnpm run test:snapshot scripts/session-snapshot-corpus.corpus.ts
+nub run verify-session-format-catalog
+nubx vitest run scripts/gen-session-format-catalog.spec.ts packages/session/session-format/tests packages/session/session-format-v2-to-v3/tests packages/session/session-format-catalog/tests
+nub run test:snapshot scripts/session-snapshot-corpus.corpus.ts
 ```
 
 After implementing the new edge, add its actual test path to the focused Vitest run. Add the changed JSONL, replay, projection, and SDK tests selected by the actual diff, plus the built publication-Worker smoke when that path changes. Require successful strict migration, identity preservation for the skeleton, malformed and unknown-required-event refusal, deterministic repeated restores, independent concurrent stage state, seeded multi-hop cuts, unchanged predecessors, and no fallback. Report exact commands and failures, not an inferred full-suite result.
@@ -111,10 +111,10 @@ After implementing the new edge, add its actual test path to the focused Vitest 
 Update the [owning Agent Note](../../.agents/notes/implemented/architecture/2026-08-31-released-session-format-migrations.md) rather than adding a redundant decision record. Keep the [release record](../session-format-status.md#updating-the-record) unchanged until publication; after publication, update it with verified release evidence. Audit related active notes for supersession; retain independent rationale and leave archived notes frozen. Update bilingual prose together, re-record each changed pair with the repository tool, then run documentation checks:
 
 ```sh
-pnpm run verify-translation-pairing --write docs/cookbook/adding-a-session-format-version.md
-pnpm run test:docs
-pnpm run doc-sync
-pnpm run lint
+nub run verify-translation-pairing --write docs/cookbook/adding-a-session-format-version.md
+nub run test:docs
+nub run doc-sync
+nub run lint
 git diff --check
 ```
 
@@ -124,7 +124,7 @@ git diff --check
 Use the one-time [migration script](../../scripts/migrate-sessions-to-v4.ts) from an installed contributor checkout whose writer is V4. Stop DSH processes using the target root before starting so writer locks and changing child logs do not prevent migration. Run from the repository root:
 
 ```sh
-pnpm run migrate:sessions-to-v4
+nub run migrate:sessions-to-v4
 ```
 
 The default root is `~/.dsh/sessions`. Use `--sessions-dir /path/to/sessions-copy` for another corpus, or `--help` for usage. Concurrent jobs default to the available CPU count capped at 16; `--jobs N` accepts any positive safe integer, including larger expert overrides, and `--jobs 1` runs serially. A bounded queue opens only that many Sessions at once, regardless of corpus size. Each historical Session goes through the normal locked, validated publication path to create a V4 successor beside its unchanged source files. Existing V4 Sessions are opened read-only; rerunning does not reconvert them. The script makes no model requests and does not change conversion or refusal rules.
@@ -140,7 +140,7 @@ While the published format remains V3 and the integration writer is V4, master c
 
 ```sh
 V3_SOURCE_REF="$(git rev-parse --verify 'origin/master^{commit}')"
-pnpm run verify-v3-event-vocabulary --source-ref "$V3_SOURCE_REF"
+nub run verify-v3-event-vocabulary --source-ref "$V3_SOURCE_REF"
 ```
 
 The verifier reads only that local commit and requires exact event-name equality. It rejects missing V3 names, extra copied names, and a source writer other than V3. In particular, V4-only `developer/message` must not enter the frozen V3 set. Review each difference against the V3 payload, required conversions, target admission, and consumers; adding the name alone does not establish a complete migration. Add the corresponding migration regression before accepting a new source event.

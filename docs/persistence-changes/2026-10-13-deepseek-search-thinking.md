@@ -40,7 +40,7 @@ Existing records remain valid: absence means the request omitted the field and D
 <a id="verification"></a>
 ## Verification
 
-pnpm exec vitest run packages/web/web-search-deepseek/tests/deepseek.spec.ts: 59 tests passed.
+nubx vitest run packages/web/web-search-deepseek/tests/deepseek.spec.ts: 59 tests passed.
 
 <a id="dev-note"></a>
 ## Dev Note

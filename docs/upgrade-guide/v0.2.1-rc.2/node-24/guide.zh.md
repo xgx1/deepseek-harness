@@ -14,4 +14,4 @@ DSH 要求 Node.js 24.9 或更高版本。上一版本还支持 Node.js 22.19 �
 
 1. 将用于启动 DSH 的 Node.js 安装升级至 24.9 或更高版本。更新开发环境、容器和 CI 任务中固定的 Node 版本。
 2. 在同一环境中运行 `node --version`，确认版本为 24.9 或更高版本。
-3. 对于源码检出，运行 `pnpm install`。使用平常的 profile 启动 DSH，确认它能成功启动。
+3. 对于源码检出，运行 `nub install`。使用平常的 profile 启动 DSH，确认它能成功启动。

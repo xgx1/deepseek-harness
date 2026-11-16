@@ -40,7 +40,7 @@ changes:
 <a id="verification"></a>
 ## 验证
 
-pnpm exec vitest run packages/web/web-search-deepseek/tests/deepseek.spec.ts：59 个测试通过。
+nubx vitest run packages/web/web-search-deepseek/tests/deepseek.spec.ts：59 个测试通过。
 
 <a id="dev-note"></a>
 ## 开发备注

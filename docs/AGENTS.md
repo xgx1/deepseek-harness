@@ -48,7 +48,7 @@ Placement: bugs → postmortems; rationale → Agent Notes; procedures → cookb
 
 ## Wordcount Budgets
 
-[scripts/doc-budgets.manifest.json](../scripts/doc-budgets.manifest.json) sets standing-doc ceilings; `pnpm run verify-doc-budgets` rejects excess or missing files.
+[scripts/doc-budgets.manifest.json](../scripts/doc-budgets.manifest.json) sets standing-doc ceilings; `nub run verify-doc-budgets` rejects excess or missing files.
 
 When the gate goes red:
 

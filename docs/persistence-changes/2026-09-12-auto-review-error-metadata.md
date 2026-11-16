@@ -44,7 +44,7 @@ Existing tool/ptc-dispatch events can omit error, and existing tool/result error
 <a id="verification"></a>
 ## Verification
 
-pnpm exec vitest run scripts/persistence-changes.spec.ts scripts/persistence-schema.spec.ts passed 64 tests. Focused permission, Auto review, tool execution, agent-loop, subagent inheritance, and TypeScript SDK owner tests passed 390 tests across 10 files, including native and PTC denial metadata. uv run --python 3.10 --group test --project python/sdk pytest python/sdk/tests/test_client.py -k preserves_auto_review_errors passed 1 test. The persistence preview classified only the two optional additions and required no version bump.
+nubx vitest run scripts/persistence-changes.spec.ts scripts/persistence-schema.spec.ts passed 64 tests. Focused permission, Auto review, tool execution, agent-loop, subagent inheritance, and TypeScript SDK owner tests passed 390 tests across 10 files, including native and PTC denial metadata. uv run --python 3.10 --group test --project python/sdk pytest python/sdk/tests/test_client.py -k preserves_auto_review_errors passed 1 test. The persistence preview classified only the two optional additions and required no version bump.
 
 <a id="dev-note"></a>
 ## Dev Note

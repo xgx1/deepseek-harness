@@ -18,4 +18,4 @@ Deployments that relied on the provider to keep the model away from private serv
 
 1. If the model must not reach private destinations, confine the process's network access, add a `tools/pre-execute` policy that rejects those `web_fetch` URLs, or remove `@deepseek-ai/dsh-tool-web`'s fetch tool from the composition.
 2. Replace `new HttpFetchProvider(limits, resolveAddresses)` with `new HttpFetchProvider(limits)`. To direct a test request to a local server, put the server's address in the URL instead of overriding resolution.
-3. Confirm the migration with `pnpm run typecheck`; no reference to `HttpFetchResolver` remains.
+3. Confirm the migration with `nub run typecheck`; no reference to `HttpFetchResolver` remains.

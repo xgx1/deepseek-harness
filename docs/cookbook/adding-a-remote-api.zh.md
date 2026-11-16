@@ -102,7 +102,7 @@ export async function rename(noteId: string, title: string): Promise<void> {
 }
 ```
 
-改动了签名、码表、namespace 或导出名之后重跑 `pnpm run build:lib`，Client 才拿得到新的声明与 codec；只改实现体不需要重新生成。
+改动了签名、码表、namespace 或导出名之后重跑 `nub run build:lib`，Client 才拿得到新的声明与 codec；只改实现体不需要重新生成。
 
 ## 4. 在 Client 消费
 
@@ -191,7 +191,7 @@ it('renders the failure code the Host reported', async () => {
 
 ## 验证
 
-1. `pnpm run build:lib`：签名、码表、namespace 或导出名变过就必须重跑，Client 声明与 codec 由它产出。
-2. `pnpm run typecheck`：Host 与 Client 两个 program 都过一遍，码表的 merge 落点错了会在这里红。
+1. `nub run build:lib`：签名、码表、namespace 或导出名变过就必须重跑，Client 声明与 codec 由它产出。
+2. `nub run typecheck`：Host 与 Client 两个 program 都过一遍，码表的 merge 落点错了会在这里红。
 3. 点名跑两侧 spec：`npx vitest run <owner spec> <client spec>`。
 4. 端点属于产品可见面时补一条录制会话快照，规则见[测试策略](../testing.zh.md)。

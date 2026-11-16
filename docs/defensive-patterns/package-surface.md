@@ -118,7 +118,7 @@ Keys opened for one package's local purposes — here `./brand` and `./worker`, 
 
 Dependency declarations and version consistency are guaranteed mechanically by the dependency scan; this page repeats neither the `devDependencies` and `peerDependencies` field rules nor a package admission list of its own. When the scan fails, reproduce it locally and fix the manifest it names, because the scan and its policy file own the rules. Editing the scan or relaxing its policy so that a change can land is not a normal edit and needs the domain owner's confirmation.
 
-- Entry point: [verify-package-dependencies.ts](../../scripts/verify-package-dependencies.ts), run as `pnpm run verify-package-dependencies`, by `scripts/run-gates.ts` as the `package-dependencies` gate, and directly by `.github/workflows/release.yml`.
+- Entry point: [verify-package-dependencies.ts](../../scripts/verify-package-dependencies.ts), run as `nub run verify-package-dependencies`, by `scripts/run-gates.ts` as the `package-dependencies` gate, and directly by `.github/workflows/release.yml`.
 - Policy owner: [package-dependency-policy.ts](../../scripts/package-dependency-policy.ts) exports `PACKAGE_DEPENDENCY_POLICY`; the declaration sections, version forms, and exemptions are defined there, with package-level context in [packages/README.md](../../packages/README.md).
 - Boundary: this page lists no packages, field rules, or thresholds; it points at the owning file instead.
 - Find the wiring: `grep -rn "verify-package-dependencies" package.json .github/workflows scripts/run-gates.ts`.
@@ -128,7 +128,7 @@ The repeatable procedure: reproduce, read the diagnostic, and fix the manifest i
 
 ```sh
 # 1. Reproduce what CI reports
-pnpm run verify-package-dependencies
+nub run verify-package-dependencies
 
 # 2. The diagnostic names the manifest, the section, the dependency, and the expected range
 #    packages/example/package.json: dependencies.@deepseek-ai/dsh-base must use workspace:*, found workspace:~
@@ -137,7 +137,7 @@ pnpm run verify-package-dependencies
 #    "dependencies": { "@deepseek-ai/dsh-base": "workspace:*" }
 
 # 4. Re-run the scan until every package matches the published policy
-pnpm run verify-package-dependencies
+nub run verify-package-dependencies
 ```
 
 Two ways to lose the mechanical guarantee: change the check instead of the manifest, or restate the rule here so that it drifts from its owner.
@@ -229,5 +229,5 @@ hooks.resolve = (specifier, context, next) =>
 
 A package source module starts its asynchronous work inside a function it calls, such as an explicit `main()` that handles its own rejection, and never uses `await`, `for await`, or `await using` at module scope: a module-scope wait makes every importer's evaluation wait, turns a rejection into a module-evaluation failure, and cannot be lowered to the synchronous CommonJS wrapper of the browser-worker image.
 
-- Judged by [verify-no-top-level-await.ts](../../scripts/verify-no-top-level-await.ts), run as `pnpm run verify-no-top-level-await` and by `scripts/run-gates.ts` as the `no-top-level-await` gate; it parses every `packages/*/*/src/**/*.{ts,tsx}` file and excludes executables by declaration only: a source that starts with `#!`, or the source of a `lib/` output that the package's `bin` field names.
+- Judged by [verify-no-top-level-await.ts](../../scripts/verify-no-top-level-await.ts), run as `nub run verify-no-top-level-await` and by `scripts/run-gates.ts` as the `no-top-level-await` gate; it parses every `packages/*/*/src/**/*.{ts,tsx}` file and excludes executables by declaration only: a source that starts with `#!`, or the source of a `lib/` output that the package's `bin` field names.
 - Exception: none.

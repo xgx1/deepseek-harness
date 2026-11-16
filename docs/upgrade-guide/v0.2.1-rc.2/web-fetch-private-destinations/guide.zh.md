@@ -18,4 +18,4 @@ description: "HTTP 抓取提供方不再拒绝非公开目标，HttpFetchProvide
 
 1. 如果模型不得访问私有目标，请限制进程的网络访问、添加拒绝这些 `web_fetch` URL 的 `tools/pre-execute` 策略，或从组合中移除 `@deepseek-ai/dsh-tool-web` 的抓取工具。
 2. 把 `new HttpFetchProvider(limits, resolveAddresses)` 替换为 `new HttpFetchProvider(limits)`。如需把测试请求指向本地服务器，请把服务器地址写进 URL，而不是覆盖解析。
-3. 用 `pnpm run typecheck` 确认迁移完成，且不再引用 `HttpFetchResolver`。
+3. 用 `nub run typecheck` 确认迁移完成，且不再引用 `HttpFetchResolver`。

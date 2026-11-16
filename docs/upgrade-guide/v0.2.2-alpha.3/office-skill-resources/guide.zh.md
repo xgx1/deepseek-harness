@@ -16,7 +16,7 @@ Web 和 SDK profile 不再为 `skill-office` 行设置 `assetRoot`，因此 [`@d
 | `DSH_BUNDLED_OFFICE_SKILLS` | profile patch 中的 `assetRoot`，或同名文件系统技能 |
 | Desktop `resources/runtime/office-skills/` | `resources/app.asar` 内的技能包 |
 | Python 运行时 wheel 的 `<platform>-<arch>/office-skills/` | 运行时可执行程序内的技能包 |
-| `pnpm run prepare:primary-runtime` 输出和下载的创作载荷中与 `primary-runtime/` 同级的 `office-skills/` | 无 |
+| `nub run prepare:primary-runtime` 输出和下载的创作载荷中与 `primary-runtime/` 同级的 `office-skills/` | 无 |
 
 `pythonEnvironment` 及其取值不变。受影响的有：设置 `DSH_BUNDLED_OFFICE_SKILLS` 的启动器，读取或编辑上述目录中技能文件的工具，以及把 `office-skills/` 复制到 `primary-runtime/` 旁边的容器镜像。
 

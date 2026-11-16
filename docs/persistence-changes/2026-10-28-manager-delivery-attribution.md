@@ -52,7 +52,7 @@ The new kind is attribution and duplicate-suppression metadata only: readers wit
 <a id="verification"></a>
 ## Verification
 
-pnpm exec vitest run packages/session/session-manager/tests: 4 files and 36 tests passed. pnpm run gen-persistence-catalog and pnpm run verify-persistence-catalog: clean. pnpm run build:lib:host: exit 0.
+nubx vitest run packages/session/session-manager/tests: 4 files and 36 tests passed. nub run gen-persistence-catalog and nub run verify-persistence-catalog: clean. nub run build:lib:host: exit 0.
 
 <a id="dev-note"></a>
 ## Dev Note

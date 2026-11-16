@@ -31,7 +31,7 @@ pnpm --silent run verify-persistence-changes --json
 
 Use `--silent` when consuming JSON: pnpm otherwise appends lifecycle failure text to stdout. Failed commands still exit with code 1.
 
-Read the reported root, path, change kind, and compatibility-review requirement. A referenced type can affect several event digests; inspect every affected root. Until the history covers the new schemas, verification fails. A stale generated inventory also fails verification; the recording command refreshes it. If `changes` is empty after reordering fields or union alternatives, run `pnpm run gen-persistence-catalog` and repeat the check. An unchanged digest needs no new acknowledgement even when copied declarations or source locations produce a catalog diff.
+Read the reported root, path, change kind, and compatibility-review requirement. A referenced type can affect several event digests; inspect every affected root. Until the history covers the new schemas, verification fails. A stale generated inventory also fails verification; the recording command refreshes it. If `changes` is empty after reordering fields or union alternatives, run `nub run gen-persistence-catalog` and repeat the check. An unchanged digest needs no new acknowledgement even when copied declarations or source locations produce a catalog diff.
 
 To review a PR independently of its acknowledgement history, save the base and head inventories as local JSON files and run:
 
@@ -59,12 +59,12 @@ Save the input as `.artifacts/persistence-change.prose.json`, creating the ignor
   "en": {
     "summary": "Makes the persisted hook audit decision optional.",
     "compatibility": "Existing records remain valid. Hook execution consumes HookOutput instead of replaying this audit field. Producers still write decisions, and absence does not imply pass.",
-    "verification": "pnpm exec vitest run packages/experimental/hook-protocol/tests/events.spec.ts: 10 tests passed."
+    "verification": "nubx vitest run packages/experimental/hook-protocol/tests/events.spec.ts: 10 tests passed."
   },
   "zh": {
     "summary": "将持久化的钩子审计决策改为可选。",
     "compatibility": "已有记录仍然有效。钩子执行消费 HookOutput，不回放此审计字段。写入方仍然记录决策，缺失不代表 pass。",
-    "verification": "pnpm exec vitest run packages/experimental/hook-protocol/tests/events.spec.ts：10 个测试通过。"
+    "verification": "nubx vitest run packages/experimental/hook-protocol/tests/events.spec.ts：10 个测试通过。"
   }
 }
 ```
@@ -85,7 +85,7 @@ For a change marked `requiresCompatibilityReview`, explain both reader direction
 Select the changed owner's behavior checks through the [testing policy](../testing.md), then run the documentation checks:
 
 ```sh
-pnpm run doc-sync
+nub run doc-sync
 ```
 
 `doc-sync` checks persistence inventory and catalog freshness, the complete history, and bilingual pairing. A recording command's `ok: true` does not replace these checks or the owner's behavior and migration tests. JSON failures retain `ok: false`, a diagnostic `code`, and exit code 1. Structured changes include stable kinds and per-root before/after digests, so automation need not parse descriptions.

@@ -42,7 +42,7 @@
 在添加新迁移边声明的同时，将[核心 Session 类型](../../packages/core/session/src/types.ts)中的 `SESSION_FORMAT_VERSION` 设为 N+1，然后生成 catalog。下面的命令只生成已声明的迁移链；它不会实现新版本：
 
 ```sh
-pnpm run gen-session-format-catalog
+nub run gen-session-format-catalog
 ```
 
 [生成器](../../scripts/gen-session-format-catalog.ts)要求从零到写入器版本的每一步恰好有一个相邻迁移包，目录与包名匹配、相邻 codec 导出匹配，并声明所需依赖。它拒绝缺口、重复或多余的迁移边、未知元数据成员，以及未通过对等依赖（peer dependency）加开发依赖共享 Session 的 catalog。请修复声明，而非手改 `generated.ts`。Catalog 在构建时静态确定；插件挂载不得决定历史数据是否可读。
@@ -87,8 +87,8 @@ Alpha 转换器可以明确拒绝尚无已实现、有证据映射的历史场�
 如果回放输入不变，在所有者上执行无密钥 refresh，再执行不写回的 replay。以下 SDK 命令使用 `text-turn` 和工作区的写入器版本。先实现并接入 N+1，才能用它们生成该版本；功能变更应选择实际受影响的所有者：
 
 ```sh
-pnpm run test:snapshot:refresh snapshots/sdk/sdk.snapshot.ts -t text-turn
-pnpm run test:snapshot snapshots/sdk/sdk.snapshot.ts -t text-turn
+nub run test:snapshot:refresh snapshots/sdk/sdk.snapshot.ts -t text-turn
+nub run test:snapshot snapshots/sdk/sdk.snapshot.ts -t text-turn
 ```
 
 一起审查新代际、请求伴随文件与协议输出。验证每个前代的字节保持相同，且父子角色连续。选择规则采用数值最高的代际，因此应将共享引用更新为所有者选中的父代际。不要把 packed 布局迁移器当作版本升级器。如果模型 transcript（文本记录）必须变化，由场景所有者按照[测试策略](../testing.zh.md)使用所需提供方密钥进行实时录制。
@@ -101,9 +101,9 @@ pnpm run test:snapshot snapshots/sdk/sdk.snapshot.ts -t text-turn
 从仓库根目录运行。以下命令检查 catalog 声明、Stage 组合、已发布的 V2→V3 迁移边与代际选择。它们是基线检查；需为新迁移边添加聚焦覆盖：
 
 ```sh
-pnpm run verify-session-format-catalog
-pnpm exec vitest run scripts/gen-session-format-catalog.spec.ts packages/session/session-format/tests packages/session/session-format-v2-to-v3/tests packages/session/session-format-catalog/tests
-pnpm run test:snapshot scripts/session-snapshot-corpus.corpus.ts
+nub run verify-session-format-catalog
+nubx vitest run scripts/gen-session-format-catalog.spec.ts packages/session/session-format/tests packages/session/session-format-v2-to-v3/tests packages/session/session-format-catalog/tests
+nub run test:snapshot scripts/session-snapshot-corpus.corpus.ts
 ```
 
 实现新迁移边后，将其实际测试路径加入聚焦的 Vitest 命令。根据实际 diff 添加受影响的 JSONL、回放、投影与 SDK 测试；发布 Worker 路径变化时还需构建产物冒烟测试。要求严格迁移成功、骨架保持恒等、拒绝格式错误与未知必需事件、重复恢复确定、并发 Stage 状态独立、有种子的多跳截点正确、前代不变且无回退。报告确切命令与失败，不要推断整个测试套件的结果。
@@ -111,10 +111,10 @@ pnpm run test:snapshot scripts/session-snapshot-corpus.corpus.ts
 更新[所属 Agent Note](../../.agents/notes/implemented/architecture/2026-08-31-released-session-format-migrations.zh.md)，而非添加重复决策记录。发布前保持[发布记录](../session-format-status.zh.md#updating-the-record)不变；发布后，使用已核实的发布证据更新它。审计相关活跃记录的取代关系；保留独立理由，并保持归档记录冻结。一起更新双语正文，通过仓库工具重新记录每个变更的配对，然后运行文档检查：
 
 ```sh
-pnpm run verify-translation-pairing --write docs/cookbook/adding-a-session-format-version.md
-pnpm run test:docs
-pnpm run doc-sync
-pnpm run lint
+nub run verify-translation-pairing --write docs/cookbook/adding-a-session-format-version.md
+nub run test:docs
+nub run doc-sync
+nub run lint
 git diff --check
 ```
 
@@ -124,7 +124,7 @@ git diff --check
 在已安装依赖、写入器为 V4 的贡献者工作区中使用这个一次性[迁移脚本](../../scripts/migrate-sessions-to-v4.ts)。开始前停止使用目标根目录的 DSH 进程，避免写入锁及变化中的子日志阻止迁移。在仓库根目录运行：
 
 ```sh
-pnpm run migrate:sessions-to-v4
+nub run migrate:sessions-to-v4
 ```
 
 默认根目录是 `~/.dsh/sessions`。可用 `--sessions-dir /path/to/sessions-copy` 指定其他日志集，或用 `--help` 查看用法。默认并发数取可用 CPU 数且最多为 16；`--jobs N` 接受任意正安全整数，专家用户可指定更大的值，`--jobs 1` 则串行运行。有界队列只同时打开指定数量的 Session，不随日志集大小增加。每个历史 Session 都通过正常的加锁、校验和发布流程，在未修改的源文件旁创建 V4 后继。已有 V4 Session 仅以只读方式打开；重复运行不会重新转换它们。脚本不发起模型请求，也不改变转换或拒绝规则。
@@ -140,7 +140,7 @@ pnpm run migrate:sessions-to-v4
 
 ```sh
 V3_SOURCE_REF="$(git rev-parse --verify 'origin/master^{commit}')"
-pnpm run verify-v3-event-vocabulary --source-ref "$V3_SOURCE_REF"
+nub run verify-v3-event-vocabulary --source-ref "$V3_SOURCE_REF"
 ```
 
 校验器只读取该本地提交，并要求事件名完全一致。它拒绝遗漏的 V3 名称、额外复制的名称，以及不写入 V3 的源提交。尤其不能把 V4 专有的 `developer/message` 放入冻结的 V3 集合。逐项核对 V3 payload、必要转换、目标接纳及消费方；只添加名称不能证明迁移完整。接受新源事件前要补上相应迁移回归。

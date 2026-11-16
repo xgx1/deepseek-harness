@@ -40,7 +40,7 @@ A version-1 Session event written before titles existed has no title member, so 
 <a id="verification"></a>
 ## Verification
 
-pnpm exec vitest run packages/schedule/schedule/tests: 18 files, 789 tests passed.
+nubx vitest run packages/schedule/schedule/tests: 18 files, 789 tests passed.
 
 <a id="dev-note"></a>
 ## Dev Note

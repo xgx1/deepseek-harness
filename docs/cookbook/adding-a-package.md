@@ -24,7 +24,7 @@ packages/<group>/<pkg>/
 
 Choose an existing group when one matches the package's role (`core`, `llm`, `shell`, `compaction`, `subagent`, `todo`, `session`, `client`/`host`, `util`, or `test-support`). A new group is allowed, but it is a pure container: no `package.json`, no source files, and packages still sit exactly one level below it.
 
-package.json invariants (enforced by `pnpm run constraints` / `scripts/check-workspace-constraints.ts`): `private: true`, a `version` matching the root `package.json`, `type: module`, `main: "lib/index.js"`, `types: "lib/types/index.d.ts"`, `exports["."].types: "./lib/types/index.d.ts"`, `exports["."].default: "./lib/index.js"`, `@deepseek-ai/cordis` in BOTH peerDependencies and devDependencies (same range). Mirror every dsh peer dependency in devDependencies. `@deepseek-ai/schemastery` goes in `dependencies` (it is a runtime validator), matching agent-loop. The `files` list contains exactly `lib/index.js`, `lib/types/**/*.d.ts`, `lib/types/**/*.d.ts.map`, `src`, and package-specific runtime artifacts recognized by the gate. A package whose runtime export points into the emitted tree also includes `lib/types/**/*.js`. Declaration and JavaScript maps publish beside the files they describe, and `src` publishes with them, so a consumer editor and a plugin author read the implementation behind an exported declaration; do not publish stale root declaration files. CLI app packages with a package `bin` include `lib/bin.js` immediately after `lib/index.js` in `files`.
+package.json invariants (enforced by `nub run constraints` / `scripts/check-workspace-constraints.ts`): `private: true`, a `version` matching the root `package.json`, `type: module`, `main: "lib/index.js"`, `types: "lib/types/index.d.ts"`, `exports["."].types: "./lib/types/index.d.ts"`, `exports["."].default: "./lib/index.js"`, `@deepseek-ai/cordis` in BOTH peerDependencies and devDependencies (same range). Mirror every dsh peer dependency in devDependencies. `@deepseek-ai/schemastery` goes in `dependencies` (it is a runtime validator), matching agent-loop. The `files` list contains exactly `lib/index.js`, `lib/types/**/*.d.ts`, `lib/types/**/*.d.ts.map`, `src`, and package-specific runtime artifacts recognized by the gate. A package whose runtime export points into the emitted tree also includes `lib/types/**/*.js`. Declaration and JavaScript maps publish beside the files they describe, and `src` publishes with them, so a consumer editor and a plugin author read the implementation behind an exported declaration; do not publish stale root declaration files. CLI app packages with a package `bin` include `lib/bin.js` immediately after `lib/index.js` in `files`.
 
 In-package relative imports use explicit `.ts` specifiers in source (for example, `export * from './types.ts'`). The compiler rewrites those to `.js` in emitted JS and leaves explicit `.ts` specifiers in declarations, which standard NodeNext/Node16 TypeScript consumers resolve to the sibling `.d.ts` files.
 
@@ -136,7 +136,7 @@ Merge these entries into `package.json`, retaining existing runtime exports and 
 }
 ```
 
-Keep language files together in `locale/`, with `en.json` as the discovery entry. Fields are optional; present values must be non-empty strings. English `meta.title` and `meta.description` use sentence case: capitalize only the first word, proper nouns, and product names, as in `Git worktrees` ([rule](../../.agents/skills/dsh-prose-standard/SKILL.md#required-coverage-by-prose-location)). At runtime, missing files or fields permit fallback, while malformed JSON or invalid fields produce a per-plugin diagnostic. First-party packages and plugin templates must provide `ja.json`, `es.json`, `fr.json`, `de.json`, `ru.json`, and `pt.json` covering every field present in `en.json` or optional `zh.json`, preserving placeholders, slash commands, and API field names; detail paths may point to the existing English document. Subpath resources under `locale/<subpath>/` follow the same checks. English descriptions explain user-visible behavior and end with sentence punctuation. Run `pnpm run check:i18n` to verify JSON metadata and UI dictionary completeness; the JSON checks also run in `check:all`, CI static checks, and hygiene.
+Keep language files together in `locale/`, with `en.json` as the discovery entry. Fields are optional; present values must be non-empty strings. English `meta.title` and `meta.description` use sentence case: capitalize only the first word, proper nouns, and product names, as in `Git worktrees` ([rule](../../.agents/skills/dsh-prose-standard/SKILL.md#required-coverage-by-prose-location)). At runtime, missing files or fields permit fallback, while malformed JSON or invalid fields produce a per-plugin diagnostic. First-party packages and plugin templates must provide `ja.json`, `es.json`, `fr.json`, `de.json`, `ru.json`, and `pt.json` covering every field present in `en.json` or optional `zh.json`, preserving placeholders, slash commands, and API field names; detail paths may point to the existing English document. Subpath resources under `locale/<subpath>/` follow the same checks. English descriptions explain user-visible behavior and end with sentence punctuation. Run `nub run check:i18n` to verify JSON metadata and UI dictionary completeness; the JSON checks also run in `check:all`, CI static checks, and hygiene.
 
 Fields fall back independently before view-specific name formatting, using the existing locale language chain first:
 
@@ -157,16 +157,16 @@ The Install view still uses npm registry information from `pnpm view`, not local
 
 Verify the result:
 
-1. Run `pnpm run verify-package-meta` from the repository root to check fields, resource exports, and publication coverage.
+1. Run `nub run verify-package-meta` from the repository root to check fields, resource exports, and publication coverage.
 2. Switch an installed plugin's applicable Plugin Manager and Settings entries between English and Chinese; check the title, description, per-field fallback, and Settings-only compact technical names.
 
 ## 6. Verify
 
 ```sh
-pnpm install        # registers the workspace
-pnpm run doc-sync
-pnpm run constraints && pnpm run typecheck && pnpm run lint
-pnpm run build && pnpm run hygiene
+nub install        # registers the workspace
+nub run doc-sync
+nub run constraints && nub run typecheck && nub run lint
+nub run build && nub run hygiene
 ```
 
 Follow the [repository testing policy](../testing.md) for the behavior-specific checks and coverage required by the new package.

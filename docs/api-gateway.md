@@ -146,18 +146,18 @@ SRC solves only dispatch for a Host process running from source. The Client does
 Web development runs one command, which builds current Host, Client, and Web artifacts, starts the source Host, and keeps Client bundles rebuilt:
 
 ```sh
-pnpm run dev:web
+nub run dev:web
 ```
 
-`dsh` starts the Host source through tsx, so the Host can use the SRC fallback; the `dev:web` watchers rebuild the client-face type emit, Client plugin and library bundles, and the Web shell on source edits. They do not analyze Host decorators or generate Remote Client DTS; only the complete build that `dev:web` runs first (or `pnpm run build`) does.
+`dsh` starts the Host source through tsx, so the Host can use the SRC fallback; the `dev:web` watchers rebuild the client-face type emit, Client plugin and library bundles, and the Web shell on source edits. They do not analyze Host decorators or generate Remote Client DTS; only the complete build that `dev:web` runs first (or `nub run build`) does.
 
 Changing only a Remote method's implementation body without changing its contract does not require regenerating the Typert files. After adding or removing a decorator or changing an export name, namespace, parameter, return value, lookup, Context, or cancellation signature, rerun the ordered lib build so the Host generates the strict contract before the Client compiles and bundles the new contribution:
 
 ```sh
-pnpm run build:lib
+nub run build:lib
 ```
 
-The running Client watcher consumes these generated files when it rebundles. If `pnpm run build:lib:host` has already refreshed the Host contract, `pnpm run build:lib:client` can complete the Client side; a clean worktree cannot skip the Host phase. Recompiling only the frontend source cannot infer new types from Host decorators. `pnpm run typecheck` generates the Host contract with the bundle-free Typert pass before Client tsc, and the CI build lanes and release builds use the same source-only generation before package compilation.
+The running Client watcher consumes these generated files when it rebundles. If `nub run build:lib:host` has already refreshed the Host contract, `nub run build:lib:client` can complete the Client side; a clean worktree cannot skip the Host phase. Recompiling only the frontend source cannot infer new types from Host decorators. `nub run typecheck` generates the Host contract with the bundle-free Typert pass before Client tsc, and the CI build lanes and release builds use the same source-only generation before package compilation.
 
 ## Boundaries
 

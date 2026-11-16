@@ -17,4 +17,4 @@ Backends and consumers that only construct the error, read `spawnError` or `clea
 
 1. Replace `error instanceof AggregateError` checks meant for this error with `error instanceof TerminalBackendCleanupError`, or with `error.code === 'CLEANUP_FAILED'` on a `TerminalError`.
 2. Where TypeScript code reads members of `error.errors` without narrowing, narrow each `unknown` element before use, or read `spawnError` and `cleanupError`.
-3. Confirm with `pnpm exec tsc --noEmit` in the consuming project, and check that a startup cleanup failure still reaches the handling path.
+3. Confirm with `nubx tsc --noEmit` in the consuming project, and check that a startup cleanup failure still reaches the handling path.

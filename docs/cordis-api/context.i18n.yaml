@@ -3,8 +3,8 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/cordis-api/context.md
 /:
-  en: d2c0c5bce430d1be
-  zh: a317d7ff7fc9f112
+  en: 170e005ff7b13e6b
+  zh: 152ff3d934589932
 /context:
   en: fc6fd9ae25b8e9e5
   zh: 1a2407d299404ace

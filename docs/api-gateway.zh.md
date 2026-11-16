@@ -148,18 +148,18 @@ SRC 只解决 Host 源码进程的分发问题。Client 不会从运行中的 Ho
 Web 开发只需一条命令：它先构建当前 Host、Client 与 Web 产物，再启动源码 Host，并持续重建 Client bundle：
 
 ```sh
-pnpm run dev:web
+nub run dev:web
 ```
 
-`dsh` 通过 tsx 启动 Host 源码，所以 Host 可以使用 SRC 回退；`dev:web` 的 watcher 会在源码修改时重建 client 侧类型输出、Client 插件与库 bundle 以及 Web 壳层。它们不会分析 Host decorator，也不会生成 Remote Client DTS；只有 `dev:web` 首先执行的完整构建（或 `pnpm run build`）才会。
+`dsh` 通过 tsx 启动 Host 源码，所以 Host 可以使用 SRC 回退；`dev:web` 的 watcher 会在源码修改时重建 client 侧类型输出、Client 插件与库 bundle 以及 Web 壳层。它们不会分析 Host decorator，也不会生成 Remote Client DTS；只有 `dev:web` 首先执行的完整构建（或 `nub run build`）才会。
 
 只修改 Remote 方法实现体而不改变约定时，无需重新生成 Typert 文件。新增或删除 decorator、修改导出名、namespace、参数、返回值、lookup、Context 或取消签名时，重新执行有序 lib 构建，让 Host 先生成严格约定，再让 Client 编译并打包新的贡献：
 
 ```sh
-pnpm run build:lib
+nub run build:lib
 ```
 
-运行中的 Client watcher 会在重新打包时消费这些生成文件。若已单独运行 `pnpm run build:lib:host` 刷新 Host 约定，也可再运行 `pnpm run build:lib:client` 完成 Client 侧；干净工作树不能跳过 Host 阶段。仅重新编译前端源码不能从 Host decorator 推导新类型。`pnpm run typecheck` 先以不打包的 Typert 生成刷新 Host 约定，再运行 Client tsc；CI 的构建 lane 与发布构建同样在包编译之前使用仅源码生成。
+运行中的 Client watcher 会在重新打包时消费这些生成文件。若已单独运行 `nub run build:lib:host` 刷新 Host 约定，也可再运行 `nub run build:lib:client` 完成 Client 侧；干净工作树不能跳过 Host 阶段。仅重新编译前端源码不能从 Host decorator 推导新类型。`nub run typecheck` 先以不打包的 Typert 生成刷新 Host 约定，再运行 Client tsc；CI 的构建 lane 与发布构建同样在包编译之前使用仅源码生成。
 
 <a id="boundaries"></a>
 

@@ -3,8 +3,8 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/agent-lifecycle.md
 /:
-  en: 41d772192075e133
-  zh: 305a6826a598b96d
+  en: d4d7fb1101528b9a
+  zh: 9df0d806709034c0
 /agent-turn-and-step-lifecycle:
   en: a1389c8ed7e37324
   zh: c2944b9192af4ec9

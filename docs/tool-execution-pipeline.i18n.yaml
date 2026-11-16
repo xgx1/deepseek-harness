@@ -3,8 +3,8 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/tool-execution-pipeline.md
 /:
-  en: 41d772192075e133
-  zh: 0eb190f00f396176
+  en: d4d7fb1101528b9a
+  zh: ec61a840bffec632
 /tool-execution-pipeline:
   en: a1103f6055f81a4b
   zh: 6eefe6bfa59b1692

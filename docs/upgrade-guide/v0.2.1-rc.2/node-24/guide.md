@@ -14,4 +14,4 @@ DSH requires Node.js 24.9 or newer. The previous release also supported Node.js 
 
 1. Upgrade the Node.js installation used to start DSH to version 24.9 or newer. Update Node version pins in development environments, containers, and CI jobs.
 2. Run `node --version` in the same environment and confirm that it reports version 24.9 or newer.
-3. For a source checkout, run `pnpm install`. Start DSH with the profile you normally use and confirm that it starts successfully.
+3. For a source checkout, run `nub install`. Start DSH with the profile you normally use and confirm that it starts successfully.

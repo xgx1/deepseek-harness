@@ -298,7 +298,7 @@ export interface SettingsControllerInternals {
 
 ## `@deepseek-ai/dsh-api-terminal-controller`
 
-- `inject`: `subprocess` · `sandboxPolicy` · `workingDirectory` · `typert`
+- `inject`: `subprocess` · `workingDirectory` · `typert`
 - `source`: [`packages/api/terminal-controller/src/index.ts:32`](../packages/api/terminal-controller/src/index.ts)
 
 ```ts config-catalog
@@ -368,7 +368,7 @@ export interface Config {
 
 ## `@deepseek-ai/dsh-api-workspace-files`
 
-- `inject`: `fs` · `sandboxPolicy` · `sessions` · `typert`
+- `inject`: `fs` · `sessions` · `typert`
 - `source`: [`packages/api/workspace-files/src/index.ts:74`](../packages/api/workspace-files/src/index.ts)
 
 ```ts config-catalog
@@ -1589,7 +1589,7 @@ export type PaidTranslationProvider = 'deepseek-account' | 'deepseek-official'
 
 ## `@deepseek-ai/dsh-experimental-worktree`
 
-- `inject`: `workingDirectory` · `fs` · `subprocess` · `sandbox` · `sandboxPolicy` · `sessionProjections`
+- `inject`: `workingDirectory` · `fs` · `subprocess` · `sessionProjections`
 - `refs`: `Volatile` (`@deepseek-ai/cordis`)
 - `source`: [`packages/experimental/worktree/src/index.ts:39`](../packages/experimental/worktree/src/index.ts)
 
@@ -2809,10 +2809,10 @@ export interface PlanModeConfig {
 - `source`: [`packages/boot/plugin-manager/src/index.ts:56`](../packages/boot/plugin-manager/src/index.ts)
 
 ```ts config-catalog
-/** The pnpm executable, registries, and limits for diagnostics, lookups and connection checks. */
+/** The nub executable, registries, and limits for diagnostics, lookups and connection checks. */
 export interface Config {
-  /** The pnpm executable name or path; resolved through `PATH` like the `dsh plugin` command. */
-  pnpmCommand?: string
+  /** The nub executable name or path, resolved through `PATH`. */
+  packageManagerCommand?: string
   /** Maximum retained package-operation diagnostic bytes. */
   outputBytes?: number
   /** Maximum time to wait for another process's profile package operation. */
@@ -2825,11 +2825,11 @@ export interface Config {
   gitTransportTimeoutMs?: number
   /** Maximum time one captured package run may print nothing before the manager terminates it, in milliseconds. */
   idleTimeoutMs?: number
-  /** The registry lookups and installations ask first, as an http(s) URL; absent, the one pnpm's own configuration names. */
+  /** The registry lookups and installations ask first, as an http(s) URL; absent, the one nub's own configuration names. */
   registry?: string
   /**
    * Registries asked in turn, as http(s) URLs, while the one before is unreachable or holds no copy of the package.
-   * A registry outside this set and `registry` is asked alone, and so is the one pnpm's own configuration names
+   * A registry outside this set and `registry` is asked alone, and so is the one nub's own configuration names
    * unless that is npm's own registry or one of these.
    */
   fallbackRegistries?: string[]
@@ -2911,7 +2911,7 @@ export interface Config {
 
 ## `@deepseek-ai/dsh-ptc-runtime-node`
 
-- `inject`: `fs` · `subprocess` · `sandbox` · `sandboxPolicy`
+- `inject`: `fs` · `subprocess`
 - `source`: [`packages/ptc-runtime/ptc-runtime-node/src/config.ts:8`](../packages/ptc-runtime/ptc-runtime-node/src/config.ts)
 
 ```ts config-catalog
@@ -2944,6 +2944,8 @@ export interface Config {
   stopGraceMs?: number
   /** Managed process termination and output-drain grace in milliseconds. */
   graceMs?: number
+  /** Cleanup allowance added to a run deadline before the host reports an unsettled run. */
+  settleAllowanceMs?: number
 }
 
 /** Deployment-owned worker invocation in the subprocess execution world. */
@@ -3300,6 +3302,35 @@ export interface Config {
 export type JsonlCompression = 'zstd' | 'none'
 ```
 <!-- END GENERATED config-catalog:@deepseek-ai/dsh-session-persistence-jsonl -->
+
+<!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-session-persistence-turso -->
+<a id="deepseek-aidsh-session-persistence-turso"></a>
+
+## `@deepseek-ai/dsh-session-persistence-turso`
+
+- `source`: [`packages/session/session-persistence-turso/src/index.ts:54`](../packages/session/session-persistence-turso/src/index.ts)
+
+```ts config-catalog
+/** Plugin configuration. */
+export interface Config {
+  /**
+   * Path to the Turso database file, or `:memory:` for an in-process
+   * database. Missing directories and files are created owner-only.
+   */
+  path: string
+  /** SQLite `journal_mode` pragma; `wal` (the default) suits local disks. */
+  journalMode?: JournalMode
+}
+
+/**
+ * Journal modes this backend runs under. `wal` is the default; the
+ * rollback-journal modes exist for filesystems where WAL's shared-memory files
+ * do not work (network mounts). `memory`/`off` are excluded because dropping
+ * journal durability contradicts the persistence durability clause.
+ */
+export type JournalMode = 'wal' | 'delete' | 'truncate' | 'persist'
+```
+<!-- END GENERATED config-catalog:@deepseek-ai/dsh-session-persistence-turso -->
 
 <!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-session-projection-cache -->
 <a id="deepseek-aidsh-session-projection-cache"></a>
@@ -4127,7 +4158,7 @@ export type ShellDialect = 'bash' | 'pwsh'
 
 ## `@deepseek-ai/dsh-terminal-panel`
 
-- `inject`: `terminals` · `terminalController` · `sandboxPolicy` · `tools` · `systemPrompt`
+- `inject`: `terminals` · `terminalController` · `tools` · `systemPrompt`
 - `source`: [`packages/experimental/terminal-panel/src/config.ts:6`](../packages/experimental/terminal-panel/src/config.ts)
 
 ```ts config-catalog
@@ -5178,7 +5209,7 @@ export interface Config {
 
 ## `@deepseek-ai/dsh-workflow-ptc`
 
-- `inject`: `subagents` · `ptcRuntime` · `sandboxPolicy` · `workingDirectory`
+- `inject`: `subagents` · `ptcRuntime` · `workingDirectory`
 - `source`: [`packages/workflow/workflow-ptc/src/index.ts:35`](../packages/workflow/workflow-ptc/src/index.ts)
 
 ```ts config-catalog
@@ -5252,6 +5283,7 @@ export interface Config {
 | --- | --- | --- |
 | `@deepseek-ai/dsh-acp-app` | `cmdlineArgs` | [`packages/bundle/acp-app/src/index.ts`](../packages/bundle/acp-app/src/index.ts) |
 | `@deepseek-ai/dsh-agent` | `sessionProjections` | [`packages/core/agent/src/index.ts`](../packages/core/agent/src/index.ts) |
+| `@deepseek-ai/dsh-agent-config` | `tools` · `typert` · `mcpResources` | [`packages/preset/agent-config/src/index.ts`](../packages/preset/agent-config/src/index.ts) |
 | `@deepseek-ai/dsh-api-remote-access` | — | [`packages/api/remote-access/src/index.ts`](../packages/api/remote-access/src/index.ts) |
 | `@deepseek-ai/dsh-api-remotes` | `typertGateway` | [`packages/api/remotes/src/index.ts`](../packages/api/remotes/src/index.ts) |
 | `@deepseek-ai/dsh-api-skill-filter-controller` | `typert` | [`packages/api/skill-filter-controller/src/index.ts`](../packages/api/skill-filter-controller/src/index.ts) |
@@ -5264,6 +5296,7 @@ export interface Config {
 | `@deepseek-ai/dsh-client-script-realm` | — | [`packages/client/script-realm/src/index.ts`](../packages/client/script-realm/src/index.ts) |
 | `@deepseek-ai/dsh-client-script-realm-iframe` | — | [`packages/client/script-realm-iframe/src/index.ts`](../packages/client/script-realm-iframe/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-action-cards` | — | [`packages/experimental/client-ui-action-cards/src/index.ts`](../packages/experimental/client-ui-action-cards/src/index.ts) |
+| `@deepseek-ai/dsh-client-ui-agent-config` | — | [`packages/client/ui-agent-config/src/index.ts`](../packages/client/ui-agent-config/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-agent-preset` | — | [`packages/client/ui-agent-preset/src/index.ts`](../packages/client/ui-agent-preset/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-agent-team` | — | [`packages/client/ui-agent-team/src/index.ts`](../packages/client/ui-agent-team/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-approval` | — | [`packages/client/ui-approval/src/index.ts`](../packages/client/ui-approval/src/index.ts) |
@@ -5275,7 +5308,7 @@ export interface Config {
 | `@deepseek-ai/dsh-client-ui-conversation` | — | [`packages/client/ui-conversation/src/index.ts`](../packages/client/ui-conversation/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-cordis` | — | [`packages/extensions/ui-cordis/src/index.ts`](../packages/extensions/ui-cordis/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-creation-recommendations` | — | [`packages/experimental/client-ui-creation-recommendations/src/index.ts`](../packages/experimental/client-ui-creation-recommendations/src/index.ts) |
-| `@deepseek-ai/dsh-client-ui-deliverables` | `connection` · `sessionQuery` · `sessionController` · `workspaceFiles` · `fs` · `sandboxPolicy` · `workspaceChanges` | [`packages/client/ui-deliverables/src/index.ts`](../packages/client/ui-deliverables/src/index.ts) |
+| `@deepseek-ai/dsh-client-ui-deliverables` | `connection` · `sessionQuery` · `sessionController` · `workspaceFiles` · `fs` · `workspaceChanges` | [`packages/client/ui-deliverables/src/index.ts`](../packages/client/ui-deliverables/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-directory-picker-browse` | — | [`packages/client/ui-directory-picker-browse/src/index.ts`](../packages/client/ui-directory-picker-browse/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-directory-picker-native` | — | [`packages/client/ui-directory-picker-native/src/index.ts`](../packages/client/ui-directory-picker-native/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-entry-customization` | — | [`packages/client/ui-entry-customization/src/index.ts`](../packages/client/ui-entry-customization/src/index.ts) |

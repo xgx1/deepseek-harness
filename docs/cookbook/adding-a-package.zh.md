@@ -24,7 +24,7 @@ packages/<group>/<pkg>/
 
 当已有分组与包的角色匹配时，选择该分组（`core`、`llm`、`shell`、`compaction`、`subagent`、`todo`、`session`、`client`/`host`、`util` 或 `test-support`）。允许新建分组，但分组只是纯容器：没有 `package.json`，没有源文件，包仍然恰好位于其下一层。
 
-package.json 不变式（由 `pnpm run constraints` / `scripts/check-workspace-constraints.ts` 强制执行）：`private: true`，`version` 与根 `package.json` 一致，`type: module`，`main: "lib/index.js"`，`types: "lib/types/index.d.ts"`，`exports["."].types: "./lib/types/index.d.ts"`，`exports["."].default: "./lib/index.js"`，`@deepseek-ai/cordis` 同时出现在 peerDependencies 和 devDependencies 中（相同范围）。每个 dsh 对等依赖（peer dependency）都要在 devDependencies 中镜像。`@deepseek-ai/schemastery` 放在 `dependencies` 中（它是运行时校验器），与 agent-loop 保持一致。`files` 列表精确包含 `lib/index.js`、`lib/types/**/*.d.ts`、`lib/types/**/*.d.ts.map`、`src` 以及门禁认可的包专用运行时产物。如果包的运行时 export 指向输出树，还要包含 `lib/types/**/*.js`。声明映射与 JavaScript map 随各自描述的产物一起发布，`src` 也随之发布，让消费方编辑器和插件作者都能读到导出声明背后的实现；不要发布陈旧的根声明文件。带有 `bin` 的 CLI 应用包在 `files` 中将 `lib/bin.js` 紧跟在 `lib/index.js` 之后。
+package.json 不变式（由 `nub run constraints` / `scripts/check-workspace-constraints.ts` 强制执行）：`private: true`，`version` 与根 `package.json` 一致，`type: module`，`main: "lib/index.js"`，`types: "lib/types/index.d.ts"`，`exports["."].types: "./lib/types/index.d.ts"`，`exports["."].default: "./lib/index.js"`，`@deepseek-ai/cordis` 同时出现在 peerDependencies 和 devDependencies 中（相同范围）。每个 dsh 对等依赖（peer dependency）都要在 devDependencies 中镜像。`@deepseek-ai/schemastery` 放在 `dependencies` 中（它是运行时校验器），与 agent-loop 保持一致。`files` 列表精确包含 `lib/index.js`、`lib/types/**/*.d.ts`、`lib/types/**/*.d.ts.map`、`src` 以及门禁认可的包专用运行时产物。如果包的运行时 export 指向输出树，还要包含 `lib/types/**/*.js`。声明映射与 JavaScript map 随各自描述的产物一起发布，`src` 也随之发布，让消费方编辑器和插件作者都能读到导出声明背后的实现；不要发布陈旧的根声明文件。带有 `bin` 的 CLI 应用包在 `files` 中将 `lib/bin.js` 紧跟在 `lib/index.js` 之后。
 
 包内的相对导入在源码中使用显式 `.ts` 后缀（例如 `export * from './types.ts'`）。编译器在输出的 JS 中将其重写为 `.js`，在声明文件中保留显式 `.ts` 后缀；标准的 NodeNext/Node16 TypeScript 消费方会将其解析到同目录的 `.d.ts` 文件。
 
@@ -136,7 +136,7 @@ Append-only, prefix-stable, replacing, or independent behavior, including the ex
 }
 ```
 
-语言文件统一放在 `locale/`，并保留 `en.json` 作为发现入口。字段可选，填写时必须是非空字符串。英文 `meta.title` 和 `meta.description` 使用 sentence case：只大写首个单词、专有名词和产品名，例如 `Git worktrees`（[rule](../../.agents/skills/dsh-prose-standard/SKILL.md#required-coverage-by-prose-location)）。运行时文件或字段缺失时允许回退，JSON 损坏或字段无效时显示单插件诊断。仓库内的包和插件模板必须提供 `ja.json`、`es.json`、`fr.json`、`de.json`、`ru.json` 和 `pt.json`，覆盖 `en.json` 或可选 `zh.json` 中的全部字段并保留占位符、斜杠命令和 API 字段名；详情路径可指向现有英文文档。`locale/<subpath>/` 下的子路径资源使用相同检查。英文描述面向产品用户说明可见行为，并以句末标点结束。运行 `pnpm run check:i18n` 检查 JSON 元数据和 UI 字典完整性；JSON 检查也接入 `check:all`、CI 静态检查和 hygiene。
+语言文件统一放在 `locale/`，并保留 `en.json` 作为发现入口。字段可选，填写时必须是非空字符串。英文 `meta.title` 和 `meta.description` 使用 sentence case：只大写首个单词、专有名词和产品名，例如 `Git worktrees`（[rule](../../.agents/skills/dsh-prose-standard/SKILL.md#required-coverage-by-prose-location)）。运行时文件或字段缺失时允许回退，JSON 损坏或字段无效时显示单插件诊断。仓库内的包和插件模板必须提供 `ja.json`、`es.json`、`fr.json`、`de.json`、`ru.json` 和 `pt.json`，覆盖 `en.json` 或可选 `zh.json` 中的全部字段并保留占位符、斜杠命令和 API 字段名；详情路径可指向现有英文文档。`locale/<subpath>/` 下的子路径资源使用相同检查。英文描述面向产品用户说明可见行为，并以句末标点结束。运行 `nub run check:i18n` 检查 JSON 元数据和 UI 字典完整性；JSON 检查也接入 `check:all`、CI 静态检查和 hygiene。
 
 各字段先独立回退，再按页面规则格式化技术名称；回退优先经过现有 locale 语言链：
 
@@ -157,16 +157,16 @@ Install 界面仍使用 `pnpm view` 返回的 npm registry 信息，不用 local
 
 验证结果：
 
-1. 在仓库根目录运行 `pnpm run verify-package-meta`，检查字段、资源 exports 和发布文件覆盖。
+1. 在仓库根目录运行 `nub run verify-package-meta`，检查字段、资源 exports 和发布文件覆盖。
 2. 对已安装插件，在适用的插件管理页与设置条目中切换中英文，检查标题、描述、逐字段回退，以及仅设置页使用的技术短名。
 
 ## 6. 验证
 
 ```sh
-pnpm install        # registers the workspace
-pnpm run doc-sync
-pnpm run constraints && pnpm run typecheck && pnpm run lint
-pnpm run build && pnpm run hygiene
+nub install        # registers the workspace
+nub run doc-sync
+nub run constraints && nub run typecheck && nub run lint
+nub run build && nub run hygiene
 ```
 
 请遵循[仓库测试政策](../testing.zh.md)，执行新包所需的行为专项检查并达到相应覆盖率。

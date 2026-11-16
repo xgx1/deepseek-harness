@@ -102,7 +102,7 @@ export async function rename(noteId: string, title: string): Promise<void> {
 }
 ```
 
-Rerun `pnpm run build:lib` after changing a signature, the code table, the namespace, or an export name, because that is what hands the Client its new declarations and codecs; changing only an implementation body needs no regeneration.
+Rerun `nub run build:lib` after changing a signature, the code table, the namespace, or an export name, because that is what hands the Client its new declarations and codecs; changing only an implementation body needs no regeneration.
 
 ## 4. Consume it on the Client
 
@@ -191,7 +191,7 @@ it('renders the failure code the Host reported', async () => {
 
 ## Verify
 
-1. `pnpm run build:lib`: mandatory once a signature, the code table, the namespace, or an export name changed, because it produces the Client declarations and codecs.
-2. `pnpm run typecheck`: both the Host and the Client program, where a code merged into an unreachable package turns red.
+1. `nub run build:lib`: mandatory once a signature, the code table, the namespace, or an export name changed, because it produces the Client declarations and codecs.
+2. `nub run typecheck`: both the Host and the Client program, where a code merged into an unreachable package turns red.
 3. Run both sides' specs by name: `npx vitest run <owner spec> <client spec>`.
 4. Add a recorded-session snapshot when the endpoint reaches a product-visible surface, per the [testing policy](../testing.md).

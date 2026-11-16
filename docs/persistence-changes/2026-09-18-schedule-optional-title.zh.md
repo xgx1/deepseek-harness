@@ -40,7 +40,7 @@ changes:
 <a id="verification"></a>
 ## 验证
 
-pnpm exec vitest run packages/schedule/schedule/tests：18 个文件、789 个测试通过。
+nubx vitest run packages/schedule/schedule/tests：18 个文件、789 个测试通过。
 
 <a id="dev-note"></a>
 ## 开发备注

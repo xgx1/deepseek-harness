@@ -1,5 +1,5 @@
 <!-- 由 scripts/gen-module-graph.ts 生成——请勿手工编辑。
-     运行 `pnpm run gen-module-graph` 重新生成。 -->
+     运行 `nub run gen-module-graph` 重新生成。 -->
 
 # 共享实例依赖关系图
 

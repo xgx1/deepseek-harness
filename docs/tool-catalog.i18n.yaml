@@ -3,11 +3,11 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/tool-catalog.md
 /:
-  en: 0be8ffbf23193557
-  zh: ce2c69aa86875171
+  en: e13c2ccbc8ae662e
+  zh: 49a3c2b2e630d0f9
 /tool-schema-catalog:
-  en: 6cc2cd9ced70bb09
-  zh: 1c0e6cb4ba2ed637
+  en: 52527826b5fef87d
+  zh: 3b83ef0bea752c15
 /tool-schema-catalog/tool-package-map:
   en: 4e5bb11e4664bb1c
   zh: 4855556d38701373

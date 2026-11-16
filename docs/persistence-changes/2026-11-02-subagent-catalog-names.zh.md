@@ -40,7 +40,7 @@ version 0、1、2 载荷的 schema 和含义保持不变；当前读取方将其
 <a id="verification"></a>
 ## 验证
 
-pnpm exec vitest run packages/subagent/subagent/tests：495 个测试通过，覆盖具名目录恢复、无效 version 3 事实、同级唯一预留、冷恢复路径还原以及父级交付 external 子代理的名称。pnpm exec vitest run packages/session/session-format-v3-to-v4/tests：397 个测试通过，覆盖原生 version 3 准入与拒绝。
+nubx vitest run packages/subagent/subagent/tests：495 个测试通过，覆盖具名目录恢复、无效 version 3 事实、同级唯一预留、冷恢复路径还原以及父级交付 external 子代理的名称。nubx vitest run packages/session/session-format-v3-to-v4/tests：397 个测试通过，覆盖原生 version 3 准入与拒绝。
 
 <a id="dev-note"></a>
 ## 开发备注

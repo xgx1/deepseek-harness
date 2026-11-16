@@ -3,8 +3,8 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/graph-atlas.md
 /:
-  en: 41d772192075e133
-  zh: e29afb84a07b179e
+  en: d4d7fb1101528b9a
+  zh: 324e9b5072a9bc14
 /documentation-graph-index:
-  en: 8ade539585a97cc2
-  zh: 3a7195b400fd3203
+  en: aa9807af0f863ff1
+  zh: aa78c3874a269e58

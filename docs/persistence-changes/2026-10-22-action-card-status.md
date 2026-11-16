@@ -52,7 +52,7 @@ Existing messages and records are unchanged. Readers without the action-card plu
 <a id="verification"></a>
 ## Verification
 
-pnpm exec vitest run on the action-cards, creation-recommendations, client-ui-action-cards and client-ui-creation-recommendations tests: 120 tests passed with 100% coverage of their sources. The Web creation-recommendations replay logs the status notice of a dismissed card before the next answer.
+nubx vitest run on the action-cards, creation-recommendations, client-ui-action-cards and client-ui-creation-recommendations tests: 120 tests passed with 100% coverage of their sources. The Web creation-recommendations replay logs the status notice of a dismissed card before the next answer.
 
 <a id="dev-note"></a>
 ## Dev Note

@@ -25,4 +25,4 @@ Code that handles these failures in-process sees these changes:
 2. Replace `instanceof AggregateError` checks on `SessionResources.dispose()` rejections with `instanceof BrowserSessionError` and read the individual failures from `error.cause.errors`.
 3. Replace reads of `OarFailure.stage` or `category` with `error.code`.
 4. If code catches `HarnessError` before `NativeError`, `OarFailure`, or `StagehandDrainError`, move the specific check first where the handling differs.
-5. Confirm with `pnpm run typecheck` and your own failure-path tests.
+5. Confirm with `nub run typecheck` and your own failure-path tests.

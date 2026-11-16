@@ -3,11 +3,11 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/persistence-catalog.md
 /:
-  en: a11f106978c9dce7
-  zh: a11f106978c9dce7
+  en: fee1911e3d01c924
+  zh: fee1911e3d01c924
 /session-persistence-event-catalog:
-  en: 1387c4505dde2faf
-  zh: 48570fa1c13d6910
+  en: b3c4e1b96c05398f
+  zh: 6fa9f9435951aa4a
 /session-persistence-event-catalog/persistence-type-fingerprints:
   en: 1e2e67ce1afad254
   zh: 871bd1e25a9273b1

@@ -17,4 +17,4 @@ description: "TerminalBackendCleanupError 改为继承 TerminalError 而非 Aggr
 
 1. 把针对该错误的 `error instanceof AggregateError` 检查改为 `error instanceof TerminalBackendCleanupError`，或对 `TerminalError` 检查 `error.code === 'CLEANUP_FAILED'`。
 2. TypeScript 代码未经收窄就读取 `error.errors` 元素成员时，先收窄每个 `unknown` 元素，或改为读取 `spawnError` 与 `cleanupError`。
-3. 在消费项目中运行 `pnpm exec tsc --noEmit` 确认通过，并检查启动清理失败仍会进入原有的处理路径。
+3. 在消费项目中运行 `nubx tsc --noEmit` 确认通过，并检查启动清理失败仍会进入原有的处理路径。

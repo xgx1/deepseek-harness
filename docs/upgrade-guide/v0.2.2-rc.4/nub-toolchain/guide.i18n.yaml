@@ -1,0 +1,16 @@
+# Bilingual-pair consistency record for guide.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   nub run verify-translation-pairing --write docs/upgrade-guide/v0.2.2-rc.4/nub-toolchain/guide.md
+/:
+  en: 464e660d96258422
+  zh: 65bef46c936ec9c0
+/the-workspace-toolchain-is-nub:
+  en: 6b1f1f43e4afda76
+  zh: bead30575629ef3c
+/the-workspace-toolchain-is-nub/change:
+  en: e2e87a4b0f75b80a
+  zh: 390f564351562b04
+/the-workspace-toolchain-is-nub/migration:
+  en: c97b61023ae4fd72
+  zh: 514be61bca520f55
