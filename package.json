@@ -347,10 +347,10 @@
     "node-pty": true,
     "@google/genai": false,
     "protobufjs": false,
-    "node-addon-require-builtin": false,
     "koffi": true,
-    "@deepseek-ai/dsh-subprocess-local@file:packages/subprocess/subprocess-local": true,
     "electron-winstaller": false,
-    "msgpackr-extract": false
+    "msgpackr-extract": false,
+    "@deepseek-ai/dsh-subprocess-local": true,
+    "@deepseek-ai/dsh-subprocess-local@link:packages/subprocess/subprocess-local": true
   }
 }

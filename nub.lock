@@ -18886,7 +18886,7 @@ importers:
         version: 16.3.3(@testing-library/dom@10.4.2)(@types/react@18.3.31)(@types/react-dom@18.3.7(@types/react@18.3.31))(react@18.3.1)(react-dom@18.3.1(react@18.3.1))
       vitest:
         specifier: ^4.1.11
-        version: 4.1.11(@noble/hashes@2.4.0)(@opentelemetry/api@1.9.1)(@types/node@22.20.1)(@vitest/coverage-v8@4.1.11)(happy-dom@20.11.6)(jsdom@29.1.1)(vite@6.4.3(@types/node@22.20.1)(jiti@2.7.0)(lightningcss@1.33.0)(tsx@4.23.13)(yaml@2.9.0))
+        version: 4.1.11(@noble/hashes@2.4.0)(@opentelemetry/api@1.9.1)(@types/node@22.20.1)(@vitest/coverage-v8@4.1.11)(happy-dom@20.11.6)(jsdom@29.1.1)(vite@8.2.2(@types/node@22.20.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.0))
     devDependencies:
       '@deepseek-ai/cordis':
         specifier: workspace:~
@@ -19106,7 +19106,7 @@ importers:
         version: 4.3.2
       vitest:
         specifier: ^4.1.11
-        version: 4.1.11(@noble/hashes@2.4.0)(@opentelemetry/api@1.9.1)(@types/node@22.20.1)(@vitest/coverage-v8@4.1.11)(happy-dom@20.11.6)(jsdom@29.1.1)(vite@6.4.3(@types/node@22.20.1)(jiti@2.7.0)(lightningcss@1.33.0)(tsx@4.23.13)(yaml@2.9.0))
+        version: 4.1.11(@noble/hashes@2.4.0)(@opentelemetry/api@1.9.1)(@types/node@22.20.1)(@vitest/coverage-v8@4.1.11)(happy-dom@20.11.6)(jsdom@29.1.1)(vite@8.2.2(@types/node@22.20.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.0))
     devDependencies:
       '@deepseek-ai/cordis':
         specifier: workspace:~
@@ -31272,11 +31272,11 @@ snapshots:
       '@vue/compiler-dom': 3.5.42
       '@vue/shared': 3.5.42
 
-  '@vue/devtools-api@7.7.10':
+  '@vue/devtools-api@7.7.10(typescript@6.0.3)':
     dependencies:
-      '@vue/devtools-kit': 7.7.10
+      '@vue/devtools-kit': 7.7.10(typescript@6.0.3)
 
-  '@vue/devtools-kit@7.7.10':
+  '@vue/devtools-kit@7.7.10(typescript@6.0.3)':
     dependencies:
       '@vue/devtools-shared': 7.7.10
       birpc: 2.9.0
@@ -33860,7 +33860,7 @@ snapshots:
       micromark-util-types: 2.0.2
       unist-util-stringify-position: 4.0.0
 
-  mdast-util-gfm-autolink-literal@2.0.1(patch_hash=7fa6fc7927128a45c3f148d31faf388806895e2de39c14a144200edbc1e7aaa0):
+  mdast-util-gfm-autolink-literal@2.0.1(patch_hash=7fa6fc7927128a45c3f148d31faf388806895e2de39c14a144200edbc1e7aaa0)(supports-color@9.4.0):
     dependencies:
       '@types/mdast': 4.0.4
       ccount: 2.0.1
@@ -33903,7 +33903,7 @@ snapshots:
   mdast-util-gfm@3.1.0(supports-color@9.4.0):
     dependencies:
       mdast-util-from-markdown: 2.0.3(supports-color@9.4.0)
-      mdast-util-gfm-autolink-literal: 2.0.1(patch_hash=7fa6fc7927128a45c3f148d31faf388806895e2de39c14a144200edbc1e7aaa0)
+      mdast-util-gfm-autolink-literal: 2.0.1(patch_hash=7fa6fc7927128a45c3f148d31faf388806895e2de39c14a144200edbc1e7aaa0)(supports-color@9.4.0)
       mdast-util-gfm-footnote: 2.1.0(supports-color@9.4.0)
       mdast-util-gfm-strikethrough: 2.0.0(supports-color@9.4.0)
       mdast-util-gfm-table: 2.0.0(supports-color@9.4.0)
@@ -35827,7 +35827,7 @@ snapshots:
       '@shikijs/types': 2.5.0
       '@types/markdown-it': 14.1.2
       '@vitejs/plugin-vue': 5.2.4(vite@5.4.21(@types/node@22.20.1)(lightningcss@1.33.0))(vue@3.5.42(typescript@6.0.3))
-      '@vue/devtools-api': 7.7.10
+      '@vue/devtools-api': 7.7.10(typescript@6.0.3)
       '@vue/shared': 3.5.39
       '@vueuse/core': 12.8.2(typescript@6.0.3)
       '@vueuse/integrations': 12.8.2(focus-trap@7.8.0)(typescript@6.0.3)

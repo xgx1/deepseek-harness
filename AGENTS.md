@@ -79,37 +79,43 @@ website/     VitePress documentation projection
 
 Package groups: [packages/README.md](packages/README.md). [Experimental status](packages/experimental/README.md#status) is independent of optional delivery; nonexperimental packages need product use or an explicit [classification](scripts/product-package-policy.ts).
 
+## Toolchain
+
+`nub` is the declared package manager (`package.json#devEngines.packageManager`) and runs TypeScript files directly, so `tsx` is left to config subprocesses and the source launcher. Workspace members, `overrides`, `patchedDependencies`, and `allowScripts` live in `package.json`; the lockfile is `nub.lock` (pnpm v9 format, so existing lockfile tooling still reads it). `nub ci` is the strict install CI uses; `nub install` writes the lockfile.
+
+`allowScripts` is deny-by-default: a dependency shipping an install script stays out of the install unless listed there, and gets `true` only when the script is genuinely required (esbuild's native binary, lefthook's git hooks, node-pty's PTY backend). `nub pm use pnpm` reverses the switch.
+
 ## Commands
 
 ```sh
-pnpm install            # pnpm workspaces, node >=24.9
-pnpm run clean           # remove build outputs and safe residue from deleted packages
-pnpm run test           # unit tests
-pnpm run test:coverage  # CI coverage gate: per-file 100% on packages/*/*/src
-pnpm run test:e2e       # real-API tests; self-skip without DEEPSEEK_API_KEY
-pnpm run test:expected  # owner-local process expectations
-pnpm run test:snapshot  # keyless recorded-session replay through shipped profiles; filter: -t <name>
-pnpm run test:snapshot:record  # re-record expected outputs (needs key)
-pnpm run typecheck
-pnpm run lint
-pnpm run duplication    # cross-file TypeScript clone detection
-pnpm run build          # build:artifacts + build:check, concurrently
-pnpm run build:artifacts # artifacts: tsc emits lib/types, tsdown bundles runtime, Web
-pnpm run build:check    # typecheck aggregate tests/scripts against current build:artifacts output
-pnpm run hygiene        # publint + workspace/package/dependency checks + NodeNext consumer check
-pnpm run check:windows-wine  # ONLY when diagnosing a known Windows failure (needs wine); CI owns this signal
-pnpm run doc-sync       # documentation gates (scripts/run-gates.ts)
-pnpm run test:docs      # quick documentation checks (no build; doc-quick aggregate)
-pnpm run website:build  # VitePress build (doubles as dead-link check)
-pnpm dsh --profile headless "task"  # run one task from source (needs DEEPSEEK_API_KEY)
-pnpm run demo:ptc -- "task"  # headless PTC mode run (needs key)
-pnpm run dev:web | dev:desktop  # build:artifacts, then launch; Web also rebuilds client bundles on edits. start:web | start:desktop skip the build
+nub install            # nub workspaces, node >=24.9
+nub run clean           # remove build outputs and safe residue from deleted packages
+nub run test           # unit tests
+nub run test:coverage  # CI coverage gate: per-file 100% on packages/*/*/src
+nub run test:e2e       # real-API tests; self-skip without DEEPSEEK_API_KEY
+nub run test:expected  # owner-local process expectations
+nub run test:snapshot  # keyless recorded-session replay through shipped profiles; filter: -t <name>
+nub run test:snapshot:record  # re-record expected outputs (needs key)
+nub run typecheck
+nub run lint
+nub run duplication    # cross-file TypeScript clone detection
+nub run build          # build:artifacts + build:check, concurrently
+nub run build:artifacts # artifacts: tsc emits lib/types, tsdown bundles runtime, Web
+nub run build:check    # typecheck aggregate tests/scripts against current build:artifacts output
+nub run hygiene        # publint + workspace/package/dependency checks + NodeNext consumer check
+nub run check:windows-wine  # ONLY when diagnosing a known Windows failure (needs wine); CI owns this signal
+nub run doc-sync       # documentation gates (scripts/run-gates.ts)
+nub run test:docs      # quick documentation checks (no build; doc-quick aggregate)
+nub run website:build  # VitePress build (doubles as dead-link check)
+nubx dsh --profile headless "task"  # run one task from source (needs DEEPSEEK_API_KEY)
+nub run demo:ptc -- "task"  # headless PTC mode run (needs key)
+nub run dev:web | dev:desktop  # build:artifacts, then launch; Web also rebuilds client bundles on edits. start:web | start:desktop skip the build
 make web|dev-web|desktop|dev-desktop|build  # the same commands; ARGS='--no-open' forwards options
 ```
 
 ### Host sandbox failures
 
-If a required `gh`, `pnpm`, build, test, or generator command fails because the sandbox blocks credentials, network, IPC, watching, or nested `sandbox-exec`, retry unchanged with the narrowest host escalation. Require sandbox evidence; never bypass test failures or the product sandbox.
+If a required `gh`, `nub`, build, test, or generator command fails because the sandbox blocks credentials, network, IPC, watching, or nested `sandbox-exec`, retry unchanged with the narrowest host escalation. Require sandbox evidence; never bypass test failures or the product sandbox.
 
 ### Run relevant checks locally
 
@@ -119,7 +125,7 @@ Before pushing, follow [dsh-pre-push-checks](.agents/skills/dsh-pre-push-checks/
 - Never default to the full suite or repeat a passing check for commit or push. CI owns exhaustive coverage and the platform matrix; rehearse all locally only by explicit request, for CI diagnosis, or for an irreducibly repository-wide change.
 - `test:coverage`, not `test`, is the CI coverage gate ([why](docs/testing.md)).
 - Develop with `build:artifacts`; before claiming completion, run `build:check` after the latest `build:artifacts`, or `build` ([layout](docs/development.md#typescript-project-layout)).
-- **Web browser automation and GIF recording:** launch with `pnpm dsh web --patch apps/web/tests/pin-browse-picker.overlay.yml` to use the [in-page directory picker](apps/web/tests/pin-browse-picker.overlay.yml); omit this override only when testing native picker behavior explicitly.
+- **Web browser automation and GIF recording:** launch with `nubx dsh web --patch apps/web/tests/pin-browse-picker.overlay.yml` to use the [in-page directory picker](apps/web/tests/pin-browse-picker.overlay.yml); omit this override only when testing native picker behavior explicitly.
 
 ## Secrets / .env
 
@@ -161,7 +167,7 @@ Real-API tests/demos read `DEEPSEEK_API_KEY`, optional `DEEPSEEK_BASE_URL`, and 
 - **Testing policy** — [docs/testing.md](docs/testing.md). Every non-trivial model- or product-user-visible change updates a keyless recorded-session snapshot; [snapshot ownership](snapshots/AGENTS.md) reserves the top-level tree for session-driven cases and keeps other expected output owner-local. Fixtures replay on macOS/Linux; fix fixtures, not normalizers.
 - **Design each tool's UI presentation up front.** Host presenters stay pure; Web cards derive from raw events and persisted result metadata ([cookbook](docs/cookbook/adding-a-tool.md)).
 - **Plan unit, e2e, and snapshot coverage** for capability seams, lifecycle paths, and transcript output; include missing snapshot-harness support in the same change.
-- **Both SDKs project the loop.** Agent-loop, session-lifecycle, and `SessionEventMap` changes update the TypeScript and Python SDK expected outputs in the same PR; `pnpm run test` covers neither ([surfaces](docs/testing.md#when-a-snapshot-test-is-required)).
+- **Both SDKs project the loop.** Agent-loop, session-lifecycle, and `SessionEventMap` changes update the TypeScript and Python SDK expected outputs in the same PR; `nub run test` covers neither ([surfaces](docs/testing.md#when-a-snapshot-test-is-required)).
 - **Choose PR history deliberately.** Split independent changes and fix the introducing PR before propagation. Standalone/stack branches may merge-forward or rebase. Rewrites use `--force-with-lease`, abort on remote movement, never raw `--force`; preserve an in-progress merge-forward checkpoint before taking a newer base ([rationale](.agents/notes/implemented/process/2026-08-02-native-github-stacks-and-optional-rebases.md)).
 - **Labels:** one PR `kind/*`, all material `area/*`, and native Issue Type ([taxonomy](.agents/notes/implemented/process/2026-08-08-unified-github-label-taxonomy.md)).
 - **PR descriptions:** write and update every PR description with [dsh-pr-description](.agents/skills/dsh-pr-description/SKILL.md).
@@ -186,4 +192,4 @@ Docs accompany every code change: update affected README and JSDoc contracts tog
 
 ## Vendoring policy
 
-`vendor/` packages are pinned source copies (manifest with upstream SHAs in [vendor/README.md](vendor/README.md)). Update via the sync procedure there; re-apply or retire the logged local modifications; rerun `pnpm run test && pnpm run build`.
+`vendor/` packages are pinned source copies (manifest with upstream SHAs in [vendor/README.md](vendor/README.md)). Update via the sync procedure there; re-apply or retire the logged local modifications; rerun `nub run test && nub run build`.

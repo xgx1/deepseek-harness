@@ -37,12 +37,12 @@ npx @deepseek-ai/dsh web
 ```sh
 git clone https://github.com/deepseek-ai/deepseek-harness.git
 cd deepseek-harness
-pnpm install
-pnpm run build
-pnpm dsh web
+nub install
+nub run build
+nubx dsh web
 ```
 
-`pnpm run build` 会准备仓库产物。`pnpm dsh web` 会直接使用这些已构建产物，不会重新构建。
+`nub run build` 会准备仓库产物。`nubx dsh web` 会直接使用这些已构建产物，不会重新构建。
 
 ## 社区与支持
 
@@ -73,7 +73,7 @@ pnpm dsh web
 
 请先阅读[开发指南](docs/development.zh.md)与[架构文档](docs/architecture.zh.md)。
 
-`pnpm run dev:web` 会在一个终端里完成构建、启动，并在源码修改时重建 client bundle；`make help` 列出 Web 与 Desktop 对应的 Make target。完整表格见开发指南的「应用命令」一节。
+`nub run dev:web` 会在一个终端里完成构建、启动，并在源码修改时重建 client bundle；`make help` 列出 Web 与 Desktop 对应的 Make target。完整表格见开发指南的「应用命令」一节。
 
 面向 agent：请遵循 [AGENTS.md](AGENTS.md)。
 

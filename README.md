@@ -33,12 +33,12 @@ To run from a repository checkout:
 ```sh
 git clone https://github.com/deepseek-ai/deepseek-harness.git
 cd deepseek-harness
-pnpm install
-pnpm run build
-pnpm dsh web
+nub install
+nub run build
+nubx dsh web
 ```
 
-`pnpm run build` prepares the repository artifacts. `pnpm dsh web` uses those built artifacts without rebuilding.
+`nub run build` prepares the repository artifacts. `nubx dsh web` uses those built artifacts without rebuilding.
 
 ## Community and support
 
@@ -54,7 +54,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 Start with the [development guide](docs/development.md) and [architecture documentation](docs/architecture.md).
 
-`pnpm run dev:web` builds, serves, and rebuilds client bundles on source edits in one terminal, and `make help` lists the matching Make targets for Web and Desktop; the guide's application commands section owns the full table.
+`nub run dev:web` builds, serves, and rebuilds client bundles on source edits in one terminal, and `make help` lists the matching Make targets for Web and Desktop; the guide's application commands section owns the full table.
 
 For agents, follow [AGENTS.md](AGENTS.md).
 
