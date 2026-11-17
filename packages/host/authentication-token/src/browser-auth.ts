@@ -62,7 +62,12 @@ function decodeBase64Url(value: string): Buffer | undefined {
 function processLaunchToken(owner: object): string {
   const existing = PROCESS_LAUNCH_TOKENS.get(owner)
   if (existing !== undefined) return existing
-  const created = encodeBase64Url(randomBytes(SECRET_BYTES))
+  // 固定的入口 token（DSH_WEB_TOKEN）：重启后打印出来的链接不再变，
+  // 常开的浏览器标签页也就不会因为重启而全部 401。
+  const configured = process.env['DSH_WEB_TOKEN']
+  const created = configured !== undefined && configured !== ''
+    ? configured
+    : encodeBase64Url(randomBytes(SECRET_BYTES))
   PROCESS_LAUNCH_TOKENS.set(owner, created)
   return created
 }
