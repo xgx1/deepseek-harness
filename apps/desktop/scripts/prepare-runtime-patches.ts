@@ -48,11 +48,11 @@ export function prepareRuntimePatches(
   overrides: Readonly<Record<string, string>> = DESKTOP_RUNTIME_DEPENDENCY_OVERRIDES,
 ): PreparedRuntimePatches {
   if (resolve(projectRoot) === resolve(repositoryRoot)) throw new Error('desktop patches: destination must not be the source workspace')
-  const source = yaml.load(readFileSync(join(repositoryRoot, 'pnpm-workspace.yaml'), 'utf8')) as {
+  const source = JSON.parse(readFileSync(join(repositoryRoot, 'package.json'), 'utf8')) as {
     patchedDependencies: Record<string, string>
   }
-  const sourceLock = yaml.load(readFileSync(join(repositoryRoot, 'pnpm-lock.yaml'), 'utf8')) as {
-    patchedDependencies: Record<string, string>
+  const sourceLock = yaml.load(readFileSync(join(repositoryRoot, 'nub.lock'), 'utf8')) as {
+    patchedDependencies: Record<string, { hash: string }>
   }
   for (const spec of Object.keys(source.patchedDependencies)) {
     if (!Object.hasOwn(policy, spec)) throw new Error(`desktop patches: classify the workspace patch ${spec}`)
@@ -71,7 +71,7 @@ export function prepareRuntimePatches(
     }
     const bytes = readFileSync(join(repositoryRoot, sourcePath))
     const hash = patchHash(bytes)
-    if (rule.scope === 'shared' && sourceLock.patchedDependencies[spec] !== hash) {
+    if (rule.scope === 'shared' && sourceLock.patchedDependencies[spec]?.hash !== hash) {
       throw new Error(`desktop patches: shared patch hash differs from the root lockfile: ${spec}`)
     }
     selected.push({ spec, ...identity, path: `patches/desktop-${selected.length}.patch`, hash, bytes })

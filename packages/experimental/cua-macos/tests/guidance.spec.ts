@@ -75,15 +75,15 @@ it('documents explicit mouse-button events immediately after mouseMove', () => {
   const lines = COMMON_GUIDANCE.split('\n')
   const index = lines.findIndex(line => line.startsWith('- toggleMouse('))
   expect(lines[index - 1]).toMatch(/^- mouseMove\(/)
-  expect(lines[index]).toBe("- toggleMouse(mouseButton: 'left' | 'right' | 'middle', direction: 'down' | 'up') -> ActionResult — press or release the specified mouse button at the current pointer position without moving it. No coordinates are accepted. Release held buttons explicitly with 'up'; the opposite event is not sent automatically.")
-  expect(index).toBeGreaterThan(lines.indexOf('## Simulated mouse'))
-  expect(index).toBeLessThan(lines.indexOf('## Simulated keyboard'))
+  expect(lines[index]).toBe("- toggleMouse(mouseButton: 'left' | 'right' | 'middle', direction: 'down' | 'up') -> ActionResult — 在当前指针位置按下或松开指定的鼠标键，不移动指针。不接受坐标。按住的键要用 'up' 显式松开；相反的事件不会自动发送。")
+  expect(index).toBeGreaterThan(lines.indexOf('## 模拟鼠标'))
+  expect(index).toBeLessThan(lines.indexOf('## 模拟键盘'))
 })
 
 it.each([GUIDANCE, PROGRAM_GUIDANCE])('documents the default window release and the optional system hold', (catalog) => {
   const entry = catalog.split('\n').find(line => line.startsWith('- toggleMouse('))
-  expect(entry).toContain('By default the window receives the events, even a release outside it, and the system button stays up.')
-  expect(entry).toContain('pass useSystemPointer: true on both down and up')
+  expect(entry).toContain('默认由窗口接收事件，即使释放在窗口之外也一样，操作系统层的按钮仍保持未按下。')
+  expect(entry).toContain('请在按下与松开时都传 useSystemPointer: true')
 })
 
 it('enumerates every public method once in its catalog entry', () => {
@@ -160,11 +160,11 @@ it('states platform-dependent levels without qualifying grouped method names', (
 })
 
 it('guides complex input combinations through platform-supported primitive operations', () => {
-  const advice = 'click, drag, and pressKey are convenience operations; sendKeyEvent, mouseMove, and toggleMouse are primitive operations. For complex action combinations, decompose convenience operations into sequences of primitive operations supported by the current platform.'
+  const advice = 'click、drag 与 pressKey 是便捷操作；sendKeyEvent、mouseMove 与 toggleMouse 是原语操作。遇到复杂的动作组合时，把便捷操作拆成当前平台支持的原语操作序列。'
   for (const catalog of [COMMON_GUIDANCE, GUIDANCE, PROGRAM_GUIDANCE]) {
     expect(catalog).toContain(advice)
     expect(catalog.indexOf(advice)).toBeGreaterThan(catalog.indexOf('- sendKeyEvent('))
-    expect(catalog.indexOf(advice)).toBeLessThan(catalog.indexOf('Raw tools use { method, params }'))
+    expect(catalog.indexOf(advice)).toBeLessThan(catalog.indexOf('原生工具使用 { method, params }'))
   }
 })
 

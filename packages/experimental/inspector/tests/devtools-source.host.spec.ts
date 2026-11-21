@@ -1,5 +1,7 @@
 /** Source adapters evaluated in per-test VMs; npm fixtures are read-only and no browser globals are shared. */
 import { readFileSync } from 'node:fs'
+import { createRequire } from 'node:module'
+import { dirname, join } from 'node:path'
 import { runInNewContext } from 'node:vm'
 import ts from 'typescript'
 import { describe, expect, it } from 'vitest'
@@ -12,13 +14,13 @@ import {
 } from '../scripts/devtools/source.ts'
 
 const timelinePath = 'panels/timeline/TimelinePanel.ts'
-const frontend = new URL('../node_modules/chrome-devtools-frontend/front_end/', import.meta.url)
+const frontend = join(dirname(createRequire(import.meta.url).resolve('chrome-devtools-frontend/package.json')), 'front_end')
 const nodeMode = '#isNode = Root.Runtime.Runtime.isNode();'
 const nodeTarget = 'SDK.TargetManager.TargetManager.instance().targets().find(target => target.type() === SDK.Target.Type.NODE)'
 const primaryTarget = 'SDK.TargetManager.TargetManager.instance().primaryPageTarget()'
 
 function npmSource(path: string): string {
-  return readFileSync(new URL(path, frontend), 'utf8')
+  return readFileSync(join(frontend, path), 'utf8')
 }
 
 function evaluateModule(source: string): Record<string, unknown> {

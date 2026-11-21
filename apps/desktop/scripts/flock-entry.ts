@@ -10,11 +10,11 @@ type FlockEntry = typeof import('@deepseek-ai/node-addon-system/flock')
 
 const REPOSITORY_ROOT = resolve(import.meta.dirname, '..', '..', '..')
 /** Root package script that compiles the host addon, then the `native/system` script that emits the entry's JavaScript. */
-const BUILD_COMMANDS: readonly (readonly string[])[] = [
-  ['run', 'build:native-system'],
-  ['--dir', 'native/system', 'run', 'build:ts'],
+const BUILD_STEPS: readonly (readonly [cwd: string, script: string])[] = [
+  [REPOSITORY_ROOT, 'build:native-system'],
+  [join(REPOSITORY_ROOT, 'native', 'system'), 'build:ts'],
 ]
-const BUILD_COMMAND_TEXT = BUILD_COMMANDS.map(args => `pnpm ${args.join(' ')}`).join(' && ')
+const BUILD_COMMAND_TEXT = 'nub run build:native-system && (cd native/system && nub run build:ts)'
 
 /** Loader steps; tests replace the module import, the addon probe, and the build. */
 export interface FlockEntryLoaderSteps {
@@ -72,20 +72,23 @@ function hostAddonBuilt(): boolean {
 }
 
 async function buildNativeSystem(): Promise<void> {
-  const pnpmEntry = process.env.npm_execpath
-  if (pnpmEntry === undefined || pnpmEntry === '') {
-    throw new Error(`desktop package: flock addon is not built; run ${BUILD_COMMAND_TEXT} or invoke this script through a pnpm package command`)
-  }
-  for (const args of BUILD_COMMANDS) {
-    const child = spawn(process.execPath, [pnpmEntry, ...args], { cwd: REPOSITORY_ROOT, stdio: 'inherit' })
+  // Same launcher precedence as scripts/release/process.ts nubCommand; inlined so this module stays copyable.
+  const launcher = process.env.NUB_BIN?.trim() || process.env.npm_execpath?.trim() || 'nub'
+  for (const [cwd, script] of BUILD_STEPS) {
+    const args = ['run', script]
+    // pnpm hands over its JavaScript entry, nub hands over a binary.
+    const child = /\.[cm]?js$/u.test(launcher)
+      ? spawn(process.execPath, [launcher, ...args], { cwd, stdio: 'inherit' })
+      : spawn(launcher, args, { cwd, stdio: 'inherit' })
     const [code, signal] = await once(child, 'close') as [number | null, NodeJS.Signals | null]
-    if (code !== 0) throw new Error(`desktop package: pnpm ${args.join(' ')} exited with ${String(code ?? signal)}`)
+    if (code !== 0) throw new Error(`desktop package: nub run ${script} exited with ${String(code ?? signal)}`)
   }
 }
 
 /**
- * Load `@deepseek-ai/node-addon-system/flock`, building the host addon and the entry's JavaScript through pnpm when either is missing.
- * @returns The flock entry; rejects when a build fails or the script did not run under pnpm.
+ * Load `@deepseek-ai/node-addon-system/flock`, building the host addon and the entry's
+ * JavaScript through the package manager when either is missing.
+ * @returns The flock entry; rejects when a build fails.
  */
 export const loadFlockEntry = createFlockEntryLoader({
   importEntry: () => import('@deepseek-ai/node-addon-system/flock'),

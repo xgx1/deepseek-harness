@@ -27,9 +27,9 @@ function fixture(): { root: string; source: string; project: string } {
   mkdirSync(project)
   writeFileSync(join(source, 'shared.patch'), patch)
   writeFileSync(join(source, 'private.patch'), patch.replace('+patched', '+private'))
-  writeFileSync(join(source, 'pnpm-workspace.yaml'), yaml.dump({ patchedDependencies: { 'fixture@1.0.0': 'shared.patch' } }))
-  writeFileSync(join(source, 'pnpm-lock.yaml'), yaml.dump({
-    patchedDependencies: { 'fixture@1.0.0': createHash('sha256').update(patch).digest('hex') },
+  writeFileSync(join(source, 'package.json'), JSON.stringify({ patchedDependencies: { 'fixture@1.0.0': 'shared.patch' } }))
+  writeFileSync(join(source, 'nub.lock'), yaml.dump({
+    patchedDependencies: { 'fixture@1.0.0': { hash: createHash('sha256').update(patch).digest('hex') } },
   }))
   writeFileSync(join(project, 'pnpm-workspace.yaml'), yaml.dump({
     packages: ['.'], nodeLinker: 'hoisted', overrides: { internal: 'file:./internal.tgz' }, allowBuilds: { fixture: false },
@@ -40,7 +40,7 @@ function fixture(): { root: string; source: string; project: string } {
 it('classifies the current workspace and shares only runtime patch bytes', () => {
   const { project } = fixture()
   const repository = resolve(import.meta.dirname, '../../..')
-  const before = readFileSync(join(repository, 'pnpm-lock.yaml'))
+  const before = readFileSync(join(repository, 'nub.lock'))
   const plan = prepareRuntimePatches(project, repository)
   expect(plan.patches.map(entry => entry.spec)).toEqual(['@earendil-works/pi-ai@1.3.0', 'node-pty@1.2.0-beta.15'])
   expect(plan.workspaceOnly).toHaveLength(10)
@@ -49,7 +49,7 @@ it('classifies the current workspace and shares only runtime patch bytes', () =>
   const settings = yaml.load(readFileSync(join(project, 'pnpm-workspace.yaml'), 'utf8')) as { overrides: Record<string, string> }
   expect(settings.overrides['@earendil-works/pi-ai']).toBeUndefined()
   expect(settings.overrides['@earendil-works/pi-ai@^1.3.0']).toBe('1.3.0')
-  expect(readFileSync(join(repository, 'pnpm-lock.yaml'))).toEqual(before)
+  expect(readFileSync(join(repository, 'nub.lock'))).toEqual(before)
   writeFileSync(join(project, 'pnpm-lock.yaml'), yaml.dump({
     patchedDependencies: Object.fromEntries(plan.patches.map(entry => [entry.spec, entry.hash])),
     packages: {
@@ -63,12 +63,12 @@ it('classifies the current workspace and shares only runtime patch bytes', () =>
 
 it('does not infer version overrides from selected patches', () => {
   const { source, project } = fixture()
-  const before = readFileSync(join(source, 'pnpm-workspace.yaml'))
+  const before = readFileSync(join(source, 'package.json'))
   prepareRuntimePatches(project, source, { 'fixture@1.0.0': shared }, {})
   expect(yaml.load(readFileSync(join(project, 'pnpm-workspace.yaml'), 'utf8'))).toMatchObject({
     overrides: { internal: 'file:./internal.tgz' }, allowBuilds: { fixture: false },
   })
-  expect(readFileSync(join(source, 'pnpm-workspace.yaml'))).toEqual(before)
+  expect(readFileSync(join(source, 'package.json'))).toEqual(before)
   expect(readFileSync(join(project, 'patches/desktop-0.patch'), 'utf8')).toBe(patch)
 })
 

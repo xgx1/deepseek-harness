@@ -1,8 +1,17 @@
 /** Normalize HTTP and in-band Messages errors into provider-neutral failures. */
 
 import { brandString } from '@deepseek-ai/dsh-brand'
-import { isContextWindowExceededError, isQuotaExceededError, LlmError, type ProviderRequestId } from '@deepseek-ai/dsh-llm'
+import {
+  codeForHttpStatus,
+  CONTEXT_WINDOW_EXCEEDED_CODE,
+  isContextWindowExceededError,
+  isQuotaExceededError,
+  LlmError,
+  QUOTA_EXCEEDED_CODE,
+  type ProviderRequestId,
+} from '@deepseek-ai/dsh-llm'
 import type { BuiltinLlmFailureCode } from '@deepseek-ai/dsh-llm'
+import { inBandProviderErrorCode, providerErrorText } from './provider-error.ts'
 
 /** Read only provider error fields used by bounded Files recovery.
  * @param raw - decoded HTTP error response.
@@ -36,15 +45,24 @@ export function providerError(raw: unknown, status: number | undefined, headers?
   const error = typeof envelope.error === 'object' && envelope.error !== null ? envelope.error as Record<string, unknown> : {}
   const message = typeof error.message === 'string' ? error.message : `DeepSeek Messages request failed (${status ?? 'stream error'})`
   const type = typeof error.type === 'string' ? error.type : ''
-  const detail = `${type} ${typeof error.code === 'string' ? error.code : ''} ${message}`
+  const providerCode = typeof error.code === 'string' ? error.code : undefined
+  const detail = providerErrorText({ ...providerCode === undefined ? {} : { code: providerCode }, type, message })
   let code: BuiltinLlmFailureCode
-  if (status === 401 || status === 403 || ['authentication_error', 'permission_error'].includes(type)) code = 'AUTH'
-  else if (isQuotaExceededError(detail) || status === 402) code = 'QUOTA'
+  // An in-band event has no status: the provider's own error fields are the
+  // only routing facts, and every failure the server reported but did not
+  // classify further stays retryable as SERVER.
+  if (status === undefined) code = inBandProviderErrorCode({ ...providerCode === undefined ? {} : { code: providerCode }, type, message })
+  else if (status === 401 || status === 403 || ['authentication_error', 'permission_error'].includes(type)) code = 'AUTH'
+  // Body wording that names terminal quota exhaustion outranks the bare 429:
+  // DeepSeek delivers `insufficient_quota` together with a 429, and only the
+  // wording separates that terminal state from transient throttling. A 429 with
+  // nothing further to say, or an explicit rate-limit type, stays RATE_LIMIT.
+  else if (isQuotaExceededError(detail) || status === 402) code = QUOTA_EXCEEDED_CODE
   else if (status === 429 || type === 'rate_limit_error') code = 'RATE_LIMIT'
-  else if (isContextWindowExceededError(detail)) code = 'CONTEXT_WINDOW_EXCEEDED'
+  else if (isContextWindowExceededError(detail)) code = CONTEXT_WINDOW_EXCEEDED_CODE
   else if (status === 400 || status === 413 || type === 'invalid_request_error') code = 'INVALID_REQUEST'
-  else if ((status !== undefined && status >= 500) || ['api_error', 'overloaded_error'].includes(type)) code = 'SERVER'
-  else code = status === undefined ? 'SERVER' : `HTTP_${status}`
+  else if (['api_error', 'overloaded_error'].includes(type)) code = 'SERVER'
+  else code = codeForHttpStatus(status)
   const delay = retryAfterMs(headers)
   const id = headers?.get('request-id') ?? headers?.get('x-request-id') ?? headers?.get('x-deepseek-request-id')
   return new LlmError(message, code, {

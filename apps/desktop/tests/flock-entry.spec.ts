@@ -10,7 +10,7 @@ import { createFlockEntryLoader } from '../scripts/flock-entry.ts'
 type Entry = Awaited<ReturnType<ReturnType<typeof createFlockEntryLoader>>>
 
 const entry = { tryLockExclusive: vi.fn() } as Entry
-const BUILD_TEXT = 'pnpm run build:native-system && pnpm --dir native/system run build:ts'
+const BUILD_TEXT = 'nub run build:native-system && (cd native/system && nub run build:ts)'
 
 function notFound(): NodeJS.ErrnoException {
   return Object.assign(new Error("Cannot find module 'lib/flock.js'"), { code: 'ERR_MODULE_NOT_FOUND' })

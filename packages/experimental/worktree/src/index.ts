@@ -99,7 +99,7 @@ function relativePath(value: string): boolean {
  * the Session that created it is archived.
  */
 export class WorktreeService extends Service {
-  static inject = ['workingDirectory', 'fs', 'subprocess', 'sessionProjections']
+  static inject = ['workingDirectory', 'fs', 'subprocess', 'sandbox', 'sandboxPolicy', 'sessionProjections']
 
   static Config = z.object({
     retainOnArchive: z.boolean().default(false).volatile(),

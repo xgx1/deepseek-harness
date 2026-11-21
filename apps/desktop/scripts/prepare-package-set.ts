@@ -14,7 +14,6 @@ import {
 } from 'node:fs'
 import { basename, join, resolve } from 'node:path'
 import { parseArgs } from 'node:util'
-import * as yaml from 'js-yaml'
 import {
   DESKTOP_HOST_PACKAGE,
   DESKTOP_HOST_RUNTIME_FILES,
@@ -72,8 +71,8 @@ export function selectDesktopPackageClosure(
   available: ReadonlyMap<string, PackedDesktopPackage>,
   target: ReturnType<typeof desktopTargetPlatform>,
 ): PackedDesktopPackage[] {
-  const workspace = yaml.load(readFileSync(join(REPOSITORY_ROOT, 'pnpm-workspace.yaml'), 'utf8')) as { packages: string[] }
-  const workspaceNames = new Set(globSync(workspace.packages.map(pattern => `${pattern}/package.json`), { cwd: REPOSITORY_ROOT })
+  const workspace = JSON.parse(readFileSync(join(REPOSITORY_ROOT, 'package.json'), 'utf8')) as { workspaces: string[] }
+  const workspaceNames = new Set(globSync(workspace.workspaces.map(pattern => `${pattern}/package.json`), { cwd: REPOSITORY_ROOT })
     .map(path => (JSON.parse(readFileSync(join(REPOSITORY_ROOT, path), 'utf8')) as { name: string }).name))
   const selected = new Map<string, PackedDesktopPackage>()
   const visit = (name: string): void => {
