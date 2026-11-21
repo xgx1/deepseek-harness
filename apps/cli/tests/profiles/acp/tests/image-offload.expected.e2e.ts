@@ -1,7 +1,8 @@
 import { fileURLToPath } from 'node:url'
+import { realpathSync } from 'node:fs'
 import { createServer } from 'node:http'
 import type { IncomingMessage, ServerResponse } from 'node:http'
-import { join } from 'node:path'
+import { basename, dirname, join } from 'node:path'
 import { expect, it } from 'vitest'
 import {
   runScenario,
@@ -140,8 +141,9 @@ it('pins Messages Files offload and inline fallback in assembled requests', asyn
     const fileImage = { type: 'image', source: { type: 'file', file_id: 'file-api-snapshot-1' } }
     const offloadedImage = `[image omitted to fit request image limits; ${attachmentId}.${normalizedAccess}]`
     const imageHandle = `Image ${attachmentId}; request preview 1x1px.${normalizedAccess}`
+    // The Session header records the canonical spelling of the scenario's directory, which is removed by now.
     const runtimeContext = (cwd: string): string => '<system-reminder>\n以下信息描述你当前的会话：\n\n'
-      + `当前工作目录：${JSON.stringify(cwd)}。\n\n`
+      + `当前工作目录：${JSON.stringify(join(realpathSync.native(dirname(cwd)), basename(cwd)))}。\n\n`
       + '当前 DSH 文件策略：danger-full-access。DSH 文件沙箱不限制可用操作对文件的修改。\n\n'
       + '本次会话已禁用审批提示：需要审批的操作会被自动拒绝——不要请求沙箱升级（不要设置 `sandbox_permissions`）。\n\n'
       + '你是 root agent。你的名字是 "lead"。\n\n'

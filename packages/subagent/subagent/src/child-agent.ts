@@ -164,7 +164,7 @@ export interface ChildComposition {
 }
 
 /**
- * Model-facing delegation-scope statement for every in-process child. A
+ * Model-facing delegation-scope and message-authorship statement for every in-process child. A
  * runtime-context contribution rather than a system-prompt section, so the
  * deployment's system prompt stays uniform across parents and children.
  */
@@ -173,6 +173,9 @@ export const SUBAGENT_DELEGATION_CONTEXT
     + '需要审批的操作会被自动拒绝。'
     + '当任务需要超出该范围的访问时，不要重试被拒绝的操作；'
     + '请在回复中说明这一限制，以便委派你的 agent 处理。'
+    + '其它 agent 发来的消息以 "Agent <name> sent a message:" 开头。'
+    + '其余用户消息来自人类用户，他直接阅读这段对话。'
+    + '你仍然可以给其它 agent 发消息以协调工作，但要在回复中答复人类用户。'
 
 /**
  * Compose a child before publication and restore historical descriptor overrides.

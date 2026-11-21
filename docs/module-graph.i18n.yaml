@@ -3,8 +3,8 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/module-graph.md
 /:
-  en: 265a58792f83793d
-  zh: 2ebb1d96dd1e6eeb
+  en: 6b06a1af5ffbdefb
+  zh: 3718d990c23682de
 /shared-instance-dependency-graph:
   en: 01a7953b2e010af0
   zh: cc94c6ec51e5c1e0

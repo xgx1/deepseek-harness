@@ -1,4 +1,4 @@
-/** Model-facing guidance enumerates the full available object API without unavailable operations. */
+/** Model-facing guidance lists the object API with platform availability and input constraints. */
 import { expect, it } from 'vitest'
 import type { CuaApi, CuaApp, CuaSurface, CuaWindow } from '@deepseek-ai/dsh-cua/api'
 import { COMMON_GUIDANCE, withSystemPointerGuidance } from '@deepseek-ai/dsh-cua/guidance'
@@ -9,7 +9,7 @@ const accessibilityNames: Array<Exclude<keyof CuaSurface, 'sendKeyEvent'>> = [
   'getAccessibilityTree', 'listActions', 'invoke', 'performAction', 'setValue', 'selectText',
 ]
 const appNames: Array<keyof CuaApp> = ['appHandle', 'activate', 'getWindows', 'getWindow']
-const windowNames: Array<keyof CuaWindow> = ['windowId', 'getScreenshot', 'mouseMove', 'click', 'scroll', 'drag']
+const windowNames: Array<keyof CuaWindow> = ['windowId', 'getScreenshot', 'mouseMove', 'toggleMouse', 'click', 'scroll', 'drag']
 
 it('keeps file-tool instructions in PTC and limits the program guidance to available bindings', () => {
   for (const name of ['tools.write', 'tools.grep', 'tools.read']) {
@@ -20,11 +20,13 @@ it('keeps file-tool instructions in PTC and limits the program guidance to avail
   expect(PROGRAM_GUIDANCE).toContain('会话的文件工具')
 })
 
-it('keeps exactly three ordered operation headings', () => {
-  const heads = COMMON_GUIDANCE.match(/^## .+$/gm)
-  expect(heads).toEqual(['## 无障碍树', '## 模拟鼠标', '## 模拟键盘'])
-  expect(COMMON_GUIDANCE.indexOf('## 无障碍树')).toBeLessThan(COMMON_GUIDANCE.indexOf('## 模拟鼠标'))
-  expect(COMMON_GUIDANCE.indexOf('## 模拟鼠标')).toBeLessThan(COMMON_GUIDANCE.indexOf('## 模拟键盘'))
+it('places observation chapters before simulated input with screenshots in their own chapter', () => {
+  for (const catalog of [COMMON_GUIDANCE, GUIDANCE, PROGRAM_GUIDANCE]) {
+    expect(catalog.match(/^## .+$/gm)).toEqual(['## 无障碍树', '## 截图', '## 模拟鼠标', '## 模拟键盘'])
+    const screenshots = catalog.slice(catalog.indexOf('## 截图'), catalog.indexOf('## 模拟鼠标'))
+    expect(screenshots).toContain('- getScreenshot() -> Image')
+    expect(catalog.slice(catalog.indexOf('## 模拟鼠标'))).not.toContain('- getScreenshot(')
+  }
 })
 
 it('prefixes concise platform guidance before the shared catalog', () => {
@@ -38,6 +40,8 @@ it.each([GUIDANCE, PROGRAM_GUIDANCE])('explains when macOS mouse input needs a s
   expect(instructions).toContain('优先使用元素声明的无障碍动作、对可见控件的点击，或浏览器工具。')
   expect(instructions).toContain('这个询问会打断用户。')
   expect(instructions).toContain('省略该选项或传 false 会走默认的悬停路径，不会弹询问。')
+  expect(instructions).toContain("direction: 'down' | 'up', options?: { useSystemPointer?: boolean }")
+  expect(instructions).toContain('请在按下与松开时都传 useSystemPointer: true')
   const drag = catalog.split('\n').find(line => line.startsWith('- drag('))
   expect(drag).toContain('useSystemPointer?: boolean')
   expect(drag).toContain('省略 useSystemPointer 或传 false 时，拖动直接发往窗口，不请求鼠标控制。')
@@ -67,7 +71,22 @@ it('states the macOS accessibility, keyboard, and mouse levels', () => {
   }
 })
 
-it('enumerates every available method once in its catalog entry', () => {
+it('documents explicit mouse-button events immediately after mouseMove', () => {
+  const lines = COMMON_GUIDANCE.split('\n')
+  const index = lines.findIndex(line => line.startsWith('- toggleMouse('))
+  expect(lines[index - 1]).toMatch(/^- mouseMove\(/)
+  expect(lines[index]).toBe("- toggleMouse(mouseButton: 'left' | 'right' | 'middle', direction: 'down' | 'up') -> ActionResult — press or release the specified mouse button at the current pointer position without moving it. No coordinates are accepted. Release held buttons explicitly with 'up'; the opposite event is not sent automatically.")
+  expect(index).toBeGreaterThan(lines.indexOf('## Simulated mouse'))
+  expect(index).toBeLessThan(lines.indexOf('## Simulated keyboard'))
+})
+
+it.each([GUIDANCE, PROGRAM_GUIDANCE])('documents the default window release and the optional system hold', (catalog) => {
+  const entry = catalog.split('\n').find(line => line.startsWith('- toggleMouse('))
+  expect(entry).toContain('By default the window receives the events, even a release outside it, and the system button stays up.')
+  expect(entry).toContain('pass useSystemPointer: true on both down and up')
+})
+
+it('enumerates every public method once in its catalog entry', () => {
   const signatures = [
     ...apiNames.map(name => `cua.${name}(`),
     ...appNames.filter(name => name !== 'appHandle').map(name => `app.${name}(`),
@@ -79,8 +98,8 @@ it('enumerates every available method once in its catalog entry', () => {
   for (const catalog of [COMMON_GUIDANCE, GUIDANCE, PROGRAM_GUIDANCE]) {
     for (const signature of signatures) expect(catalog.split('\n').filter(line => line.startsWith(`- ${signature}`))).toHaveLength(1)
   }
-  expect(signatures).toHaveLength(25)
-  expect(new Set(signatures.map(signature => signature.slice(signature.indexOf('.') + 1, -1))).size).toBe(24)
+  expect(signatures).toHaveLength(26)
+  expect(new Set(signatures.map(signature => signature.slice(signature.indexOf('.') + 1, -1))).size).toBe(25)
   expect(COMMON_GUIDANCE).toContain('app.appHandle')
   expect(COMMON_GUIDANCE).toContain('window.windowId')
 })
@@ -128,15 +147,25 @@ it('references Modifier without defining its members in shared guidance', () => 
 })
 
 it('states platform-dependent levels without qualifying grouped method names', () => {
-  expect(COMMON_GUIDANCE).toContain('## 模拟鼠标\n截图与指针输入都要用显式指定的窗口。')
+  expect(COMMON_GUIDANCE).toContain('## 截图\n截图要用显式指定的窗口。')
+  expect(COMMON_GUIDANCE).toContain('## 模拟鼠标\n指针输入要用显式指定的窗口。')
   for (const heading of ['无障碍树', '模拟键盘']) {
-    expect(COMMON_GUIDANCE).toContain(`## ${heading}\n按平台不同，在 app 或 window 层级可用。`)
+    expect(COMMON_GUIDANCE).toContain('## ' + heading + '\n按平台不同，在 app 或 window 层级可用。')
   }
   expect(GUIDANCE).not.toMatch(/\bsurface\b/)
   const groups = COMMON_GUIDANCE.slice(COMMON_GUIDANCE.indexOf('## 无障碍树'))
   expect(groups).not.toMatch(/^- (?:surface|window|app)\./m)
   expect(COMMON_GUIDANCE).toContain('target: string | [number, number]')
   expect(COMMON_GUIDANCE).toContain('from: [number, number]')
+})
+
+it('guides complex input combinations through platform-supported primitive operations', () => {
+  const advice = 'click, drag, and pressKey are convenience operations; sendKeyEvent, mouseMove, and toggleMouse are primitive operations. For complex action combinations, decompose convenience operations into sequences of primitive operations supported by the current platform.'
+  for (const catalog of [COMMON_GUIDANCE, GUIDANCE, PROGRAM_GUIDANCE]) {
+    expect(catalog).toContain(advice)
+    expect(catalog.indexOf(advice)).toBeGreaterThan(catalog.indexOf('- sendKeyEvent('))
+    expect(catalog.indexOf(advice)).toBeLessThan(catalog.indexOf('Raw tools use { method, params }'))
+  }
 })
 
 it('keeps consent, lock, observation, and no-replay rules', () => {
@@ -159,6 +188,6 @@ it('documents explicit inspection and separate key arguments', () => {
   expect(COMMON_GUIDANCE).toContain('做一次左键双击')
 })
 
-it('omits stale names and unavailable platform operations', () => {
-  for (const stale of ['getAXState', 'emit', 'disableDiffing', 'performSecondaryAction', 'hover(', 'keyChord', 'window.typeText', 'window.pressKey', 'elementIndex', 'verified: false', 'browser tabs', 'not implemented']) expect(GUIDANCE).not.toContain(stale)
+it('omits stale names and unrelated operations', () => {
+  for (const stale of ['getAXState', 'emit', 'disableDiffing', 'performSecondaryAction', 'hover(', 'keyChord', 'window.typeText', 'window.pressKey', 'elementIndex', 'verified: false', 'browser tabs']) expect(GUIDANCE).not.toContain(stale)
 })

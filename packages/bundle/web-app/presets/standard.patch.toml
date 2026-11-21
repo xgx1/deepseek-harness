@@ -185,6 +185,10 @@ fetch = true
 searchTimeoutMs = 60000
 
 [[entry.insert.config.plugins]]
+id = "tool-cordis"
+name = "@deepseek-ai/dsh-tool-cordis"
+
+[[entry.insert.config.plugins]]
 id = "present"
 name = "@deepseek-ai/dsh-tool-present"
 

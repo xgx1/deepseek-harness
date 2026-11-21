@@ -3,6 +3,7 @@
 import { attributionHeaders, LlmError } from '@deepseek-ai/dsh-llm'
 import type { ImageMediaType } from '@deepseek-ai/dsh-attachment'
 import { brandString } from '@deepseek-ai/dsh-brand'
+import { retryAfterMs } from './transport.ts'
 import type { DeepSeekFileId as DeepSeekFileIdType } from './file-id.ts'
 import { messagesApiRoot, MESSAGES_FILES_BETA } from './messages-api.ts'
 
@@ -44,10 +45,10 @@ export class DeepSeekFilesError extends LlmError {
    * @param message - user-readable provider failure.
    * @param status - HTTP status returned by the Files API.
    * @param detail - provider error fields joined for classification.
+   * @param headers - Files response headers carrying Retry-After.
    */
-  constructor(message: string, status: number, detail: string) {
-    // Availability statuses keep the codes the model-request boundary uses, so a
-    // Files failure the provider reported is retried like any other.
+  constructor(message: string, status: number, detail: string, headers?: Headers) {
+    const wait = retryAfterMs(headers)
     super(message, status === 408
       ? 'TIMEOUT'
       : status === 425
@@ -58,7 +59,7 @@ export class DeepSeekFilesError extends LlmError {
             ? 'RATE_LIMIT'
             : status >= 500
               ? 'SERVER'
-              : 'FILES_API', { status })
+              : 'FILES_API', { status, ...wait === undefined ? {} : { providerRetryAfterMs: wait } })
     this.name = 'DeepSeekFilesError'
     this.detail = detail
   }
@@ -169,7 +170,7 @@ export class DeepSeekFilesClient {
     let parsed: unknown
     try {
       parsed = await response.json()
-    } catch {
+    } catch (_nonJsonErrorBody) {
       // A status remains sufficient to report the provider failure.
     }
     const { message, detail } = providerErrorDetail(parsed)
@@ -177,6 +178,7 @@ export class DeepSeekFilesClient {
       message ?? `DeepSeek Files API error (HTTP ${response.status})`,
       response.status,
       detail,
+      response.headers,
     )
   }
 

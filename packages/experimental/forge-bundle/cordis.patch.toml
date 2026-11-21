@@ -16,6 +16,10 @@ id = "forge-github"
 name = "@deepseek-ai/dsh-experimental-forge-github"
 
 [[entry.insert]]
+id = "forge-gitlab"
+name = "@deepseek-ai/dsh-forge-gitlab"
+
+[[entry.insert]]
 id = "forge-session"
 name = "@deepseek-ai/dsh-experimental-forge-session"
 

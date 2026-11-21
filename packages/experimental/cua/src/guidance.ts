@@ -36,10 +36,14 @@ export const COMMON_GUIDANCE = `用 cua 观察并操作原生应用。始终先�
 - setValue(elementId: string, value: JsonValue) -> ActionResult — 写控件的值。
 - selectText(elementId: string, text: string, options?: { prefix?: string, suffix?: string, selectionType?: 'text' | 'cursor_before' | 'cursor_after' }) -> ActionResult — 选中某一次字面出现，或把光标放到它旁边，用相邻上下文消除歧义。
 
-## 模拟鼠标
-截图与指针输入都要用显式指定的窗口。在做坐标输入（包括相对坐标）之前，先取得覆盖该窗口的一次成功的 getAccessibilityTree 观察，或截取该窗口的截图。绝对像素坐标要求先有返回的截图。
+## 截图
+截图要用显式指定的窗口。
 - getScreenshot() -> Image — 把选定的窗口截成一张存储图片，含只读的 attachmentId、path、width、height。把选中的截图传给 inspect(...values) 展示；窗口 ID 从 window.windowId 取。
+
+## 模拟鼠标
+指针输入要用显式指定的窗口。在做坐标输入（包括相对坐标）之前，先取得覆盖该窗口的一次成功的 getAccessibilityTree 观察，或截取该窗口的截图。绝对像素坐标要求先有返回的截图。
 - ${hoverSignature} -> { dispatched: boolean, foregroundChanged?: boolean | null, hoverRoute: 'accessibility' | 'system-pointer', systemPointerMoved: boolean } — 请求把鼠标移到目标处而不按键；检查 hoverRoute 与 systemPointerMoved，并且不要指望指针会自动复位。
+- toggleMouse(mouseButton: 'left' | 'right' | 'middle', direction: 'down' | 'up') -> ActionResult — 在当前指针位置按下或松开指定的鼠标键，不移动指针。不接受坐标。按住的键要用 'up' 显式松开；相反的事件不会自动发送。
 - click(target: string | [number, number], options?: { mouseButton?: 'left' | 'right' | 'middle', clickCount?: 1 | 2, modifiers?: Modifier[], holdMs?: number, relative?: boolean }) -> ActionResult — 点击元素 ID 或坐标点，或做一次左键双击；holdMs 控制每次按压的时长。
 - scroll(options: { x: number, y: number, deltaLinesX: number, deltaLinesY: number, relative?: boolean }) -> ActionResult — 在某点滚动；增量为 -10 到 10 的整数且至少一个非零，正值显示上方或左侧的内容。
 - drag(from: [number, number], to: [number, number], options?: { mouseButton?: 'left' | 'right' | 'middle', modifiers?: Modifier[], relative?: boolean }) -> ActionResult — 在同一窗口的两点之间拖动。
@@ -53,6 +57,8 @@ export const COMMON_GUIDANCE = `用 cua 观察并操作原生应用。始终先�
 - pressKey(key: string, modifiers?: Modifier[]) -> ActionResult — 按下并释放一次完整按键。例如 pressKey('Tab', ['shift']) 或 pressKey('+')。按键名是平台定义的字符串。键与修饰键分开传，不要拼成一个和弦字符串。
 - sendKeyEvent(key: string, direction: 'down' | 'up') -> ActionResult — 发送一次按下或抬起事件；key 接受单个按键名，修饰键也算。
 
+click、drag 与 pressKey 是便捷操作；sendKeyEvent、mouseMove 与 toggleMouse 是原语操作。遇到复杂的动作组合时，把便捷操作拆成当前平台支持的原语操作序列。
+
 原生工具使用 { method, params }：app 调用要带 appHandle，window 调用要带 windowId，元素路由要用 snapshotId 配 elementId。getAccessibilityTree 对应 getState；getWindow 没有原生方法；getWindows 对应 listWindows；getScreenshot 对应 screenshot；cua.getState 对应 listApps；其余命名操作使用同名方法。`
 
 /**
@@ -64,5 +70,5 @@ export function withSystemPointerGuidance(guidance: string): string {
   const signature = 'mouseMove(target: string | [number, number], options?: { relative?: boolean, useSystemPointer?: boolean })'
   return `${guidance.replace(hoverSignature, signature)}
 
-只有在不动用户指针就无法完成任务时，才调用 await win.mouseMove(target, { useSystemPointer: true })。优先使用元素声明的无障碍动作、对可见控件的点击，或浏览器工具。这个询问会打断用户。审批被禁用时，显式移动可以立即生效。即使已经批准，每一次物理移动也都要传 true。省略该选项或传 false 会走默认的悬停路径，不会弹询问。批准或拒绝一直有效，直到本会话关闭或 DSH 重启。拒绝不会发送任何输入。用户关掉询问时，只有在他们主动要求时才再问一次。等未完成的请求结束。subagent 不能请求物理移动。`
+只有在不动用户指针就无法完成任务时，才调用 await win.mouseMove(target, { useSystemPointer: true })。优先使用元素声明的无障碍动作、对可见控件的点击，或浏览器工具。这个询问会打断用户。审批被禁用时，显式移动可以立即生效。即使已经批准，每一次物理移动也都要传 true。省略该选项或传 false 会走默认的悬停路径，不会弹询问。批准或拒绝一直有效，直到本会话关闭或 DSH 重启。拒绝不会发送任何输入。用户关掉询问时，只有在他们主动要求时才再问一次。等未完成的请求结束。子代理不能请求系统鼠标控制。`
 }

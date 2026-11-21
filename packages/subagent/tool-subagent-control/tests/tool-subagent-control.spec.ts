@@ -16,6 +16,7 @@ import { mountAgentLoopTestDependencies } from '@deepseek-ai/dsh-agent-loop-test
 import type { SessionId } from '@deepseek-ai/dsh-session'
 import * as JsonlSessionPersistence from '@deepseek-ai/dsh-session-persistence-jsonl'
 import SubagentRuntime, { SubagentError } from '@deepseek-ai/dsh-subagent'
+import TeamService from '@deepseek-ai/dsh-agent-team'
 import * as SubagentFork from '@deepseek-ai/dsh-subagent-fork-in-process'
 import * as SubagentSpawn from '@deepseek-ai/dsh-subagent-spawn-in-process'
 import type { GenerateOptions, StreamChunk } from '@deepseek-ai/dsh-llm'
@@ -36,14 +37,9 @@ interface GatedEntry {
 /** Adapter whose entries can hold a model call open until the test releases it. */
 class GatedAdapter extends LlmAdapter {
   readonly requests: GenerateOptions[] = []
-  private script: GatedEntry[]
 
-
-
-  constructor(script: GatedEntry[]) {
+  constructor(private script: GatedEntry[]) {
     super()
-    this.script = script
-
   }
 
   async * stream(options: GenerateOptions): AsyncIterable<StreamChunk> {
@@ -129,9 +125,9 @@ describe('dsh-tool-subagent-control', () => {
     // The continuable path has no Task, so the schema must not promise one.
     expect(schemas[0]!.description).not.toContain('job_output')
     expect(schemas[0]!.description).not.toContain('job id')
-    expect(schemas[0]!.description).toContain('会在下一步收到它')
+    expect(schemas[0]!.description).toContain('receives it at its next step')
     expect(props.agent).toMatchObject({
-      description: '你的 subagent 树中另一个 agent 的名字，由 list_agents 显示。',
+      description: 'The name of another agent in your subagent tree, as shown by list_agents.',
     })
   })
 
@@ -173,9 +169,9 @@ describe('dsh-tool-subagent-control', () => {
     const prompt = loaded.events[promptIndex]
     if (prompt?.type !== 'user/message') throw new Error('expected the initial fork task')
     const texts = prompt.data.content.flatMap(block => block.type === 'text' ? [block.text] : [])
-    expect(texts[0]).toBe('fork task')
-    expect(texts[1]).toContain('Your final answer is delivered automatically')
-    expect(texts[1]).not.toContain('send_message')
+    expect(texts.slice(0, 2)).toEqual(['Agent lead sent a message: ', 'fork task'])
+    expect(texts[2]).toContain('Your final answer is delivered automatically')
+    expect(texts[2]).not.toContain('send_message')
     expect(JSON.stringify(adapter.requests[1]!.messages)).toContain('你是由 agent')
     expect(loaded.events.some(event => event.type === 'user/message' && event.data.source.kind === 'runtime-context'
       && JSON.stringify(event.data.content).includes('你是由 agent'))).toBe(true)
@@ -201,16 +197,17 @@ describe('dsh-tool-subagent-control', () => {
     const guidance = text(prompt.data)
 
     expect(started.name).toBe('agent-1')
-    expect(guidance).toContain('你是由 agent "lead" 委派的 subagent。\n你的名字是 "agent-1"。\n'
-      + '你所在协作树的 root agent 是 "lead"。')
+    expect(guidance).toContain('你是由 agent "lead".\nYour name is "agent-1".\n'
+      + 'The root agent of your collaboration tree is "lead".')
     expect(guidance).not.toContain(parent.id)
     expect(guidance).not.toContain(started.childId)
   })
 
   it.each([
-    { name: 'send_message', instruction: '要给其它 agent 发消息', other: '要找到你的协作 agent' },
-    { name: 'list_agents', instruction: '要找到你的协作 agent', other: '要给其它 agent 发消息' },
-  ])('gates $name guidance independently in an agent scope', async ({ name, instruction, other }) => {
+    { name: 'send_message', instruction: '完成时，用 send_message 把一份自包含的结果发给委派你的 agent', other: '要找到你的协作 agent 及其名字' },
+    { name: 'send_message', instruction: '要给其它 agent 发消息', other: '要找到你的协作 agent 及其名字' },
+    { name: 'list_agents', instruction: '要找到你的协作 agent 及其名字', other: '要给其它 agent 发消息' },
+  ])('gates $name guidance "$instruction" independently in an agent scope', async ({ name, instruction, other }) => {
     const { ctx, parent } = await setup([])
     const { agent: child } = await ctx.agents.create({
       sessionId: brandString<SessionId>('communication-child'),
@@ -227,7 +224,7 @@ describe('dsh-tool-subagent-control', () => {
     }))
     expect(await communication()).not.toContain(instruction)
     expect(await communication()).toContain(other)
-    expect(await communication()).toContain('你是由 agent "lead" 委派的 subagent。\n你的名字是 "communication-child"。')
+    expect(await communication()).toContain('你是由 agent "lead".\nYour name is "communication-child".')
     off()
     expect(await communication()).toContain(instruction)
     child.ctx.tools.restrict({ deny: [name] })
@@ -238,13 +235,33 @@ describe('dsh-tool-subagent-control', () => {
     toolSet.dispose()
   })
 
+  it('asks a delegated agent to report with send_message only while Team mode is off', async () => {
+    const { ctx, parent } = await setup([])
+    await ctx.plugin(TeamService)
+    const { agent: child } = await ctx.agents.create({
+      sessionId: brandString<SessionId>('team-child'),
+      meta: { origin: 'subagent', parentSession: parent.id },
+      setup: (_ctx, agent) => { bindSubagentActivation(ctx, agent, parent) },
+    })
+    const report = 'When you finish, use send_message to send a self-contained result to the agent that delegated you.'
+    const communication = async () => renderContextSnapshot(await ctx.systemPrompt.assemble({ agent: child, scope: child }))
+    await ctx.agentTeams.setEnabled(parent, false)
+    expect(await communication()).toContain(report)
+    await ctx.agentTeams.setEnabled(parent, true)
+    const team = await communication()
+    expect(team).not.toContain(report)
+    expect(team).toContain('To message other agents')
+    await ctx.agentTeams.setEnabled(parent, false)
+    expect(await communication()).toContain(report)
+  })
+
   it('keeps collaboration instructions when controls are mounted in an agent scope', async () => {
     const { ctx, parent, controlFiber } = await setup([])
     await controlFiber.dispose()
     await parent.ctx.plugin(tool)
     const context = renderContextSnapshot(await ctx.systemPrompt.assemble({ agent: parent, scope: parent }))
-    expect(context).toContain('要给其它 agent 发消息')
-    expect(context).toContain('要找到你的协作 agent')
+    expect(context).toContain('To message other agents')
+    expect(context).toContain('Use list_agents')
   })
 
   it('identifies independent roots and forks before their collaboration instructions', async () => {
@@ -255,12 +272,12 @@ describe('dsh-tool-subagent-control', () => {
     for (const agent of [parent, fork]) {
       const built = await ctx.systemPrompt.assemble({ agent, scope: agent })
       expect(built.contexts.find(context => context.name === 'subagent:identity')?.text).toBe(
-        '你是 root agent。你的名字是 "lead"。\n\n'
-        + '要给其它 agent 发消息，请使用 send_message({ agent: "<agent-name>", message: "..." })。\n'
-        + '要找到你的协作 agent 及其名字，请使用 list_agents({})。',
+        'You are the root agent. Your name is "lead".\n\n'
+        + 'To message other agents, use send_message({ agent: "<agent-name>", message: "..." }).\n'
+        + 'Use list_agents({}) to find your collaborator agents and their names.',
       )
     }
-    expect(renderContextSnapshot(await ctx.systemPrompt.assemble({}))).not.toContain('要给其它 agent 发消息')
+    expect(renderContextSnapshot(await ctx.systemPrompt.assemble({}))).not.toContain('To message other agents')
   })
 
   it.each([
@@ -283,10 +300,10 @@ describe('dsh-tool-subagent-control', () => {
     })
     try {
       const context = renderContextSnapshot(await ctx.systemPrompt.assemble({ agent: parent, scope: parent }))
-      expect(context).toContain(`你的 agent id 是 ${JSON.stringify(parent.id)}。`)
-      expect(context).toContain('你的 subagent 树根当前不可用。继续独立工作；')
-      expect(context).not.toContain('要给其它 agent 发消息')
-      expect(context).not.toContain('要找到你的协作 agent')
+      expect(context).toContain(`Your agent id is ${JSON.stringify(parent.id)}.`)
+      expect(context).toContain('Your subagent tree root is unavailable. Continue independent work;')
+      expect(context).not.toContain('To message other agents')
+      expect(context).not.toContain('Use list_agents')
     } finally {
       lookup.mockRestore()
     }
@@ -297,17 +314,17 @@ describe('dsh-tool-subagent-control', () => {
     ctx.systemPrompt.suppressRuntimeContext()
     const available = await ctx.systemPrompt.assemble({ agent: parent, scope: parent })
     expect(available.tools.find(tool => tool.name === 'list_agents')?.description)
-      .toContain('列出你整棵 subagent 树')
-    expect(renderContextSnapshot(available)).toContain('要找到你的协作 agent')
-    expect(renderContextSnapshot(available)).toContain('要给其它 agent 发消息')
+      .toContain('List your entire subagent tree')
+    expect(renderContextSnapshot(available)).toContain('Use list_agents')
+    expect(renderContextSnapshot(available)).toContain('To message other agents')
     parent.ctx.tools.restrict({ deny: ['send_message', 'list_agents'] })
     const toolSet = await ctx.tools.resolve({ agent: parent, modelSelection: { provider: 'mock', model: 'mock' }, signal: testToolSignal })
     const filtered = await ctx.systemPrompt.assemble({ agent: parent, scope: parent, toolSet })
     expect(filtered.tools.some(tool => tool.name === 'list_agents')).toBe(false)
     const context = renderContextSnapshot(filtered)
-    expect(context).toContain('你是 root agent。你的名字是 "lead"。')
-    expect(context).not.toContain('要找到你的协作 agent')
-    expect(context).not.toContain('要给其它 agent 发消息')
+    expect(context).toContain('You are the root agent. Your name is "lead".')
+    expect(context).not.toContain('Use list_agents')
+    expect(context).not.toContain('To message other agents')
     toolSet.dispose()
   })
 
@@ -429,6 +446,7 @@ describe('dsh-tool-subagent-control', () => {
         : [])
       : [])
     expect(prompts).toEqual([
+      'Agent lead sent a message: ',
       'long work',
       'Agent lead sent a message: ',
       'also consider Y',
@@ -583,6 +601,7 @@ describe('dsh-tool-subagent-control interrupt_agent', () => {
         : [])
       : [])
     expect(prompts).toEqual([
+      'Agent lead sent a message: ',
       'long work',
       'Agent lead sent a message: ',
       'parked follow-up',

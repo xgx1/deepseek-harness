@@ -14,6 +14,7 @@ import { defineTool, ToolContextUnavailableError } from '@deepseek-ai/dsh-tools'
 import type { ContentBlock } from '@deepseek-ai/dsh-llm'
 import { ROOT_AGENT_NAME } from '@deepseek-ai/dsh-subagent'
 import type {} from '@deepseek-ai/dsh-system-prompt'
+import type {} from '@deepseek-ai/dsh-agent-team'
 import { registerListAgents } from './list-agents.ts'
 import { registerWaitAgent } from './wait-agent.ts'
 
@@ -99,6 +100,11 @@ export function apply(ctx: Context, config: Config = {}): void {
         const guidance: string[] = []
         if (ctx.tools.get(sendMessage.name, scope, toolSet) === sendMessage) {
           guidance.push('要给其它 agent 发消息，请使用 send_message({ agent: "<agent-name>", message: "..." })。')
+          // Team mode coordinates results through shared tasks, so only plain delegation asks for a report.
+          if (names.parent !== undefined && ctx.get('agentTeams')?.isEnabled(agent) !== true) {
+            guidance.push('完成时，用 send_message 把一份自包含的结果发给委派你的 agent。'
+              + '一旦某个发现会改变任何 agent 接下来该做的事，就立刻给它发消息；发消息不会结束你这一轮。')
+          }
         }
         if (ctx.tools.get(listAgents.name, scope, toolSet) === listAgents) {
           guidance.push('要找到你的协作 agent 及其名字，请使用 list_agents({})。')

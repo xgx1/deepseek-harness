@@ -125,7 +125,7 @@ Prefix-stable; the schemas do not change at runtime, and a parent and its contin
 
 #### What the model sees
 
-Required `subagent:identity` runtime context identifies each agent by name. It is independent of Team mode and tool filtering. When the live root is available, identity context includes messaging and discovery instructions independently for each admitted standard tool. The root sees `你是 root agent。你的名字是 "lead"。` followed by the same guidance. A missing live root is reported with the agent's Session id, without preventing independent work. Automatic result delivery remains owned by the subagent service. A child of the root named `reviewer`, with both tools admitted, sees:
+Required `subagent:identity` runtime context identifies each agent by name. Its identity lines are independent of Team mode and tool filtering. When the live root is available, identity context includes messaging and discovery instructions independently for each admitted standard tool. While Team mode is off, a subagent with `send_message` is also told to send a self-contained result to the agent that delegated it when it finishes, and to message any agent as soon as a finding changes what that agent should do next. The root sees `你是 root agent。你的名字是 "lead"。` followed by the same messaging and discovery guidance. A missing live root is reported with the agent's Session id, without preventing independent work. Automatic result delivery remains owned by the subagent service. A child of the root named `reviewer`, with both tools admitted, sees:
 
 ##### Subagent identity
 
@@ -135,6 +135,7 @@ Required `subagent:identity` runtime context identifies each agent by name. It i
 你所在协作树的 root agent 是 "lead"。
 
 要给其它 agent 发消息，请使用 send_message({ agent: "<agent-name>", message: "..." })。
+完成时，请使用 send_message 把自包含的结果发送给委派你的 agent。当某项发现会改变某个 agent 的下一步行动时，请立即给它发消息；发送消息不会结束你的回合。
 要找到你的协作 agent 及其名字，请使用 list_agents({})。
 ```
 
@@ -144,7 +145,7 @@ One short context entry per agent, independent of tree size; full names lengthen
 
 #### KV Cache effect
 
-Identity and communication guidance follow inherited history as logged runtime context, leaving the shared system prompt and tool definitions unchanged. When a retained snapshot's identity text differs from the current text, one current runtime-context snapshot is appended. This required context remains available with `includeRuntimeContext: false` and is restored after compaction. Team mode does not change it.
+Identity and communication guidance follow inherited history as logged runtime context, leaving the shared system prompt and tool definitions unchanged. When a retained snapshot's identity text differs from the current text, one current runtime-context snapshot is appended. This required context remains available with `includeRuntimeContext: false` and is restored after compaction. Switching Team mode adds or removes the report instruction for delegated children, which appends one runtime-context snapshot on the next request.
 
 ### Interrupt result
 

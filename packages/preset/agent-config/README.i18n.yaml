@@ -3,14 +3,14 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/preset/agent-config/README.md
 /:
-  en: d999393f348f0c9b
-  zh: 59bfbac3d2a76f01
+  en: 986799fb5ae8f046
+  zh: c9853ef24bda8fb9
 /deepseek-ai-dsh-agent-config:
   en: a527f3118642d695
   zh: 68bd6e49d8fd786a
 /deepseek-ai-dsh-agent-config/summary:
-  en: 1dd8ba53372fc428
-  zh: 6647e418d2e6457d
+  en: 133d0dd202930434
+  zh: ac1f026bbe1ea762
 /deepseek-ai-dsh-agent-config/table-of-contents:
   en: b563e4ec4727d0de
   zh: e748d178a70e42b9
@@ -18,11 +18,11 @@
   en: bbff250eba0f1b89
   zh: 0a618f05cc88ee2b
 /deepseek-ai-dsh-agent-config/use-this-package/the-document:
-  en: 57712802a9842408
-  zh: 339ddceb0876ccfd
+  en: 2bd899f54df2c9e9
+  zh: 80e74a5b5dd02782
 /deepseek-ai-dsh-agent-config/use-this-package/enforcement:
-  en: c1f26b22a01ce948
-  zh: c32c7fba7d811a0a
+  en: 40bd486b92d3b27f
+  zh: 2d00f0dbe536ed61
 /deepseek-ai-dsh-agent-config/use-this-package/minimal-composition:
   en: a0974d9055bfc478
   zh: e4926b1120180338
@@ -30,11 +30,11 @@
   en: 42b15ac6321706aa
   zh: 61b07cf66ee50be0
 /deepseek-ai-dsh-agent-config/understand-the-implementation/governance-is-opt-in-per-project:
-  en: c6fcd6f47280d35d
-  zh: 3009164fe0dbbd02
+  en: 64f18a7e336447ce
+  zh: 5dc3a4d8b77cc284
 /deepseek-ai-dsh-agent-config/understand-the-implementation/masking-not-disconnecting:
-  en: b14b0606794e1a2d
-  zh: 1e53a6c707db6824
+  en: f4d2b36ca3ac4d00
+  zh: 17311a0c1158167b
 /deepseek-ai-dsh-agent-config/understand-the-implementation/last-good-parse:
   en: ab5ae5928e069f30
   zh: 01b89ce3c84c0f2c
@@ -48,8 +48,8 @@
   en: 8ca2912b852d7149
   zh: 71f6b9c715bc21cf
 /deepseek-ai-dsh-agent-config/model-experience/governed-request-inputs/what-the-model-sees:
-  en: e19e3437175c8498
-  zh: b75b46634ce27b08
+  en: 6f265904428a46bd
+  zh: 53be6afe2bd17066
 /deepseek-ai-dsh-agent-config/model-experience/governed-request-inputs/token-effect:
   en: ca8b532066c641ce
   zh: 3fcf685e7ac87fb4
@@ -57,8 +57,8 @@
   en: 6041757ca3ce653e
   zh: 97b3b49e823e0568
 /deepseek-ai-dsh-agent-config/known-limitations-and-deferred-work:
-  en: 0d94a550bf56f662
-  zh: 234cb95281ca2170
+  en: f6b1094592549766
+  zh: a1cd5e715a8ffe1d
 /deepseek-ai-dsh-agent-config/known-limitations-and-deferred-work/dev-note:
   en: 4c5a48b001c0071b
   zh: 83ae691f8078157b

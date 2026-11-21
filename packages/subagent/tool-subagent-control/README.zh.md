@@ -125,7 +125,7 @@ kind: "package-reference"
 
 #### 模型看到什么
 
-必需的 `subagent:identity` 运行时上下文按名称标识每个 agent。该上下文独立于 Team 模式和工具过滤。活动根可用时，身份上下文会分别根据标准工具的获准情况提供通信与发现指引。根看到 `你是 root agent。你的名字是 "lead"。`，后接相同指引。活动根缺失时，上下文使用该 agent 的 Session id 明确报告，但不阻止独立工作。自动结果交付仍由 subagent 服务负责。根的子级名为 `reviewer`、两个工具均获准时，它看到：
+必需的 `subagent:identity` 运行时上下文按名称标识每个 agent。其中的身份行独立于 Team 模式和工具过滤。活动根可用时，身份上下文会分别根据标准工具的获准情况提供通信与发现指引。Team 模式关闭时，获准 `send_message` 的 subagent 还会被要求在完成时把自包含结果发送给委派它的 agent，并在某项发现改变任一 agent 的下一步行动时立即通知该 agent。根看到 `你是 root agent。你的名字是 "lead"。`，后接相同的通信与发现指引。活动根缺失时，上下文使用该 agent 的 Session id 明确报告，但不阻止独立工作。自动结果交付仍由 subagent 服务负责。根的子级名为 `reviewer`、两个工具均获准时，它看到：
 
 ##### Subagent 身份
 
@@ -135,6 +135,7 @@ kind: "package-reference"
 你所在协作树的 root agent 是 "lead"。
 
 要给其它 agent 发消息，请使用 send_message({ agent: "<agent-name>", message: "..." })。
+完成时，请使用 send_message 把自包含的结果发送给委派你的 agent。当某项发现会改变某个 agent 的下一步行动时，请立即给它发消息；发送消息不会结束你的回合。
 要找到你的协作 agent 及其名字，请使用 list_agents({})。
 ```
 
@@ -144,7 +145,7 @@ kind: "package-reference"
 
 #### KV Cache 影响
 
-身份与通信指引作为持久记录的运行时上下文位于继承历史之后，共享系统提示词和工具定义不变。保留快照中的身份文本与当前文本不同时，会追加一份当前运行时上下文快照。设置 `includeRuntimeContext: false` 后，该必需上下文仍会提供，并会在压缩后恢复。Team 模式不会改变它。
+身份与通信指引作为持久记录的运行时上下文位于继承历史之后，共享系统提示词和工具定义不变。保留快照中的身份文本与当前文本不同时，会追加一份当前运行时上下文快照。设置 `includeRuntimeContext: false` 后，该必需上下文仍会提供，并会在压缩后恢复。切换 Team 模式会为委派子级增删汇报要求，并在下一次请求时追加一份运行时上下文快照。
 
 ### 中断结果
 
