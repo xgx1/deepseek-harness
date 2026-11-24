@@ -2,6 +2,7 @@
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { expect, it, vi } from 'vitest'
+import { parseEntryToml } from '@deepseek-ai/cordis-plugin-include'
 import { parse } from 'yaml'
 import z from '@deepseek-ai/schemastery'
 import { configurationFixture as fixture } from './configuration-fixture.ts'
@@ -18,6 +19,18 @@ it('persists a model edit, updates the real consumer without remounting, and res
   const restored = await start()
   expect(restored.agentDefaultModel.currentSelection()).toEqual({ provider: 'test', model: 'changed' })
 })
+
+it('edits a TOML patch layer in place, keeping its comments and other rows', async () => {
+  const { ctx, profile } = await fixture({
+    toml: '# hand-maintained layer\n[[entry]]\nid = "default-model"\nname = "cordis:model"\n\n[entry.config]\nprovider = "test"\nmodel = "original"\n\n# the probe row is unrelated\n[[entry]]\nid = "second"\nname = "cordis:probe"\n\n[entry.config]\nordinary = "second"\n',
+  })
+  await ctx.settings.mutate('default-model', [{ op: 'set', path: ['model'], value: 'changed' }])
+  const saved = readFileSync(profile.patchPath, 'utf8')
+  expect(saved).toContain('# hand-maintained layer')
+  expect(saved).toContain('# the probe row is unrelated')
+  expect(parseEntryToml(saved)).toContainEqual({ id: 'default-model', name: 'cordis:model', config: { provider: 'test', model: 'changed' } })
+  expect(ctx.agentDefaultModel.currentSelection()).toEqual({ provider: 'test', model: 'changed' })
+}, 15_000)
 
 it('isolates instances, hides ordinary fields, rejects invalid edits, and redacts secrets', async () => {
   const { ctx, profile } = await fixture()

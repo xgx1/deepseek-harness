@@ -38,7 +38,7 @@ Use [settings](../../settings/settings/README.md) for forms restricted to live f
 <details>
 <summary>Implementation internals — click to expand</summary>
 
-The [editor](src/index.ts) reconciles external changes before deriving a candidate, locks the profile manifest alongside other profile operations, and atomically replaces its config override. It preserves YAML comments and `!!js` expressions outside replaced values. A failed reconciliation restores the prior document and reloads the prior patches.
+The [editor](src/index.ts) reconciles external changes before deriving a candidate, locks the profile manifest alongside other profile operations, and atomically replaces its config override. It edits YAML and TOML patch layers in place, preserving comments and `!!js` expressions outside the replaced row config. A failed reconciliation restores the prior document and reloads the prior patches.
 
 Configuration reads share one composition for entries without profile config overrides. Overridden entries are composed separately with only their own override removed; profile inserts and other entries' overrides remain effective. Returned configs are detached, and compositions are not cached between reads.
 
@@ -67,6 +67,7 @@ Consumers that change request prefixes determine cache effects.
 - Edits target the active profile patch. Home patches and command-line overlays are read for precedence but are not write targets.
 - A complete config override preserves ordinary fields but pins their current raw values at the profile layer.
 - Only uniquely addressed entries owned by the profile’s root Include are editable.
+- A replaced row config is re-serialized, so comments inside it are not kept.
 
 <a id="dev-note"></a>
 ### Dev Note

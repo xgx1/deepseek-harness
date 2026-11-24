@@ -3,12 +3,13 @@ import { readFile } from 'node:fs/promises'
 import { extname, join } from 'node:path'
 import { isDeepStrictEqual } from 'node:util'
 import { Context, FiberState, Service } from '@deepseek-ai/cordis'
-import { parseEntryYaml, type PatchOptions } from '@deepseek-ai/cordis-plugin-include'
+import { parseEntryToml, parseEntryYaml, type PatchOptions } from '@deepseek-ai/cordis-plugin-include'
 import type { Entry, EntryOptions } from '@deepseek-ai/cordis-plugin-loader'
 import type {} from '@deepseek-ai/dsh-hmr'
 import { composeEntries, loadProfileDirectory, readProfilePatches, reconcileProfilePatches } from '@deepseek-ai/dsh-app-boot'
 import { withFileLock, writeFileAtomic } from '@deepseek-ai/dsh-atomic-write'
 import { isMap, isSeq, parseDocument, Scalar, visit } from 'yaml'
+import { editPatchRow } from './toml-edit.ts'
 
 declare module '@deepseek-ai/cordis' {
   interface Context {
@@ -19,6 +20,41 @@ declare module '@deepseek-ai/cordis' {
 
 function flatten(rows: EntryOptions[]): EntryOptions[] {
   return rows.flatMap(row => [row, ...row.group && Array.isArray(row.config) ? flatten(row.config as EntryOptions[]) : []])
+}
+
+/** Set or drop one row's override in a YAML patch layer, keeping the layer's comments and expressions.
+ * @param before - the layer's current source.
+ * @param row - the Loader entry whose configuration changes.
+ * @param next - the row's next configuration.
+ * @param inherited - the configuration without this row's override; equal values drop the override instead.
+ * @returns the rewritten source.
+ */
+function yamlPatch(before: string, row: Entry, next: Record<string, unknown>, inherited: Record<string, unknown>): string {
+  const document = parseDocument(before, {
+    customTags: [{ tag: 'tag:yaml.org,2002:js', resolve: (value: string) => value }],
+  })
+  if (document.errors[0] !== undefined) throw document.errors[0]
+  if (!isSeq(document.contents)) throw new Error('Profile patch must be a YAML sequence')
+  document.contents.flow = false
+  const index = document.contents.items.findLastIndex((item, index) => isMap(item)
+    && document.getIn([index, 'id']) === row.options.id && !item.has('insert')
+    && (!item.has('name') || document.getIn([index, 'name']) === row.options.name))
+  if (isDeepStrictEqual(next, inherited)) {
+    for (let index = document.contents.items.length - 1; index >= 0; index--) {
+      const item = document.contents.items[index]
+      if (!isMap(item) || document.getIn([index, 'id']) !== row.options.id || item.has('insert')) continue
+      item.delete('config')
+      if (item.items.length === Number(item.has('id')) + Number(item.has('name'))) document.delete(index)
+    }
+  } else if (index < 0) document.add(document.createNode({ id: row.options.id, name: row.options.name, config: next }))
+  else document.setIn([index, 'config'], document.createNode(next))
+  visit(document, { Map(_key, node) {
+    if (node.items.length !== 1 || typeof node.get('__jsExpr') !== 'string') return
+    const expression = new Scalar(node.get('__jsExpr'))
+    expression.tag = 'tag:yaml.org,2002:js'
+    return expression
+  } })
+  return String(document)
 }
 
 /** Persist complete raw configs and apply them through the normal Loader path. */
@@ -100,47 +136,27 @@ export class ConfigEditor extends Service {
         const fiber = entry.fiber
         if (fiber.state !== FiberState.ACTIVE) throw new Error('Configuration plugin is no longer active')
         fiber.resolveConfig(next)
+        const toml = extname(path) === '.toml'
         let before: string
         try { before = await readFile(path, 'utf8') }
         catch (error) {
           if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
-          before = '[]\n'
+          before = toml ? '' : '[]\n'
         }
-        // The editor rewrites YAML with its comments; a TOML patch layer has no writer yet.
-        // shortcut: TOML profile patches are read-only from this editor, add a TOML writer when editing them is needed.
-        if (extname(path) === '.toml') throw new Error(`${path}: the configuration editor does not edit TOML patch layers`)
-        const document = parseDocument(before, {
-          customTags: [{ tag: 'tag:yaml.org,2002:js', resolve: (value: string) => value }],
-        })
-        if (document.errors[0] !== undefined) throw document.errors[0]
-        if (!isSeq(document.contents)) throw new Error('Profile patch must be a YAML sequence')
-        document.contents.flow = false
-        const index = document.contents.items.findLastIndex((item, index) => isMap(item)
-          && document.getIn([index, 'id']) === entry.options.id && !item.has('insert')
-          && (!item.has('name') || document.getIn([index, 'name']) === entry.options.name))
-        if (isDeepStrictEqual(next, inherited)) {
-          for (let index = document.contents.items.length - 1; index >= 0; index--) {
-            const row = document.contents.items[index]
-            if (!isMap(row) || document.getIn([index, 'id']) !== entry.options.id || row.has('insert')) continue
-            row.delete('config')
-            if (row.items.length === Number(row.has('id')) + Number(row.has('name'))) document.delete(index)
-          }
-        } else if (index < 0) document.add(document.createNode({ id: entry.options.id, name: entry.options.name, config: next }))
-        else document.setIn([index, 'config'], document.createNode(next))
-        visit(document, { Map(_key, node) {
-          if (node.items.length !== 1 || typeof node.get('__jsExpr') !== 'string') return
-          const expression = new Scalar(node.get('__jsExpr'))
-          expression.tag = 'tag:yaml.org,2002:js'
-          return expression
-        } })
+        const serialized = toml
+          ? editPatchRow(before, entry.options, isDeepStrictEqual(next, inherited) ? undefined : next)
+          : yamlPatch(before, entry, next, inherited)
         const profile = this.ownerContext.profileContext
         const loaded = loadProfileDirectory('dsh', profile.dir, profile.installAnchor)
-        const patches = readProfilePatches('dsh', profile, { ...loaded, patches: parseEntryYaml(String(document)) as PatchOptions[] })
+        const patches = readProfilePatches('dsh', profile, {
+          ...loaded,
+          patches: (toml ? parseEntryToml(serialized) : parseEntryYaml(serialized)) as PatchOptions[],
+        })
         const effective = flatten(composeEntries([patches])).find(row => row.id === entry.options.id)
         if (!isDeepStrictEqual(effective?.config ?? {}, next)) {
           throw new Error(`Configuration for "${entry.options.id}" is overridden by a home patch or command-line overlay`)
         }
-        await writeFileAtomic(path, String(document), { mode: 0o600 })
+        await writeFileAtomic(path, serialized, { mode: 0o600 })
         try {
           await reconcileProfilePatches(this.ownerContext[Context.root], patches, 'dsh', [entry.options.id])
         } catch (error) {
