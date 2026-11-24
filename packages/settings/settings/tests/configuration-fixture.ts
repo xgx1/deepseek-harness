@@ -13,7 +13,7 @@ import DefaultModel from '@deepseek-ai/dsh-agent-default-model'
 import Settings from '../src/index.ts'
 
 export async function configurationFixture(
-  options: { schema?: z; apply?: (ctx: Context, config: unknown) => void; hmr?: boolean; overlay?: string } = {},
+  options: { schema?: z; apply?: (ctx: Context, config: unknown) => void; hmr?: boolean; overlay?: string; toml?: string } = {},
 ) {
   const home = realpathSync(mkdtempSync(join(tmpdir(), 'settings-config-')))
   const dir = join(home, 'profiles', 'test')
@@ -31,10 +31,12 @@ export async function configurationFixture(
     { id: 'second', name: 'cordis:probe', config: { ordinary: 'second' } },
   ] }]))
   writeFileSync(join(dir, 'cordis.yml'), '[]\n')
+  const patchPath = join(dir, options.toml === undefined ? 'cordis.patch.yml' : 'cordis.patch.toml')
+  if (options.toml !== undefined) writeFileSync(patchPath, options.toml)
   const overlayPath = join(home, 'overlay.patch.yml')
   if (options.overlay !== undefined) writeFileSync(overlayPath, options.overlay)
   const profile: ProfileContext = {
-    name: 'test', startedBundles: ['test-bundle'], dir, patchPath: join(dir, 'cordis.patch.yml'),
+    name: 'test', startedBundles: ['test-bundle'], dir, patchPath,
     installAnchor: join(home, 'package.json'), cwd: home, home,
     overlayPaths: options.overlay === undefined ? [] : [overlayPath], telemetryDisabledEnv: undefined,
   }
