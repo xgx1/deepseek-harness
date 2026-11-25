@@ -1,6 +1,6 @@
 {
   "name": "@deepseek-ai/dsh-root",
-  "version": "0.2.2-rc.5",
+  "version": "0.2.3-alpha.2",
   "license": "MIT",
   "private": true,
   "type": "module",
@@ -95,10 +95,15 @@
     "@deepseek-ai/dsh-notion": "workspace:*",
     "@deepseek-ai/dsh-forge-gitlab": "workspace:*",
     "@deepseek-ai/dsh-tool-session-list": "workspace:*",
-    "yaml": "^2.9.0"
+    "yaml": "^2.9.0",
+    "@deepseek-ai/dsh-dingtalk": "workspace:*",
+    "@deepseek-ai/dsh-feishu": "workspace:*",
+    "@deepseek-ai/dsh-wecom": "workspace:*",
+    "@deepseek-ai/dsh-tencent-meeting": "workspace:*",
+    "@deepseek-ai/dsh-tencent-docs": "workspace:*"
   },
   "engines": {
-    "node": ">=24.9.0"
+    "node": "^24.22.3 || >=26.13.1"
   },
   "workspaces": [
     "vendor/*",
@@ -320,7 +325,14 @@
     "gen-provider-data": "nub packages/llm/llm-pi-ai/scripts/gen-provider-data.ts",
     "verify-provider-data": "nub packages/llm/llm-pi-ai/scripts/gen-provider-data.ts --check",
     "verify-product-use": "nub scripts/verify-product-use.ts",
-    "probe:env": "node -e \"process.stdout.write(JSON.stringify({exec:process.env.npm_execpath||null, argc:process.argv.length}))\""
+    "probe:env": "node -e \"process.stdout.write(JSON.stringify({exec:process.env.npm_execpath||null, argc:process.argv.length}))\"",
+    "test:coverage:merge-shards": "nub scripts/merge-coverage-shards.ts",
+    "check:ci:coverage-shard": "nub scripts/run-gates.ts ci-coverage-shard",
+    "check:ci:bench-prebuilt": "nub scripts/run-gates.ts ci-bench-prebuilt",
+    "check:ci:build": "nub scripts/run-gates.ts ci-build",
+    "check:ci:consumers-prebuilt": "nub scripts/run-gates.ts ci-consumers-prebuilt",
+    "check:ci:web-snapshot-prebuilt": "nub scripts/run-gates.ts ci-web-snapshot-prebuilt",
+    "verify-css-selectors": "nub scripts/verify-css-selectors.ts"
   },
   "devEngines": {
     "packageManager": {

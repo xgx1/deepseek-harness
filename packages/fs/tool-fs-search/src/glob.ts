@@ -315,6 +315,7 @@ export function applyGlobTool(ctx: Context, caps: GlobToolCaps): void {
     text: ({ scope }) => ctx.tools.get('glob', scope) === undefined
       ? ''
       : '用 glob 工具（而不是 shell find）按路径模式查找文件。',
+    retirement: 'glob 工具已不再可用，它的指引不再适用。',
   })
 
   const overCapDescription = caps.sampleOverCapGlobResults ? 'is sampled across top-level entries' : 'keeps the first paths'

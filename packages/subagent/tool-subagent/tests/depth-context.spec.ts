@@ -76,10 +76,13 @@ describe('delegation depth context', () => {
     const { agent } = await ctx.agents.create({
       sessionId: brandString<SessionId>('scoped-depth-policy'),
       meta: { delegationDepth: 1 },
-      setup: async (agentCtx) => { await agentCtx.plugin(tool, { provider: 'mock', maxDepth: 1 }) },
+      setup: async (agentCtx) => {
+        agentCtx.tools.restrict({ deny: ['subagent'] })
+        await agentCtx.plugin(tool, { provider: 'mock', toolName: 'scoped_subagent', maxDepth: 1 })
+      },
     })
     expect(await depthContext(ctx, agent)).toEqual([
-      '`subagent` 的委派深度：当前 1，上限 1，剩余层数 0。不要在此深度调用 `subagent`；请直接完成工作。',
+      '`scoped_subagent` 的委派深度：当前 1，上限 1，剩余层数 0。不要在此深度调用 `scoped_subagent`；请直接完成工作。',
     ])
     const restore = root.ctx.tools.restrict({ deny: ['subagent'] })
     expect(await depthContext(ctx, root)).toEqual([])

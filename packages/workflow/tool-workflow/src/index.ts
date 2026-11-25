@@ -328,7 +328,8 @@ export function apply(ctx: Context, config: Config): void {
   ctx.systemPrompt.section({
     name: `tool:${toolName}`,
     order: ctx.systemPrompt.getSectionOrder('TOOL_WORKFLOW'),
-    text: `任务复杂、可拆成多路相互独立的工作时，自行判断是否使用 ${toolName} 工具，不必等用户点名：你写一个 JavaScript 脚本（工具描述里有确切的格式），把工作按阶段扇出到多个子 agent，并汇总结构化结果。只委派一两件事时，用普通的 subagent 调用即可。`,
+    text: `只有当用户明确要求 workflow 或大规模多 agent 编排时才使用 ${toolName} 工具：你写一个 JavaScript 脚本（工具描述里有确切的格式），把工作按阶段扇出到多个子 agent，并汇总结构化结果。只委派一两件事时，优先用普通的 subagent 调用。`,
+    retirement: `${toolName} 工具已不再可用，它的说明不再适用。`,
   })
   ctx.tools.register(defineTool({
     name: toolName,

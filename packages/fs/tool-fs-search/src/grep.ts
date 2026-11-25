@@ -281,6 +281,7 @@ export function applyGrepTool(ctx: Context, caps: GrepToolCaps): void {
       ? ''
       : '用 grep 工具（而不是 shell grep 或 rg）搜索文件内容。'
         + (ctx.tools.get('read', scope) === undefined ? '' : '需要看匹配处的上下文时，对匹配到的文件用 read。'),
+    retirement: 'grep 工具已不再可用，它的指引不再适用。',
   })
 
   const tool = defineTool({

@@ -65,6 +65,9 @@ name = "@deepseek-ai/dsh-tool-schedule"
 id = "skill-filesystem"
 name = "@deepseek-ai/dsh-skill-filesystem"
 
+[entry.insert.config.plugins.config]
+customSkillDirs = [ "js:process.getBuiltinModule('node:path').join(process.getBuiltinModule('node:path').dirname(process.getBuiltinModule('node:module').createRequire(baseUrl).resolve('@deepseek-ai/dsh-agent-preset/package.json')), 'skills')" ]
+
 [[entry.insert.config.plugins]]
 id = "tool-skill"
 name = "@deepseek-ai/dsh-tool-skill"
@@ -198,7 +201,7 @@ name = "@deepseek-ai/dsh-tool-office"
 [[entry.insert.config.plugins]]
 id = "tool-plugin-manager"
 name = "@deepseek-ai/dsh-plugin-manager/tools"
-disabled = true
+disabled = "js:!ctx.get('profileContext')"
 
 [[entry.insert.config.plugins]]
 id = "tool-plugin-market"

@@ -411,7 +411,8 @@ export function apply(ctx: Context, config: Config): void {
   ctx.systemPrompt.section({
     name: 'tool:ralph',
     order: ctx.systemPrompt.getSectionOrder('TOOL_RALPH'),
-    text: '任务复杂、需要多轮迭代逼近目标时，自行判断是否使用 ralph 工具，不必等用户点名。每一轮都新开一个不带对话种子的全新子 agent，共享工作区承载长期记忆。完成与阻塞是 worker 的报告，不是独立评估。普通的长时间同会话目标交给 goal 工具，有界的委派与扇出用普通 subagent 或 workflow。',
+    text: '只有当直接对话中的人明确要求 Ralph 循环或全新 agent 的迭代执行时，才使用 ralph 工具。每一轮 Ralph 都新开一个不带对话种子的全新子 agent，并让共享工作区承载长期记忆。完成与阻塞是 worker 的报告，不是独立评估。普通的长时间同会话目标交给同一会话的 goal 工具，有界的委派与扇出用普通 subagent 或 workflow。',
+    retirement: 'ralph 工具已不再可用，它的指引不再适用。',
   })
   ctx.tools.register(defineTool({
     name: 'ralph',

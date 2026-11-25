@@ -68,6 +68,7 @@ export function applyWriteTool(ctx: Context, sandbox: FsSandboxController): void
       : '用 write 覆盖已有文件前先读它'
         + (ctx.tools.get('edit', scope) === undefined ? '' : '；局部修改优先用 edit')
         + '。',
+    retirement: 'write 工具已不再可用，它的指引不再适用。',
   })
 
   ctx.tools.register(defineTool({

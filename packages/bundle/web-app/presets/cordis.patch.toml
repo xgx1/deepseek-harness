@@ -188,6 +188,9 @@ customSkillDirs = [ "js:process.getBuiltinModule('node:path').join(process.getBu
 id = "tool-skill"
 name = "@deepseek-ai/dsh-tool-skill"
 
+[entry.insert.config.plugins.config]
+excludedSkills = [ "official-plugins", "personalized-pages" ]
+
 [[entry.insert.config.plugins]]
 id = "present"
 name = "@deepseek-ai/dsh-tool-present"

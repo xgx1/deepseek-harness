@@ -110,7 +110,7 @@ jobs:
       - uses: nubjs/setup-nub@v0
       - uses: actions/setup-node@v7.0.0
         with:
-          node-version: '24'
+          node-version: '^24.22.3'
       - name: Configure persistent package caches
         env:
           DSH_DESKTOP_PACKAGE_CACHE_DIR: ${{ runner.tool_cache }}/dsh-desktop-package-cache
@@ -194,7 +194,7 @@ jobs:
       - uses: nubjs/setup-nub@v0
       - uses: actions/setup-node@v7.0.0
         with:
-          node-version: '24'
+          node-version: '^24.22.3'
       - name: Configure persistent package caches
         env:
           DSH_DESKTOP_PACKAGE_CACHE_DIR: ${{ runner.tool_cache }}/dsh-desktop-package-cache
