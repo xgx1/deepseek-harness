@@ -367,6 +367,7 @@ export function apply(ctx: Context, config: Config): void {
   ctx.systemPrompt.section({
     name: `tool:${toolName}`,
     order: ctx.systemPrompt.getSectionOrder('TOOL_SUBAGENT'),
+    retirement: `The ${toolName} tool is no longer available. Its instructions no longer apply.`,
     text: (context) => {
       if (mounted === undefined) return ''
       const visible = [...delegationTools]
@@ -374,8 +375,8 @@ export function apply(ctx: Context, config: Config): void {
         .map(tool => tool.name)
         .sort()
       if (visible[0] !== toolName) return ''
-      const names = visible.map(name => `${name}`).join(' 或 ')
-      return `独立的委派用 ${names} 在同一条 assistant 消息里一起发起，它们运行时继续做有用的工作。当只剩下等它们的结果时，结束本轮而不是睡眠或轮询；下一条结果会开启新一轮。给出用户最终答复前，先收集完成任务所需的 subagent 结果。\n\nbash、格式化器、代码生成器与脚本可能在没有冲突检测的情况下覆盖并发编辑；要显式协调它们的改动。集成这项工作的 agent 必须审查最终 diff 并跑相关测试。`
+      const names = visible.map(name => `\`${name}\``).join(' 或 ')
+      return `独立的委派用 ${names} 在同一条 assistant 消息里一起发起，它们运行时继续做有用的工作。所有 subagent 的并发上限是 ${ctx.subagents.maxActiveSubagents}。当只剩下等它们的结果时，结束本轮而不是睡眠或轮询；下一条结果会开启新一轮。给出用户最终答复前，先收集完成任务所需的 subagent 结果。\n\nbash、格式化器、代码生成器与脚本可能在没有冲突检测的情况下覆盖并发编辑；要显式协调它们的改动。集成这项工作的 agent 必须审查最终 diff 并跑相关测试。`
     },
   })
   ctx.systemPrompt.context({

@@ -73,6 +73,7 @@ export class McpResourceRuntime extends Service {
             + '用 list_mcp_resources、list_mcp_resource_templates 或 read_mcp_resource，把下列名称之一'
             + `作为 server 参数：${JSON.stringify(names)}。`
         },
+        retirement: 'The instructions for mcp-resource-servers no longer apply.',
       })
     })
   }

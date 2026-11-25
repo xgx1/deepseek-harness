@@ -2,7 +2,7 @@
 import { COMMON_GUIDANCE } from '@deepseek-ai/dsh-cua/guidance'
 
 /** Windows operation levels, application selectors, and input availability. */
-export const PLATFORM_GUIDANCE = 'Windows：无障碍树操作只在 window 层级可用。模拟鼠标与模拟键盘输入都在 window 层级可用。支持的修饰键：ctrl、alt、shift、win。control 是 ctrl 的别名。'
+export const PLATFORM_GUIDANCE = 'Windows：无障碍树操作只在 window 层级可用。模拟鼠标与模拟键盘输入都在 window 层级可用。支持的修饰键：ctrl、alt、shift、win。control 是 ctrl 的别名。按键与鼠标的按住都用桌面输入；按住期间让目标保持在前台，并通过同一个窗口释放。焦点变化之后，一次抬起会释放桌面输入而不会恢复焦点；原来的窗口可能收不到这个事件。'
 
 const methodDetails = new Map<string, string>([
   ['cua.getApp', 'Windows 接受 listApps 返回的精确 AUMID，或一个已存在的绝对 .exe 路径，包括 listApps 里没有的可执行文件。显示名与 PID 不能作为替选选择器。选择沿用现有的应用同意流程，并且只在该应用未运行时才启动它。'],

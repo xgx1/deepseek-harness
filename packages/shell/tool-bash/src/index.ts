@@ -293,6 +293,7 @@ export function apply(ctx: Context, config: Config = {}): void {
     name: 'tool:bash',
     order: ctx.systemPrompt.getSectionOrder('TOOL_BASH'),
     text: '每条 bash 结果都要看 [exit code: N] 标记；先查明失败再继续。',
+    retirement: 'bash 工具已不再可用，它的指引不再适用。',
   })
 
   /**

@@ -318,6 +318,7 @@ export function apply(ctx: Context, config: Config): void {
     name: 'tool:jobs',
     order: ctx.systemPrompt.getSectionOrder('TOOL_JOBS'),
     text: '记下你启动的每个后台任务 id。任务结束时会在会话内通知你 —— 不要对一个任务忙等或睡眠；继续做独立的步骤，也不要重复运行中任务的工作。给最终答复前，用 job_output 收集每个仍然相关的任务（只有确实被它阻塞时才设 wait: true），并用 job_kill 结束已经不再重要的任务。',
+    retirement: '后台任务工具已不再可用，它们的指引不再适用。',
   })
 
   // Live jobs whose kill the model itself requested through `job_kill`: that

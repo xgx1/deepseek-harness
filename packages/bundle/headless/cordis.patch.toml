@@ -17,12 +17,14 @@ personaPrefix = "你是一个由 {{model}} 模型驱动的编码 agent。"
 id = "headless-startup"
 name = "@deepseek-ai/dsh-headless/startup"
 
-    # Skills, MCP servers and tools follow the same per-project document the web app
-    # reads, so a one-shot task cannot reach what its workspace was not granted.
+    # Retired with the rest of per-project governance (2026-11-24, profiles/web):
+    # mounted, this masks every tool in a home without agent-configs.yaml, which
+    # is every fresh checkout and CI run. Re-enable only with a document default.
 [[entry.insert]]
 id = "agent-configs"
 name = "@deepseek-ai/dsh-agent-config"
 inject = [ "tools", "typert" ]
+disabled = true
 
     # Reads its task and run options from the ordinary headlessStartup provider.
 [[entry.insert]]

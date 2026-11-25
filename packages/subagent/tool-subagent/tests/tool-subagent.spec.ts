@@ -23,7 +23,7 @@ import { loadStoredSession } from '../../subagent/tests/persistence-helpers.ts'
 import * as mock from './scripted-provider.ts'
 import type { Config as toolConfig } from '../src/index.ts'
 import * as tool from '../src/index.ts'
-import type { SessionId } from '@deepseek-ai/dsh-session'
+import { Session, type SessionId } from '@deepseek-ai/dsh-session'
 import {
   callSubagent,
   disposeSetupProvider,
@@ -386,26 +386,35 @@ describe('dsh-tool-subagent', () => {
 
     const forkProvider = await mock.mountScriptedProvider(ctx, { name: 'fork', inheritsParentContext: true })
     expect(await delegationGuidance(ctx)).toEqual([
-      '独立的委派用 `subagent_fork` 在同一条 assistant 消息里一起发起，它们运行时继续做有用的工作。当只剩下等它们的结果时，结束本轮而不是睡眠或轮询；下一条结果会开启新一轮。给出用户最终答复前，先收集完成任务所需的 subagent 结果。\n\nbash、格式化器、代码生成器与脚本可能在没有冲突检测的情况下覆盖并发编辑；要显式协调它们的改动。集成这项工作的 agent 必须审查最终 diff 并跑相关测试。',
+      '独立的委派用 `subagent_fork` 在同一条 assistant 消息里一起发起，它们运行时继续做有用的工作。所有 subagent 的并发上限是 8。当只剩下等它们的结果时，结束本轮而不是睡眠或轮询；下一条结果会开启新一轮。给出用户最终答复前，先收集完成任务所需的 subagent 结果。\n\nbash、格式化器、代码生成器与脚本可能在没有冲突检测的情况下覆盖并发编辑；要显式协调它们的改动。集成这项工作的 agent 必须审查最终 diff 并跑相关测试。',
     ])
     await mock.mountScriptedProvider(ctx, { name: 'spawn' })
     expect(await delegationGuidance(ctx)).toEqual([
-      '独立的委派用 `subagent` 或 `subagent_fork` 在同一条 assistant 消息里一起发起，它们运行时继续做有用的工作。当只剩下等它们的结果时，结束本轮而不是睡眠或轮询；下一条结果会开启新一轮。给出用户最终答复前，先收集完成任务所需的 subagent 结果。\n\nbash、格式化器、代码生成器与脚本可能在没有冲突检测的情况下覆盖并发编辑；要显式协调它们的改动。集成这项工作的 agent 必须审查最终 diff 并跑相关测试。',
+      '独立的委派用 `subagent` 或 `subagent_fork` 在同一条 assistant 消息里一起发起，它们运行时继续做有用的工作。所有 subagent 的并发上限是 8。当只剩下等它们的结果时，结束本轮而不是睡眠或轮询；下一条结果会开启新一轮。给出用户最终答复前，先收集完成任务所需的 subagent 结果。\n\nbash、格式化器、代码生成器与脚本可能在没有冲突检测的情况下覆盖并发编辑；要显式协调它们的改动。集成这项工作的 agent 必须审查最终 diff 并跑相关测试。',
     ])
 
     await forkProvider.dispose()
     expect(await delegationGuidance(ctx)).toEqual([
-      '独立的委派用 `subagent` 在同一条 assistant 消息里一起发起，它们运行时继续做有用的工作。当只剩下等它们的结果时，结束本轮而不是睡眠或轮询；下一条结果会开启新一轮。给出用户最终答复前，先收集完成任务所需的 subagent 结果。\n\nbash、格式化器、代码生成器与脚本可能在没有冲突检测的情况下覆盖并发编辑；要显式协调它们的改动。集成这项工作的 agent 必须审查最终 diff 并跑相关测试。',
+      '独立的委派用 `subagent` 在同一条 assistant 消息里一起发起，它们运行时继续做有用的工作。所有 subagent 的并发上限是 8。当只剩下等它们的结果时，结束本轮而不是睡眠或轮询；下一条结果会开启新一轮。给出用户最终答复前，先收集完成任务所需的 subagent 结果。\n\nbash、格式化器、代码生成器与脚本可能在没有冲突检测的情况下覆盖并发编辑；要显式协调它们的改动。集成这项工作的 agent 必须审查最终 diff 并跑相关测试。',
     ])
     await mock.mountScriptedProvider(ctx, { name: 'fork', inheritsParentContext: true })
     await spawnTool.dispose()
     expect(await delegationGuidance(ctx)).toEqual([
-      '独立的委派用 `subagent_fork` 在同一条 assistant 消息里一起发起，它们运行时继续做有用的工作。当只剩下等它们的结果时，结束本轮而不是睡眠或轮询；下一条结果会开启新一轮。给出用户最终答复前，先收集完成任务所需的 subagent 结果。\n\nbash、格式化器、代码生成器与脚本可能在没有冲突检测的情况下覆盖并发编辑；要显式协调它们的改动。集成这项工作的 agent 必须审查最终 diff 并跑相关测试。',
+      '独立的委派用 `subagent_fork` 在同一条 assistant 消息里一起发起，它们运行时继续做有用的工作。所有 subagent 的并发上限是 8。当只剩下等它们的结果时，结束本轮而不是睡眠或轮询；下一条结果会开启新一轮。给出用户最终答复前，先收集完成任务所需的 subagent 结果。\n\nbash、格式化器、代码生成器与脚本可能在没有冲突检测的情况下覆盖并发编辑；要显式协调它们的改动。集成这项工作的 agent 必须审查最终 diff 并跑相关测试。',
     ])
     await forkTool.dispose()
     expect(await delegationGuidance(ctx)).toEqual([])
   })
 
+  it('reports the configured concurrency limit', async () => {
+    const ctx = await projectedContext()
+    await mountWorkingDirectoryFixture(ctx)
+    await ctx.plugin(SubagentRuntime)
+    await mock.mountScriptedProvider(ctx, { name: 'mock' })
+    await ctx.plugin(tool, { provider: 'mock' })
+    const guidance = (await delegationGuidance(ctx)).join(String.fromCharCode(10))
+    expect(guidance).toContain(`所有 subagent 的并发上限是 ${ctx.subagents.maxActiveSubagents}。`)
+  })
   it('shares guidance only among the viewing agent\'s visible delegation definitions', async () => {
     const ctx = await setup({ provider: 'mock' })
     await ctx.plugin(tool, { provider: 'mock', toolName: 'subagent_fork' })
@@ -414,21 +423,22 @@ describe('dsh-tool-subagent', () => {
     const peer = (await ctx.agents.create({ sessionId: brandString<SessionId>('guidance-peer') })).agent
     const showSpawn = parent.ctx.tools.restrict({ deny: ['subagent'] })
     expect(await delegationGuidance(ctx, parent)).toEqual([
-      '独立的委派用 `subagent_fork` 在同一条 assistant 消息里一起发起，它们运行时继续做有用的工作。当只剩下等它们的结果时，结束本轮而不是睡眠或轮询；下一条结果会开启新一轮。给出用户最终答复前，先收集完成任务所需的 subagent 结果。\n\nbash、格式化器、代码生成器与脚本可能在没有冲突检测的情况下覆盖并发编辑；要显式协调它们的改动。集成这项工作的 agent 必须审查最终 diff 并跑相关测试。',
+      '独立的委派用 `subagent_fork` 在同一条 assistant 消息里一起发起，它们运行时继续做有用的工作。所有 subagent 的并发上限是 8。当只剩下等它们的结果时，结束本轮而不是睡眠或轮询；下一条结果会开启新一轮。给出用户最终答复前，先收集完成任务所需的 subagent 结果。\n\nbash、格式化器、代码生成器与脚本可能在没有冲突检测的情况下覆盖并发编辑；要显式协调它们的改动。集成这项工作的 agent 必须审查最终 diff 并跑相关测试。',
     ])
     expect(await delegationGuidance(ctx, peer)).toEqual([
-      '独立的委派用 `subagent` 或 `subagent_fork` 在同一条 assistant 消息里一起发起，它们运行时继续做有用的工作。当只剩下等它们的结果时，结束本轮而不是睡眠或轮询；下一条结果会开启新一轮。给出用户最终答复前，先收集完成任务所需的 subagent 结果。\n\nbash、格式化器、代码生成器与脚本可能在没有冲突检测的情况下覆盖并发编辑；要显式协调它们的改动。集成这项工作的 agent 必须审查最终 diff 并跑相关测试。',
+      '独立的委派用 `subagent` 或 `subagent_fork` 在同一条 assistant 消息里一起发起，它们运行时继续做有用的工作。所有 subagent 的并发上限是 8。当只剩下等它们的结果时，结束本轮而不是睡眠或轮询；下一条结果会开启新一轮。给出用户最终答复前，先收集完成任务所需的 subagent 结果。\n\nbash、格式化器、代码生成器与脚本可能在没有冲突检测的情况下覆盖并发编辑；要显式协调它们的改动。集成这项工作的 agent 必须审查最终 diff 并跑相关测试。',
     ])
     expect(await delegationGuidance(unrelated)).toEqual([
-      '独立的委派用 `other_delegate` 在同一条 assistant 消息里一起发起，它们运行时继续做有用的工作。当只剩下等它们的结果时，结束本轮而不是睡眠或轮询；下一条结果会开启新一轮。给出用户最终答复前，先收集完成任务所需的 subagent 结果。\n\nbash、格式化器、代码生成器与脚本可能在没有冲突检测的情况下覆盖并发编辑；要显式协调它们的改动。集成这项工作的 agent 必须审查最终 diff 并跑相关测试。',
+      '独立的委派用 `other_delegate` 在同一条 assistant 消息里一起发起，它们运行时继续做有用的工作。所有 subagent 的并发上限是 8。当只剩下等它们的结果时，结束本轮而不是睡眠或轮询；下一条结果会开启新一轮。给出用户最终答复前，先收集完成任务所需的 subagent 结果。\n\nbash、格式化器、代码生成器与脚本可能在没有冲突检测的情况下覆盖并发编辑；要显式协调它们的改动。集成这项工作的 agent 必须审查最终 diff 并跑相关测试。',
     ])
     showSpawn()
 
-    const scoped = await parent.ctx.plugin(tool, { provider: 'mock', toolName: 'subagent' })
+    parent.ctx.tools.register({
+      ...ctx.tools.get('subagent')!, description: 'Scoped tool without delegation guidance.',
+    })
     expect(await delegationGuidance(ctx, parent)).toEqual([
-      '独立的委派用 `subagent` 或 `subagent_fork` 在同一条 assistant 消息里一起发起，它们运行时继续做有用的工作。当只剩下等它们的结果时，结束本轮而不是睡眠或轮询；下一条结果会开启新一轮。给出用户最终答复前，先收集完成任务所需的 subagent 结果。\n\nbash、格式化器、代码生成器与脚本可能在没有冲突检测的情况下覆盖并发编辑；要显式协调它们的改动。集成这项工作的 agent 必须审查最终 diff 并跑相关测试。',
+      '独立的委派用 `subagent_fork` 在同一条 assistant 消息里一起发起，它们运行时继续做有用的工作。所有 subagent 的并发上限是 8。当只剩下等它们的结果时，结束本轮而不是睡眠或轮询；下一条结果会开启新一轮。给出用户最终答复前，先收集完成任务所需的 subagent 结果。\n\nbash、格式化器、代码生成器与脚本可能在没有冲突检测的情况下覆盖并发编辑；要显式协调它们的改动。集成这项工作的 agent 必须审查最终 diff 并跑相关测试。',
     ])
-    await scoped.dispose()
     parent.ctx.tools.restrict({ deny: ['subagent', 'subagent_fork'] })
     expect(await delegationGuidance(ctx, parent)).toEqual([])
   })
@@ -470,9 +480,19 @@ describe('dsh-tool-subagent', () => {
       maxDepth: 'provider-managed',
     })
     expect(ctx.tools.schemas().some(s => s.name === 'subagent')).toBe(true)
-    expect((await ctx.systemPrompt.assemble()).sections.some(s => s.name === 'tool:subagent')).toBe(true)
+    const session = Session.create(brandString<SessionId>('tool-subagent-disposal'))
+    const initial = await ctx.systemPrompt.assemble({ session })
+    expect(initial.sections.some(s => s.name === 'tool:subagent')).toBe(true)
+    for (const message of admittedMessages(initial)) {
+      session.append('system/message', { turn: 1, step: 1, message }, { surfaceOp: 'append' })
+    }
     await mounted.dispose()
     expect(ctx.tools.schemas().some(s => s.name === 'subagent')).toBe(false)
+    const retirement = await ctx.systemPrompt.assemble({ session })
+    expect(admittedMessages(retirement).flatMap(message => message.source.sections ?? []))
+      .toContainEqual(expect.objectContaining({ name: 'tool:subagent', state: 'retired' }))
+    expect(admittedMessages(retirement).flatMap(message => message.content))
+      .toContainEqual({ type: 'text', text: 'The subagent tool is no longer available. Its instructions no longer apply.' })
     expect((await ctx.systemPrompt.assemble()).sections.some(s => s.name === 'tool:subagent')).toBe(false)
     expect(ctx.subagents.getProvider('continuable')).toBeDefined()
 
@@ -749,7 +769,7 @@ describe('dsh-tool-subagent local activation', () => {
     expect(properties.run_in_background).toBeUndefined()
     const assembly = await ctx.systemPrompt.assemble(assembleContextFor(parent))
     const guidance = assembly.sections.find(section => section.name === 'tool:subagent')
-    expect(guidance?.text).toBe('独立的委派用 `subagent` 在同一条 assistant 消息里一起发起，它们运行时继续做有用的工作。当只剩下等它们的结果时，结束本轮而不是睡眠或轮询；下一条结果会开启新一轮。给出用户最终答复前，先收集完成任务所需的 subagent 结果。\n\nbash、格式化器、代码生成器与脚本可能在没有冲突检测的情况下覆盖并发编辑；要显式协调它们的改动。集成这项工作的 agent 必须审查最终 diff 并跑相关测试。')
+    expect(guidance?.text).toBe('独立的委派用 `subagent` 在同一条 assistant 消息里一起发起，它们运行时继续做有用的工作。所有 subagent 的并发上限是 8。当只剩下等它们的结果时，结束本轮而不是睡眠或轮询；下一条结果会开启新一轮。给出用户最终答复前，先收集完成任务所需的 subagent 结果。\n\nbash、格式化器、代码生成器与脚本可能在没有冲突检测的情况下覆盖并发编辑；要显式协调它们的改动。集成这项工作的 agent 必须审查最终 diff 并跑相关测试。')
 
     const started = await callSubagent(
       ctx,
@@ -930,3 +950,7 @@ describe('depth budget configuration', () => {
     expect(requests[0]?.maxDepth).toBeUndefined()
   })
 })
+
+function admittedMessages(assembly: import('@deepseek-ai/dsh-system-prompt').PromptAssembly) {
+  return assembly.systemUpdates(false).map(update => update.message)
+}

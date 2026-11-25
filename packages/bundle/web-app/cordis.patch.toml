@@ -140,6 +140,13 @@ name = "@deepseek-ai/dsh-host-plugin-inventory"
 id = "session-controller"
 name = "@deepseek-ai/dsh-api-session-controller"
 
+    # Optional session_send_message tool; it activates targets through the
+    # Session controller above and lets an Agent message any ordinary Session.
+[[entry.insert]]
+id = "tool-session-control"
+name = "@deepseek-ai/dsh-tool-session-control"
+disabled = true
+
     # One background job's observation record streamed over Typert Remote;
     # the roster rides the session control stream above.
 [[entry.insert]]
@@ -437,6 +444,10 @@ id = "ui-settings-general"
 name = "@deepseek-ai/dsh-client-ui-settings-general"
 
 [[entry.insert]]
+id = "remote-connection"
+name = "@deepseek-ai/dsh-client-remote-connection"
+
+[[entry.insert]]
 id = "ui-settings-models"
 name = "@deepseek-ai/dsh-client-ui-settings-models"
 
@@ -507,6 +518,33 @@ name = "@deepseek-ai/dsh-client-ui-deliverables"
 [[entry.insert]]
 id = "workspace-changes"
 name = "@deepseek-ai/dsh-workspace-changes"
+
+    # Personalized recommendations: one optional card below an answer that
+    # offers a new personalized page or an official plugin. The two kinds
+    # register into action-cards; its `enabled` field is the Settings switch.
+[[entry.insert]]
+id = "action-cards"
+name = "@deepseek-ai/dsh-action-cards"
+
+[[entry.insert]]
+id = "client-ui-action-cards"
+name = "@deepseek-ai/dsh-client-ui-action-cards"
+
+[[entry.insert]]
+id = "creation-recommendations"
+name = "@deepseek-ai/dsh-creation-recommendations"
+
+[[entry.insert]]
+id = "client-ui-creation-recommendations"
+name = "@deepseek-ai/dsh-client-ui-creation-recommendations"
+
+[[entry.insert]]
+id = "plugin-recommendations"
+name = "@deepseek-ai/dsh-plugin-recommendations"
+
+[[entry.insert]]
+id = "client-ui-plugin-recommendations"
+name = "@deepseek-ai/dsh-client-ui-plugin-recommendations"
 
 [[entry.insert]]
 id = "ui-workspace"

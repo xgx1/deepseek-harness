@@ -80,6 +80,7 @@ export function applyEditTool(ctx: Context, sandbox: FsSandboxController): void 
     text: ({ scope }) => ctx.tools.get('edit', scope) === undefined
       ? ''
       : '改文件前先读它，除非这个文件是你本会话刚创建或刚改过的。',
+    retirement: 'edit 工具已不再可用，它的指引不再适用。',
   })
 
   ctx.tools.register(defineTool({

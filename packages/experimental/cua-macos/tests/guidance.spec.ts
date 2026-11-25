@@ -1,15 +1,16 @@
 /** Model-facing guidance lists the object API with platform availability and input constraints. */
 import { expect, it } from 'vitest'
 import type { CuaApi, CuaApp, CuaSurface, CuaWindow } from '@deepseek-ai/dsh-cua/api'
-import { COMMON_GUIDANCE, withSystemPointerGuidance } from '@deepseek-ai/dsh-cua/guidance'
+import { COMMON_GUIDANCE, withHeldInputGuidance, withSystemInputGuidance } from '@deepseek-ai/dsh-cua/guidance'
 import { GUIDANCE, PLATFORM_GUIDANCE, PROGRAM_GUIDANCE } from '../src/guidance.ts'
 
 const apiNames: Array<keyof CuaApi> = ['getCapabilities', 'listApps', 'findApps', 'getState', 'getApp']
 const accessibilityNames: Array<Exclude<keyof CuaSurface, 'sendKeyEvent'>> = [
-  'getAccessibilityTree', 'listActions', 'invoke', 'performAction', 'setValue', 'selectText',
+  'getAccessibilityTree', 'listActions', 'getActionSchema', 'invoke', 'performAction', 'setValue', 'selectText',
 ]
 const appNames: Array<keyof CuaApp> = ['appHandle', 'activate', 'getWindows', 'getWindow']
 const windowNames: Array<keyof CuaWindow> = ['windowId', 'getScreenshot', 'mouseMove', 'toggleMouse', 'click', 'scroll', 'drag']
+const getActionSchemaLine = '- getActionSchema(action: string) -> JSON Schema — 查询某个动作的参数 schema。'
 
 it('keeps file-tool instructions in PTC and limits the program guidance to available bindings', () => {
   for (const name of ['tools.write', 'tools.grep', 'tools.read']) {
@@ -35,16 +36,16 @@ it('prefixes concise platform guidance before the shared catalog', () => {
 })
 
 it.each([GUIDANCE, PROGRAM_GUIDANCE])('explains when macOS mouse input needs a system-pointer prompt', (catalog) => {
-  const instructions = withSystemPointerGuidance(catalog)
-  expect(catalog.split('- mouseMove(')[0]).toContain('保持 useSystemPointer 不设置')
-  expect(instructions).toContain('优先使用元素声明的无障碍动作、对可见控件的点击，或浏览器工具。')
-  expect(instructions).toContain('这个询问会打断用户。')
-  expect(instructions).toContain('省略该选项或传 false 会走默认的悬停路径，不会弹询问。')
-  expect(instructions).toContain("direction: 'down' | 'up', options?: { useSystemPointer?: boolean }")
-  expect(instructions).toContain('请在按下与松开时都传 useSystemPointer: true')
-  const drag = catalog.split('\n').find(line => line.startsWith('- drag('))
-  expect(drag).toContain('useSystemPointer?: boolean')
-  expect(drag).toContain('省略 useSystemPointer 或传 false 时，拖动直接发往窗口，不请求鼠标控制。')
+  const instructions = withSystemInputGuidance(catalog)
+  expect(catalog.split('- mouseMove(')[0]).toContain('保持 useSystemInput 不设置')
+  expect(instructions).toContain('有受支持的非系统操作能满足任务时，优先用它。')
+  expect(instructions).toContain('审批询问会打断用户；')
+  expect(instructions).toContain('省略该选项或传 false 会用提供方的默认行为。')
+  expect(instructions).toContain("direction: 'down' | 'up', options?: { useSystemInput?: boolean }")
+  expect(instructions).toContain('请在按下时传 useSystemInput: true')
+  const drag = instructions.split('\n').find(line => line.startsWith('- drag('))
+  expect(drag).toContain('useSystemInput?: boolean')
+  expect(drag).toContain('省略 useSystemInput 或传 false 时，拖动直接发往窗口，不请求鼠标控制。')
   expect(COMMON_GUIDANCE).not.toContain('面向窗口的拖动')
 })
 
@@ -54,11 +55,13 @@ it('states the macOS accessibility, keyboard, and mouse levels', () => {
   expect(PLATFORM_GUIDANCE).toContain('模拟鼠标输入在 window 层级可用')
   const pressKey = GUIDANCE.split('\n').find(line => line.startsWith('- pressKey('))
   expect(GUIDANCE).toContain("sendKeyEvent(key: string, direction: 'down' | 'up')")
-  expect(GUIDANCE).toContain('当本次程序返回、抛错，或用户暂停它时')
+  expect(COMMON_GUIDANCE).not.toContain('sendKeyEvent 与 toggleMouse 发出的显式按下')
+  expect(withHeldInputGuidance(COMMON_GUIDANCE)).toContain('sendKeyEvent 与 toggleMouse 发出的显式按下')
+  expect(withHeldInputGuidance(COMMON_GUIDANCE)).toContain('系统提醒会列出仍按住的按键与鼠标键')
   const sharedKeyEvent = COMMON_GUIDANCE.split('\n').find(line => line.startsWith('- sendKeyEvent('))
   expect(sharedKeyEvent).toBeDefined()
   expect(GUIDANCE.split('\n').find(line => line.startsWith('- sendKeyEvent('))).toContain(sharedKeyEvent)
-  expect(pressKey).toBe(COMMON_GUIDANCE.split('\n').find(line => line.startsWith('- pressKey(')))
+  expect(pressKey).toContain(COMMON_GUIDANCE.split('\n').find(line => line.startsWith('- pressKey(')))
   expect(GUIDANCE).toContain('W down、D down、D up、W up')
   const hover = GUIDANCE.split('\n').find(line => line.startsWith('- mouseMove('))
   for (const term of ['AXShowAlternateUI', 'AXShowDefaultUI', 'HOVER_UNAVAILABLE']) expect(hover).toContain(term)
@@ -83,7 +86,7 @@ it('documents explicit mouse-button events immediately after mouseMove', () => {
 it.each([GUIDANCE, PROGRAM_GUIDANCE])('documents the default window release and the optional system hold', (catalog) => {
   const entry = catalog.split('\n').find(line => line.startsWith('- toggleMouse('))
   expect(entry).toContain('默认由窗口接收事件，即使释放在窗口之外也一样，操作系统层的按钮仍保持未按下。')
-  expect(entry).toContain('请在按下与松开时都传 useSystemPointer: true')
+  expect(entry).toContain('要做系统级按住，请在按下时传 useSystemInput: true。')
 })
 
 it('enumerates every public method once in its catalog entry', () => {
@@ -98,10 +101,23 @@ it('enumerates every public method once in its catalog entry', () => {
   for (const catalog of [COMMON_GUIDANCE, GUIDANCE, PROGRAM_GUIDANCE]) {
     for (const signature of signatures) expect(catalog.split('\n').filter(line => line.startsWith(`- ${signature}`))).toHaveLength(1)
   }
-  expect(signatures).toHaveLength(26)
-  expect(new Set(signatures.map(signature => signature.slice(signature.indexOf('.') + 1, -1))).size).toBe(25)
+  expect(signatures).toHaveLength(27)
+  expect(new Set(signatures.map(signature => signature.slice(signature.indexOf('.') + 1, -1))).size).toBe(26)
   expect(COMMON_GUIDANCE).toContain('app.appHandle')
   expect(COMMON_GUIDANCE).toContain('window.windowId')
+})
+
+it('documents getActionSchema beside listActions with only an action argument', () => {
+  const lines = COMMON_GUIDANCE.split('\n')
+  const listActions = lines.findIndex(line => line.startsWith('- listActions('))
+  expect(lines[listActions + 1]).toBe(getActionSchemaLine)
+  expect(getActionSchemaLine.split(' — ')[0]).toBe('- getActionSchema(action: string) -> JSON Schema')
+})
+
+it.each([GUIDANCE, PROGRAM_GUIDANCE])('keeps action schema guidance focused on its purpose', (catalog) => {
+  const entry = catalog.split('\n').find(line => line.startsWith('- getActionSchema('))
+  expect(entry).toBe(getActionSchemaLine)
+  expect(COMMON_GUIDANCE).not.toContain('Role.Attribute.Set')
 })
 
 it('documents option fields and return fields', () => {
@@ -114,7 +130,7 @@ it('inlines discovery, restoration, and mouse-move return records', () => {
   for (const name of ['cua.getCapabilities', 'cua.listApps', 'cua.findApps', 'cua.getState', 'app.getWindows', 'app.show', 'window.show', 'mouseMove']) {
     expect(lines.find(line => line.startsWith(`- ${name}(`))).toMatch(/ -> \(?\{ /)
   }
-  expect(COMMON_GUIDANCE).toContain("{ platform: string, permissions: { accessibility: boolean, screenRecording: boolean }, appLevelAccessibility: boolean, systemPointer: boolean, keyboard: ('app' | 'window')[], sessionLocked: boolean | null, methods: string[], coordinateSpace: 'screenshot-pixels', browser: false }")
+  expect(COMMON_GUIDANCE).toContain("{ platform: string, permissions: { accessibility: boolean, screenRecording: boolean }, appLevelAccessibility: boolean, systemInput: boolean, keyboard: ('app' | 'window')[], sessionLocked: boolean | null, methods: string[], coordinateSpace: 'screenshot-pixels', browser: false }")
   expect(COMMON_GUIDANCE).toContain('{ id: string, displayName: string, isRunning: boolean, pid?: number }[]')
   expect(COMMON_GUIDANCE).toContain('{ id: string, displayName: string, path: string, isRunning: boolean, pid?: number }[]')
   expect(COMMON_GUIDANCE).toContain('getScreenshot() -> Image')
@@ -124,7 +140,7 @@ it('inlines discovery, restoration, and mouse-move return records', () => {
 it('documents shared types while leaving Modifier members platform-defined', () => {
   const signatures = COMMON_GUIDANCE.split('\n').filter(line => line.startsWith('- ')).map(line => line.split(' — ')[0]).join('\n')
   const names = signatures.replace(/'[^']*'/g, '').match(/\b[A-Z][A-Za-z0-9_]*\b/g) ?? []
-  expect([...new Set(names)].sort()).toEqual(['ActionResult', 'App', 'Image', 'JsonValue', 'Modifier', 'Window'])
+  expect([...new Set(names)].sort()).toEqual(['ActionResult', 'App', 'Image', 'JSON', 'JsonValue', 'Modifier', 'Schema', 'Window'])
   expect(COMMON_GUIDANCE).toContain('ActionResult = { dispatched: boolean, foregroundChanged?: boolean | null }')
   expect(COMMON_GUIDANCE).toContain('JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue }')
   expect(COMMON_GUIDANCE).toContain('App 是应用对象，含只读的 app.appHandle: string（不透明）')
@@ -190,4 +206,15 @@ it('documents explicit inspection and separate key arguments', () => {
 
 it('omits stale names and unrelated operations', () => {
   for (const stale of ['getAXState', 'emit', 'disableDiffing', 'performSecondaryAction', 'hover(', 'keyChord', 'window.typeText', 'window.pressKey', 'elementIndex', 'verified: false', 'browser tabs']) expect(GUIDANCE).not.toContain(stale)
+})
+
+it('adds system-input selection to exactly the six supported methods', () => {
+  const catalog = withSystemInputGuidance(PROGRAM_GUIDANCE)
+  const selected = catalog.split('\n').filter(line => line.startsWith('- ') && line.split(' -> ')[0]?.includes('useSystemInput'))
+    .map(line => line.slice(2, line.indexOf('(')))
+  expect(selected).toEqual(['mouseMove', 'toggleMouse', 'click', 'drag', 'pressKey', 'sendKeyEvent'])
+})
+
+it('rejects malformed provider input signatures instead of truncating their text', () => {
+  expect(() => withSystemInputGuidance('- click(target)')).toThrow('missing the result separator for click')
 })

@@ -14,7 +14,7 @@ export const COMMON_GUIDANCE = `用 cua 观察并操作原生应用。始终先�
 支持的修饰键名称取决于平台与操作，见平台指南。
 
 准备与发现：
-- cua.getCapabilities() -> { platform: string, permissions: { accessibility: boolean, screenRecording: boolean }, appLevelAccessibility: boolean, systemPointer: boolean, keyboard: ('app' | 'window')[], sessionLocked: boolean | null, methods: string[], coordinateSpace: 'screenshot-pixels', browser: false } — 在不请求任何权限的前提下检查它报告的 permissions、sessionLocked、methods 与 keyboard 作用域。
+- cua.getCapabilities() -> { platform: string, permissions: { accessibility: boolean, screenRecording: boolean }, appLevelAccessibility: boolean, systemInput: boolean, keyboard: ('app' | 'window')[], sessionLocked: boolean | null, methods: string[], coordinateSpace: 'screenshot-pixels', browser: false } — 在不请求任何权限的前提下检查它报告的 permissions、sessionLocked、methods 与 keyboard 作用域。
 - cua.listApps() -> { id: string, displayName: string, isRunning: boolean, pid?: number }[] — 列出提供方可选的应用及其当前运行状态；把返回的 id 原样传给 cua.getApp。
 - cua.findApps(query: string) -> { id: string, displayName: string, path: string, isRunning: boolean, pid?: number }[] — 搜索已安装应用，包含未运行的匹配项。
 - cua.getState() -> { apps: { id: string, displayName: string, isRunning: boolean, pid?: number }[], browsers: [] } — 概述同一份提供方发现结果；这不是无障碍观察。
@@ -31,6 +31,7 @@ export const COMMON_GUIDANCE = `用 cua 观察并操作原生应用。始终先�
 使用元素 ID 之前必须先显式读取 getAccessibilityTree。选择与截图不会读取或替换当前的 AX 快照。元素 ID 是取自最近一次成功树的不透明字符串；对象门面在同一应用的多次 app 与 window 对象之间只保留一份当前快照，新的读取会替换它，读取失败会让上一份失效。不同元素可能出现重复的字符串，所以不要盲目复用旧 ID；元素操作也不会退化为指针输入或键盘输入。
 - getAccessibilityTree(options?: { includeMenus?: boolean, details?: boolean, maxElements?: number, maxDepth?: number }) -> string — 为这一次读取设定节点数或深度上限。省略时使用提供方设置。includeMenus 展开菜单内容，details 附加标识符、原生边界与完整动作名。
 - listActions(elementId: string) -> string[] — 列出元素声明的动作。
+- getActionSchema(action: string) -> JSON Schema — 查询某个动作的参数 schema。
 - invoke(elementId: string) -> ActionResult — 调用元素的默认动作；元素没有默认动作时 dispatched 为 false。
 - performAction(elementId: string, action: string, argument?: JsonValue) -> ActionResult — 执行一个观察到的动作，可带一个直接 JSON 参数。
 - setValue(elementId: string, value: JsonValue) -> ActionResult — 写控件的值。
@@ -61,14 +62,34 @@ click、drag 与 pressKey 是便捷操作；sendKeyEvent、mouseMove 与 toggleM
 
 原生工具使用 { method, params }：app 调用要带 appHandle，window 调用要带 windowId，元素路由要用 snapshotId 配 elementId。getAccessibilityTree 对应 getState；getWindow 没有原生方法；getWindows 对应 listWindows；getScreenshot 对应 screenshot；cua.getState 对应 listApps；其余命名操作使用同名方法。`
 
+/** Add held-input behavior where the provider supplies native ownership and cleanup.
+ * @param guidance - Provider instructions including the shared operation catalog.
+ * @returns Instructions for a provider with held-input state support.
+ */
+export function withHeldInputGuidance(guidance: string): string {
+  return guidance.replace('click、drag 与 pressKey 是便捷操作；', `sendKeyEvent 与 toggleMouse 发出的显式按下会跨程序、跨轮次保持按住，直到通过同一个目标显式抬起才释放。一次成功的 run_code 或 cua_run_code 之后，系统提醒会列出仍按住的按键与鼠标键、它们的目标与输入模式；一个都不剩时不加提醒。程序失败、收到取消、连接关闭与释放会按相反的分发顺序一起释放这些归属输入。DSH 停止之后，下一次 CUA 操作会先等待任何未完成的清理。已完成的 MCP 调用之间的客户端暂停是服务器观察不到的，因此输入可能仍处于按下状态。pressKey、typeText、click 与完整执行的 drag 都会在操作内部释放自己发送的输入。
+
+click、drag 与 pressKey 是便捷操作；`)
+}
+
 /**
- * Describe the system-pointer option for a provider that declares the capability.
+ * Describe the system-input option for a provider that declares the capability.
  * @param guidance Provider instructions including the shared operation catalog.
  * @returns The capability-specific signature and permission instructions.
  */
-export function withSystemPointerGuidance(guidance: string): string {
-  const signature = 'mouseMove(target: string | [number, number], options?: { relative?: boolean, useSystemPointer?: boolean })'
-  return `${guidance.replace(hoverSignature, signature)}
+export function withSystemInputGuidance(guidance: string): string {
+  const methods = new Set(['mouseMove', 'toggleMouse', 'click', 'drag', 'pressKey', 'sendKeyEvent'])
+  const catalog = guidance.replace(/^- ([\w.]+)\(.*$/gm, (entry, method: string) => {
+    if (!methods.has(method)) return entry
+    const end = entry.indexOf(') -> ')
+    if (end < 0) throw new Error(`System input guidance is missing the result separator for ${method}`)
+    const signature = entry.slice(0, end)
+    const extended = signature.includes('options:') || signature.includes('options?:')
+      ? signature.replace(' }', ', useSystemInput?: boolean }')
+      : `${signature}, options?: { useSystemInput?: boolean }`
+    return extended + entry.slice(end)
+  })
+  return `${catalog}
 
-只有在不动用户指针就无法完成任务时，才调用 await win.mouseMove(target, { useSystemPointer: true })。优先使用元素声明的无障碍动作、对可见控件的点击，或浏览器工具。这个询问会打断用户。审批被禁用时，显式移动可以立即生效。即使已经批准，每一次物理移动也都要传 true。省略该选项或传 false 会走默认的悬停路径，不会弹询问。批准或拒绝一直有效，直到本会话关闭或 DSH 重启。拒绝不会发送任何输入。用户关掉询问时，只有在他们主动要求时才再问一次。等未完成的请求结束。子代理不能请求系统鼠标控制。`
+只有当任务需要系统键盘或鼠标输入时，才传 useSystemInput: true。省略该选项或传 false 会用提供方的默认行为。启用审批时，第一次显式系统输入会请求权限；否则立即执行。有受支持的非系统操作能满足任务时，优先用它。审批询问会打断用户；批准或拒绝一直有效，直到本会话关闭或 DSH 重启。批准不会改变之后的调用：每一次系统操作都要传 true。用户关掉询问时，只有他们主动要求时才再问一次。等待未完成的请求结束。子代理不能请求系统输入。`
 }
